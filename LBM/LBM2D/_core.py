@@ -21,6 +21,7 @@ class LBM2DSolver:
         self.max_v=ti.field(ti.f32,shape=())
         self.source_term_model = SOURCE_TERM.NONE
         self.force_term_model = FORCE_TERM.NONE
+        self.boundary_condition_model = BC_MODEL.NEE
         # LBM使用常量
         self.e9 = ti.Vector.field(3,ti.i32, shape=(9)) # e 方向向量
         self.w9 = ti.field(ti.f32, shape=(9)) # 权重

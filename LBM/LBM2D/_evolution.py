@@ -5,6 +5,10 @@ from ._thermal import TemperatureFluid,TemperatureSolid
 from ..util.flag import *
 @ti.data_oriented
 class LBM2D_EVOLUTION:
+    """
+    evolution part of LBM
+    The realisation of Boundary condition is written in _boundary.py because of its complexity
+    """
     SIGMA = 5.67e-8
     def step(self):
         self.step_kernel()
@@ -14,8 +18,13 @@ class LBM2D_EVOLUTION:
     @ti.kernel
     def step_kernel(self):
         self.collision_source_streaming()
+        if ti.static(self.boundary_condition_model==BC_MODEL.NEBB):
+            self.Boundary_condition_NEBB()
         self.macro()  # F->value
-        self.Boundary_condition() # value changed for the boundary condition
+        if ti.static(self.boundary_condition_model==BC_MODEL.NEE):
+            self.Boundary_condition_NEE() # value changed for the boundary condition
+        if ti.static(self.boundary_condition_model==BC_MODEL.EQUILIBRIUM):
+            self.Boundary_condition_EQUILIBRIUM()
     @ti.func
     def collision_source_streaming(self): 
         # collistion + source term + streaming : merge kernels
@@ -92,95 +101,6 @@ class LBM2D_EVOLUTION:
             #         else: # 更新之后无固体 迁移步骤中认为是绝热壁 热交换在源项中
             #             if ti.static(self.TEMPERATURE):
             #                 self.TS.G[i][self.LR[s]] = self.TS.g[i][s]
-    @ti.func
-    def Boundary_condition(self):
-        for j,k in ti.ndrange(self.ny,self.nz):            
-            self.Boundary_condition_flow_0(0,j,k)
-            if ti.static(self.CHEMISTRY):
-                for specie in ti.static(list(self.species.values())):
-                    if ti.static(not specie.FIX):
-                        specie.Boundary_condition_scalar_0(0,j,k)
-            if ti.static(self.TEMPERATURE):
-                # print("boundary IE")
-                self.TF.Boundary_condition_scalar_0(0,j,k) # note: 后更新焓的边界条件，使用到的热容计算需要边界区域的物质浓度
-                self.TS.Boundary_condition_scalar_0(0,j,k)
-            self.Boundary_condition_flow_1(self.nx-1,j,k)
-            if ti.static(self.CHEMISTRY):
-                for specie in ti.static(list(self.species.values())):
-                    if ti.static(not specie.FIX):
-                        specie.Boundary_condition_scalar_1(self.nx-1,j,k)
-            if ti.static(self.TEMPERATURE):
-                self.TF.Boundary_condition_scalar_1(self.nx-1,j,k) # note: 后更新焓的边界条件，使用到的热容计算需要边界区域的物质浓度
-                self.TS.Boundary_condition_scalar_1(self.nx-1,j,k)
-        for i,k in ti.ndrange(self.nx,self.nz):
-            self.Boundary_condition_flow_2(i,0,k)
-            if ti.static(self.CHEMISTRY):
-               for specie in ti.static(list(self.species.values())):
-                    if ti.static(not specie.FIX):
-                        specie.Boundary_condition_scalar_2(i,0,k)
-            if ti.static(self.TEMPERATURE):
-                # print("boundary IE")
-                self.TF.Boundary_condition_scalar_2(i,0,k) # note: 后更新焓的边界条件，使用到的热容计算需要边界区域的物质浓度
-                self.TS.Boundary_condition_scalar_2(i,0,k)
-            self.Boundary_condition_flow_3(i,self.ny-1,k)
-            if ti.static(self.CHEMISTRY):
-                for specie in ti.static(list(self.species.values())):
-                    if ti.static(not specie.FIX):
-                        specie.Boundary_condition_scalar_3(i,self.ny-1,k)
-            if ti.static(self.TEMPERATURE):
-                # print("boundary IE")
-                self.TF.Boundary_condition_scalar_3(i,self.ny-1,k) # note: 后更新焓的边界条件，使用到的热容计算需要边界区域的物质浓度
-                self.TS.Boundary_condition_scalar_3(i,self.ny-1,k)
-
-    @ti.func
-    def Boundary_condition_flow_0(self,x,y,z):
-        if ti.static(self.bc_v[0]==BC.fixedValue):
-            self.v[0,y,z] = self.v_BC[0]
-        elif ti.static(self.bc_v[0]==BC.zeroGadient):
-            self.v[0,y,z] = self.v[1,y,z]
-        if ti.static(self.bc_rho[0]==BC.fixedValue):
-            self.rho[0,y,z] = self.rho_BC[0]
-        elif ti.static(self.bc_rho[0]==BC.zeroGadient):
-            self.rho[0,y,z] = self.rho[1,y,z]
-        for s in ti.static(range(9)):
-            self.f[0,y,z][s] = self.feq9(s,self.rho[0,y,z],self.v[0,y,z])+(self.f[1,y,z][s]-self.feq9(s,self.rho[1,y,z],self.v[1,y,z]))
-    @ti.func
-    def Boundary_condition_flow_1(self,x,y,z):
-        
-        if ti.static(self.bc_v[1]==BC.fixedValue):
-            self.v[self.nx-1,y,z] = self.v_BC[1]
-        elif ti.static(self.bc_v[1]==BC.zeroGadient):
-            self.v[self.nx-1,y,z] = self.v[self.nx-2,y,z]
-        if ti.static(self.bc_rho[1]==BC.fixedValue):
-            self.rho[self.nx-1,y,z] = self.rho_BC[1]
-        elif ti.static(self.bc_rho[1]==BC.zeroGadient):
-            self.rho[self.nx-1,y,z] = self.rho[self.nx-2,y,z]
-        for s in ti.static(range(9)):
-            self.f[self.nx-1,y,z][s] = self.feq9(s,self.rho[self.nx-1,y,z],self.v[self.nx-1,y,z])+(self.f[self.nx-2,y,z][s]-self.feq9(s,self.rho[self.nx-2,y,z],self.v[self.nx-2,y,z]))
-    @ti.func
-    def Boundary_condition_flow_2(self,x,y,z):
-        if ti.static(self.bc_v[2]==BC.fixedValue):
-            self.v[x,0,z] = self.v_BC[2]
-        elif ti.static(self.bc_v[2]==BC.zeroGadient):
-            self.v[x,0,z] = self.v[x,1,z]
-        if ti.static(self.bc_rho[2]==BC.fixedValue):
-            self.rho[x,0,z] = self.rho_BC[2]
-        elif ti.static(self.bc_rho[2]==BC.zeroGadient):
-            self.rho[x,0,z] = self.rho[x,1,z]
-        for s in ti.static(range(9)):
-            self.f[x,0,z][s] = self.feq9(s,self.rho[x,0,z],self.v[x,0,z])+(self.f[x,1,z][s]-self.feq9(s,self.rho[x,1,z],self.v[x,1,z]))
-    @ti.func
-    def Boundary_condition_flow_3(self,x,y,z):
-        if ti.static(self.bc_v[3]==BC.fixedValue):
-            self.v[x,self.ny-1,z] = self.v_BC[3]
-        elif ti.static(self.bc_v[3]==BC.zeroGadient):
-            self.v[x,self.ny-1,z] = self.v[x,self.ny-2,z]
-        if ti.static(self.bc_rho[3]==BC.fixedValue):
-            self.rho[x,self.ny-1,z] = self.rho_BC[3]
-        elif ti.static(self.bc_rho[3]==BC.zeroGadient):
-            self.rho[x,self.ny-1,z] = self.rho[x,self.ny-2,z]
-        for s in ti.static(range(9)):
-            self.f[x,self.ny-1,z][s] = self.feq9(s,self.rho[x,self.ny-1,z],self.v[x,self.ny-1,z])+(self.f[x,self.ny-2,z][s]-self.feq9(s,self.rho[x,self.ny-2,z],self.v[x,self.ny-2,z]))
    
     def updateBC(self,t):
         for func in self.UpdateBCfunc:
@@ -337,5 +257,5 @@ class LBM2D_EVOLUTION:
         if ti.static(self.radiation_model==RADIATION_MODEL.SURFACE_UNIFORM):
             q += LBM2D_EVOLUTION.SIGMA*self.radiation_surface[i]/self.dx*(ti.pow(self.Tambient,4)-ti.pow(self.TS.S[i],4))
         elif ti.static(self.radiation_model==RADIATION_MODEL.REAL_RADIATION):
-            q += self.real_radiation[i]-LBM2D_EVOLUTION.SIGMA*self.radiation_surface[i]/self.dx*ti.pow(self.TS.S[i],4)
+            iq += self.real_radiation[i]-LBM2D_EVOLUTION.SIGMA*self.radiation_surface[i]/self.dx*ti.pow(self.TS.S[i],4)
         return q

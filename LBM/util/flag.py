@@ -32,3 +32,8 @@ class BC_FLOW(Enum):
     outlet = 2
     wall = 3
     symmetric = 4
+class BC_MODEL(Enum):
+    NONE = 0
+    NEE = 1
+    NEBB = 2
+    EQUILIBRIUM = 3
