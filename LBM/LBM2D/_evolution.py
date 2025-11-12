@@ -17,10 +17,10 @@ class LBM2D_EVOLUTION:
         
     @ti.kernel
     def step_kernel(self):
-        self.collision_source_streaming()
+        self.collision_source_streaming() # f->F
         if ti.static(self.boundary_condition_model==BC_MODEL.NEBB):
-            self.Boundary_condition_NEBB()
-        self.macro()  # F->value
+            self.Boundary_condition_NEBB() # on F
+        self.macro()  # F->value f
         if ti.static(self.boundary_condition_model==BC_MODEL.NEE):
             self.Boundary_condition_NEE() # value changed for the boundary condition
         if ti.static(self.boundary_condition_model==BC_MODEL.EQUILIBRIUM):

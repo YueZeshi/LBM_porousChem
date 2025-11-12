@@ -44,9 +44,10 @@ def main(DX,DT,variant):
     lb2d.set_BCs([BC_FLOW.inlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall])
     lb2d.set_v_BCs_value([[0.01,0,0],[0,0,0],[0,0,0],[0,0,0]])
     lb2d.set_rho_BCs_value([1,1,1,1])
-
+    # lb2d.set_BCs([BC_FLOW.outlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall])
+    # lb2d.set_rho_BCs_value([1.001,1.0,1.0,1.0])
     ## 初始化场 
-    lb2d.init_field(lb2d.rho,1)
+    lb2d.init_field(lb2d.rho,1.0)
     def setVariables():
         def v_center(lbm:LB2D):
             v = lbm.v[int(X/DX/2),int(Y/DX/2),0][0]
@@ -60,7 +61,7 @@ def main(DX,DT,variant):
     lb2d.print_information()
 
     total_iteration =   100000
-    export_interval = 1000
+    export_interval = 100
     measure_interval = 100
     print_interval = 1000
     if DEBUG:
