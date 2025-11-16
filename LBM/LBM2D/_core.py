@@ -10,7 +10,6 @@ class LBM2DSolver:
         self.name = name
         self.t = 0.0
         # 模型参数
-        self.enable_projection = True
         self.X = X
         self.Y = Y
         self.t = 0
@@ -22,6 +21,7 @@ class LBM2DSolver:
         self.source_term_model = SOURCE_TERM.NONE
         self.force_term_model = FORCE_TERM.NONE
         self.boundary_condition_model = BC_MODEL.NEE
+        self.EOS = FLUID_STATE_EQUATION.IDEAL_GAS
         # LBM使用常量
         self.e9 = ti.Vector.field(3,ti.i32, shape=(9)) # e 方向向量
         self.w9 = ti.field(ti.f32, shape=(9)) # 权重

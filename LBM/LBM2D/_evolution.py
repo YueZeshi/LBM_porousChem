@@ -23,8 +23,8 @@ class LBM2D_EVOLUTION:
         self.macro()  # F->value f
         if ti.static(self.boundary_condition_model==BC_MODEL.NEE):
             self.Boundary_condition_NEE() # value changed for the boundary condition
-        if ti.static(self.boundary_condition_model==BC_MODEL.EQUILIBRIUM):
-            self.Boundary_condition_EQUILIBRIUM()
+        if ti.static(self.boundary_condition_model==BC_MODEL.ES):
+            self.Boundary_condition_ES()
     @ti.func
     def collision_source_streaming(self): 
         # collistion + source term + streaming : merge kernels
@@ -32,8 +32,7 @@ class LBM2D_EVOLUTION:
             # collision f
             if (self.solid[i] < 1):
                 for k in ti.static(range(9)):
-                    eps = 1-self.solid[i]
-                    f =self.f[i][k]-1/(3*self.viscosity(i)+0.5)*(self.f[i][k]-self.feq9(k,self.rho[i],self.v[i],eps))
+                    f =self.f[i][k]-1/self.tau(i)*(self.f[i][k]-self.feq9(k,i[0],i[1],i[2]))
                     if ti.static(self.force_term_model==FORCE_TERM.GUO): # GUO 力模型
                         f +=self.forceTermGuo(k,i)# 如果力太大，刚性太强->需要使用宏观指数衰减
                     self.f[i][k] =f
@@ -117,7 +116,8 @@ class LBM2D_EVOLUTION:
                     self.f[i][s] = self.F[i][s] # 更新F
                     self.v[i] += self.e9[s]*self.F[i][s]
                     self.rho[i] += self.F[i][s] # 宏观量重建 计算密度
-                self.v[i] /= self.rho[i]
+                if self.EOS==FLUID_STATE_EQUATION.IDEAL_GAS:
+                    self.v[i] /= self.rho[i]
                 # if self.v[i].norm()>0.5:
                 #     print("warning: high velocity",self.v[i],self.t)
                 if ti.static(self.PORO):
@@ -131,7 +131,7 @@ class LBM2D_EVOLUTION:
                         elif ti.static(self.poro_model==PORO_MODEL.DARCYFORCHHEIMER):
                             Dc = self.coefDarcy[i]
                             Fc = self.coefForchheimer[i]
-                        c0 = 0.5*(1+eps*self.viscosity(i)/2*Dc)
+                        c0 = 0.5*(1+eps*self.kinetic_viscosity(i)/2*Dc)
                         c1 = 0.5*eps*Fc
                         v = ti.math.length(self.v[i])
                         self.v[i]/=(c0+ti.sqrt(c0**2+c1*v))
@@ -164,25 +164,7 @@ class LBM2D_EVOLUTION:
                         self.TF.g[i][s] = self.TF.G[i][s] # 更新G
                         self.TS.g[i][s] = self.TS.G[i][s] # 更新G
                         self.TF.S[i] = self.TF.G[i][s]# 计算温度
-                        self.TS.S[i] = self.TS.G[i][s]   
-    @ti.func
-    def source_term_macro(self):
-        if ti.static(self.force_term_model==FORCE_TERM.MACRO):
-            for i in ti.grouped(self.rho):
-                if ti.static(self.PORO): 
-                    # v  : 直接隐式求解速度 当Darcy阻力过大时，减速太快。显式更新破坏稳定性。最好使用隐式更新。
-                    if (self.solid[i] < 1 and self.solid[i]>0): # 只有Darcy力 多孔介质区域
-                        if self.poro_model == PORO_MODEL.DARCY:
-                            self.v[i] *= ti.math.exp(-self.viscosity(i)*self.coefDarcy[i]*self.dt)
-        # chemical reaction 更新化学物质
-        if ti.static(self.source_term_model==SOURCE_TERM.MACRO):
-            if ti.static(self.RADIATION): # radiation
-                for i in ti.grouped(self.rho):          
-                        self.TS.S[i] += self.dt*self.radiation(i)/self.TS.capacity_v(i) # 辐射吸热 # 直接添加到格子中央可能会带来问题
-            if ti.static(self.CHEMISTRY):
-                for r in ti.static(list(self.reactions.values())):
-                    r.reaction_macro() # update species and internal energy
-    
+                        self.TS.S[i] = self.TS.G[i][s]       
     
     # 使用函数
     @ti.func
@@ -194,23 +176,37 @@ class LBM2D_EVOLUTION:
         if i[1]>self.ny-1:  iout[1] = 0
         return iout
     @ti.func
-    def feq9(self, k,rho, u,eps = 1.0): #计算平衡分布函数 
-        eu = self.e9[k].dot(u)
+    def feq9(self, s,i,j,k): #计算平衡分布函数
+        rho = self.rho[i,j,k]
+        u = self.v[i,j,k]
+        eps = 1-self.solid[i,j,k]
+        eu = self.e9[s].dot(u)
         uv = u.dot(u)
-        feqout = self.w9[k]*rho*(1.0+3.0*eu+4.5*eu*eu/(eps+1e-12)-1.5*uv/(eps+1e-12))
+        feqout = 1.0
+        if self.EOS==FLUID_STATE_EQUATION.INCOMPRESSIBLE:
+            feqout = self.w9[s]*(rho+3.0*eu+4.5*eu*eu/(eps+1e-12)-1.5*uv/(eps+1e-12))        
+        if self.EOS==FLUID_STATE_EQUATION.IDEAL_GAS:
+            feqout = self.w9[s]*rho*(1.0+3.0*eu+4.5*eu*eu/(eps+1e-12)-1.5*uv/(eps+1e-12))
         return feqout
     @ti.func
-    def feq5(self, k,rho_local, u,eps = 1.0): #计算平衡分布函数 考虑多孔介质
+    def feq5(self, k,s,i): #计算平衡分布函数 考虑多孔介质
+        u = self.v[i]
         eu = self.e5[k].dot(u)
-        feqout = self.w5[k]*rho_local*(1.0+3.0*eu)
+        feqout = self.w5[k]*s*(1.0+3.0*eu)
         return feqout
     
     @ti.func
     def viscosity(self,i):
         return 0.1
     @ti.func
+    def kinetic_viscosity(self,i):
+        nu = self.viscosity(i)
+        if self.EOS==FLUID_STATE_EQUATION.IDEAL_GAS:
+            nu = nu/self.rho[i]
+        return nu
+    @ti.func
     def tau(self,i):
-        return 3*self.viscosity(i)+0.5
+        return 3*self.kinetic_viscosity(i)+0.5
     @ti.func
     def perm(self,eps): # 多孔介质 渗透率
         p = eps**3/(1.000001-eps)**2*1**2
@@ -233,21 +229,27 @@ class LBM2D_EVOLUTION:
                     eps = 1.0-self.solid[i]
                     perm = self.perm(eps)
                     beta = 1.75/ti.sqrt(150*eps*perm)
-                    F += (-self.viscosity(i)/perm*eps-beta*ti.math.length(self.v[i]))*self.v[i]
+                    F += (-self.kinetic_viscosity(i)/perm*eps-beta*ti.math.length(self.v[i]))*self.v[i]
                 elif ti.static(self.poro_model==PORO_MODEL.DARCY):
-                    F +=  -self.viscosity(i)*self.coefDarcy[i]*self.v[i]
+                    F +=  -self.kinetic_viscosity(i)*self.coefDarcy[i]*self.v[i]
                 elif ti.static(self.poro_model==PORO_MODEL.DARCYFORCHHEIMER):
-                    F += (-self.viscosity(i)*self.coefDarcy[i]-self.coefForchheimer[i]*ti.math.length(self.v[i]))*self.v[i]
+                    F += (-self.kinetic_viscosity(i)*self.coefDarcy[i]-self.coefForchheimer[i]*ti.math.length(self.v[i]))*self.v[i]
         return F
     @ti.func
-    def forceTermGuo(self,k,i):#rho,u,F,tau,eps): # 将力转化为分布函数源项 Guo Zhao
+    def forceTermGuo(self,s,i): # 将力转化为分布函数源项 Guo Zhao
         rho = self.rho[i]
         u = self.v[i]
         F = self.force(i)
         tau = self.tau(i)
         eps = 1.0-self.solid[i]
-        return (1.0-1.0/2.0/tau)*rho*self.w9[k]*(3.0*(self.e9[k]-u/(eps+1e-6)).dot(F)\
-              +9.0*self.e9[k].dot(u)*self.e9[k].dot(F)/(eps+1e-6))
+        term = 0.0
+        if ti.static(self.EOS==FLUID_STATE_EQUATION.INCOMPRESSIBLE):
+            term = (1.0-1.0/2.0/tau)*self.w9[s]*(3.0*(self.e9[s]-u/eps).dot(F)\
+              +9.0*self.e9[s].dot(u)*self.e9[s].dot(F)/eps)
+        elif ti.static(self.EOS==FLUID_STATE_EQUATION.IDEAL_GAS):
+            term = (1.0-1.0/2.0/tau)*rho*self.w9[s]*(3.0*(self.e9[s]-u/(eps+1e-12)).dot(F)\
+              +9.0*self.e9[s].dot(u)*self.e9[s].dot(F)/(eps+1e-12))
+        return term
     @ti.func
     def scalarCorrectionTerm(self,k,duS,tau):
         return (1.0-1.0/2.0/tau)*3.0*self.w5[k]*self.e5[k].dot(duS)

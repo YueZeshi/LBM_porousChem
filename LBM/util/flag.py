@@ -5,6 +5,9 @@ class SPECIE_UNIT(Enum):
 class REACTION_TYPE(Enum):
     ARREHNIUS = 0
     LMH = 1
+class FLUID_STATE_EQUATION(Enum):
+    IDEAL_GAS = 0
+    INCOMPRESSIBLE = 1
 class RADIATION_MODEL(Enum):
     NONE = 0
     SURFACE_UNIFORM = 1
@@ -36,4 +39,4 @@ class BC_MODEL(Enum):
     NONE = 0
     NEE = 1
     NEBB = 2
-    EQUILIBRIUM = 3
+    ES = 3

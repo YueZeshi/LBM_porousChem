@@ -1,4 +1,4 @@
-from re import T
+from re import M, T
 import time
 import taichi as ti
 import taichi.profiler as profiler
@@ -21,11 +21,8 @@ def main(DX,DT,variant):
 
     # GLOBAL VARIABLE
     # 定义计算域 SI
-    X = 0.2
-    Y = 0.05
-
-
-
+    X = 400
+    Y = 300
     name = "validation_darcy"
 
     # 初始化taichi
@@ -40,6 +37,9 @@ def main(DX,DT,variant):
     # lb2d.source_term_model = SOURCE_TERM.MICRO
     lb2d.force_term_model = FORCE_TERM.GUO
     lb2d.set_poro_Darcy(1)
+    lb2d.EOS = FLUID_STATE_EQUATION.INCOMPRESSIBLE
+    lb2d.bondary_condition_model = BC_MODEL.NEE
+    lb2d.set_viscosity(0.9)
     # lb2d.set_radiation_model(RADIATION_MODEL.SURFACE_UNIFORM,T_exp)
 
     # # 设置物质
@@ -48,8 +48,8 @@ def main(DX,DT,variant):
     # lb2d.set_species(["wood(S)","tar" ,"char(S)"],
     #                 [True     ,False,True     ])
     # 设置边界条件
-    lb2d.set_BCs([BC_FLOW.outlet,BC_FLOW.outlet,BC_FLOW.periodic,BC_FLOW.periodic])
-    # lb2d.set_v_BCs_value([[0.0,0,0],[0,0,0],[0,0,0],[0,0,0]],unit="SI")
+    lb2d.set_BCs([BC_FLOW.inlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall])
+    lb2d.set_v_BCs_value([[0.01,0,0],[0,0,0],[0,0,0],[0,0,0]])
     lb2d.set_rho_BCs_value([1.1,1,1,1])
     # ## 杂项
     # ## 可变边界条件
@@ -82,36 +82,22 @@ def main(DX,DT,variant):
     # def cal_allWood():
     #     allWood[None] = cal_wood()
     #     print("all wood:",allWood[None])
-    
-    # def setVariables():
-    #     def Tcenter(lbm:LB2D_PYRO):
-    #         T_center = lbm.TS.S[(int(lbm.nx/2),int(lbm.ny/2),int(lbm.nz/2))]
-    #         return "Ts_center", T_center
-    #     lb2d.GetVariableFunc.append(Tcenter)
-    #     def Tsurface(lbm:LB2D_PYRO):
-    #         T_surface = lbm.TF.S[(int(lbm.nx/2+r-1),int(lbm.ny/2),int(lbm.nz/2))]
-    #         return "Tf_surface", T_surface
-    #     lb2d.GetVariableFunc.append(Tsurface)
-    #     @ti.kernel
-    #     def cal_conversion():
-    #         conv[None] = (allWood[None]-cal_wood())/allWood[None]
-    #     def conversion(lbm:LB2D_PYRO):
-    #         cal_conversion()
-    #         return "conversion", conv[None]
-    #     lb2d.GetVariableFunc.append(conversion)
-    #     @ti.kernel
-    #     def cal_all_rad():
-    #         total_rad_surface[None] = 0.0
-    #         for i,j in ti.ndrange(lb2d.nx,lb2d.ny):
-    #             total_rad_surface[None] += lb2d.radiation_surface[i,j,0]
-    #     def all_rad(lbm:LB2D_PYRO):
-    #         cal_all_rad()
-    #         return "total_rad_surface", total_rad_surface[None]
-    #     lb2d.GetVariableFunc.append(all_rad)
-    # setVariables()
+    moment = ti.field(ti.f32,shape=())
+
+    def setVariables():
+        def get_moment(lbm:LB2D):
+            cal_moment()
+            return "moment", moment[None]
+        lb2d.GetVariableFunc.append(get_moment)
+        @ti.kernel
+        def cal_moment():
+            moment[None]=0.0
+            for j,k in ti.ndrange(lb2d.ny,lb2d.nz):
+                moment[None]+=lb2d.v[lb2d.nx-10,j,k][0]
+    setVariables()
     ## 初始化场 
     lb2d.init_field(lb2d.rho,1)
-    lb2d.init_field(lb2d.solid,0.5)
+    lb2d.init_field(lb2d.solid,0.0)
     # lb2d.init_field(lb2d.TF.S,T_exp)
     # lb2d.init_field(lb2d.TS.S,T_init)
 
@@ -121,12 +107,14 @@ def main(DX,DT,variant):
     # lb2d.init_field(lb2d.heat_trasnfer_surface,1) # vague
     # 初始化lbm
     lb2d.init_simulation()
+    lb2d.print_information()
 
     # cal_allWood() # 计算总木材质量
 
-    total_iteration =   100
-    export_interval = 1
-    print_interval = 10
+    total_iteration =   50000
+    export_interval = 1000
+    measure_interval= 100
+    print_interval = 1000
     if DEBUG:
         total_iteration = 2
         export_interval = 1
@@ -153,11 +141,12 @@ def main(DX,DT,variant):
         if (iter%int(export_interval/DT)==0):
         
             if DEBUG:
-                lb2d.export_VTK(f"debug_{name}_{int(variant)}_{DX}",iter)
+                lb2d.export_VTK(f"debug_{name}_{variant}_{DX}",iter)
                 # lb2d.export_variable(f"simulation_{name}_{int(variant)}_{nx}_{int(T_exp)}",iter)
             else:
-                lb2d.export_VTK(f"simulation_{name}_{int(variant)}_{DX}",iter)
-                lb2d.export_variable(f"simulation_{name}_{int(variant)}_{DX}",iter)
+                lb2d.export_VTK(f"simulation_{name}_{variant}_{DX}",iter)
+        if (iter%int(measure_interval/DT)==0):
+                lb2d.export_variable(f"simulation_{name}_{variant}_{DX}",iter)
         lb2d.step()
 
 
@@ -167,4 +156,4 @@ if __name__ == "__main__":
     DX = sys.argv[1]
     DT = sys.argv[2]
     variant = sys.argv[3]
-    main(float(DX),float(DT),float(variant))
+    main(float(DX),float(DT),variant)

@@ -11,6 +11,7 @@ from LBM.util.flag import *
 def main(DX,DT,variant):
     # 获取环境变量是否启用debug模式
     # debug模式计算较少的步数 用于检验算例是否快速发散
+    print(os.getenv("DEBUG","false"))
     DEBUG = os.getenv("DEBUG","False").lower() == "true" # 默认非debug
     ARCH = os.getenv("ARCH","cpu").lower() # 默认CPU
     ## 用于获取运算时间信息
@@ -21,10 +22,10 @@ def main(DX,DT,variant):
     # GLOBAL VARIABLE
     # 定义计算域 SI
     X = 500
-    Y = 300
+    Y = 100
 
 
-    name = "validation_poiseuille"
+    name = "test_shockwave"
 
     # 初始化taichi
     ## arch=ti.cpu 启用cpu计算；arch=ti.gpu启用gpu运算 (cuda>vulkan)
@@ -36,34 +37,24 @@ def main(DX,DT,variant):
     lb2d = LB2D(X,Y,dx=DX,dt=DT,isPoro=False,isChemical=False,isThermal=False,isRadiation=False)
     # 基础设置
     # lb2d.source_term_model = SOURCE_TERM.MICRO
-    # lb2d.force_term_model = FORCE_TERM.GUO
-    lb2d.boundary_condition_model = BC_MODEL.NEE
-    lb2d.EOS = FLUID_STATE_EQUATION.IDEAL_GAS
+    lb2d.force_term_model = FORCE_TERM.GUO
     lb2d.set_viscosity(0.1)
 
-    lb2d.set_BCs([BC_FLOW.inlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall])
+    lb2d.set_BCs([BC_FLOW.inlet,BC_FLOW.outlet,BC_FLOW.periodic,BC_FLOW.periodic])
     lb2d.set_v_BCs_value([[0.01,0,0],[0,0,0],[0,0,0],[0,0,0]])
     lb2d.set_rho_BCs_value([1,1,1,1])
-    # lb2d.set_BCs([BC_FLOW.outlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall])
-    # lb2d.set_rho_BCs_value([1.001,1.0,1.0,1.0])
+
     ## 初始化场 
-    lb2d.init_field(lb2d.rho,1.0)
-    def setVariables():
-        def v_center(lbm:LB2D):
-            v = lbm.v[int(X/DX/2),int(Y/DX/2),0][0]
-            return "v", v
-        lb2d.GetVariableFunc.append(v_center)
-    setVariables()
+    lb2d.init_field(lb2d.rho,1)
     # lb2d.init_field(lb2d.solid,solid_file)
     # 初始化lbm
-
     lb2d.init_simulation()
     lb2d.print_information()
+    # cal_allWood() # 计算总木材质量
 
-    total_iteration =   1000
-    export_interval = 1000
-    measure_interval = 10
-    print_interval = 10
+    total_iteration = 100000
+    export_interval = 200
+    print_interval = 1000
     if DEBUG:
         total_iteration = 2
         export_interval = 1
@@ -89,12 +80,11 @@ def main(DX,DT,variant):
             print('The %dth iteration, Max Force = %f,  Min Temperature = %f\n\n ' %(iter, max_v,  min_T))            
         if (iter%int(export_interval/DT)==0):
             if DEBUG:
-                lb2d.export_VTK(f"debug_{name}_{variant}_{DX}",iter)
+                lb2d.export_VTK(f"debug_{name}_{int(variant)}_{DX}",iter)
                 # lb2d.export_variable(f"simulation_{name}_{int(variant)}_{nx}_{int(T_exp)}",iter)
             else:
-                lb2d.export_VTK(f"simulation_{name}_{variant}_{DX}",iter)
-        if (iter%int(measure_interval/DT)==0):
-                lb2d.export_variable(f"simulation_{name}_{variant}_{DX}",iter)
+                lb2d.export_VTK(f"simulation_{name}_{int(variant)}_{DX}",iter)
+                lb2d.export_variable(f"simulation_{name}_{int(variant)}_{DX}",iter)
         lb2d.step()
 
 
