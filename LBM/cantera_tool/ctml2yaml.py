@@ -39,7 +39,7 @@ from ruamel.yaml.nodes import MappingNode, ScalarNode
 from ruamel.yaml.representer import RoundTripRepresenter, SafeRepresenter
 from typing_extensions import Required
 
-# from ._types import literal_type_guard
+from ._types import literal_type_guard
 
 # yaml.version_info is a tuple with the three parts of the version
 yaml_version: tuple[int, int, int] = yaml.version_info
