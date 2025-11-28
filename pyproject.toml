@@ -21,6 +21,7 @@ dependencies = [
     "pytest",
     "setuptools",
     "ruamel-yaml>=0.18.16",
+    "typing-extensions>=4.15.0",
 ]
 
 [project.scripts]
