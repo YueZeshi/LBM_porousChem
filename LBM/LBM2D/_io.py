@@ -4,14 +4,14 @@ import os
 from pyevtk.hl import gridToVTK
 import pickle
 import json
-from LBM.LBM2D import LBM2DSolver as solver
+from ._core import LBM2D_BASE
 from LBM.GEO.G2D import Mesh2D
 from ..util.flag import *
 from ._scalarField import ScalarField
 from ._chemical import Specie,Reaction
 from ._thermal import TemperatureFluid,TemperatureSolid
 @ti.data_oriented
-class LBM2D_INPUT:
+class LBM2D_INPUT(LBM2D_BASE):
     #----------
     # 用户使用函数
     #----------
@@ -260,7 +260,7 @@ class LBM2D_INPUT:
         isRadiation = config["BASIC"]["RADIATION"]
         name = config["BASIC"]["name"]
         # initial setting
-        LBM = solver(x,y,dx,dt,name,isThermal,isPoro,isChemical,isRadiation)
+        LBM = cls(x,y,dx,dt,name,isThermal,isPoro,isChemical,isRadiation)
         # viscosity
         if config["FLOW"]["viscosity"]["function"]=="uniform":
             LBM.set_viscosity(config["FLOW"]["viscosity"]["value"])
@@ -321,7 +321,7 @@ class LBM2D_INPUT:
     
 # 输出 可视化
 @ti.data_oriented
-class LBM2D_OUTPUT:
+class LBM2D_OUTPUT(LBM2D_BASE):
     def get_max_v(self): # 获得最大速度，用于判断模型是否发散
         self.max_v[None] = -1e10        
         self.cal_max_v()

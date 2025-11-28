@@ -1,12 +1,14 @@
 import taichi as ti
-from ._core import LBM2DSolver
+from ._core import LBM2D_BASE
 from ._evolution import LBM2D_EVOLUTION
 from ._boundary import LBM2D_BOUNDARY
 from ._io import LBM2D_INPUT,LBM2D_OUTPUT
 from ._init import LBM2D_INITIALIZATION
 from ..util.flag import *
+
+
 @ti.data_oriented
-class LBM2DSolver(LBM2DSolver,LBM2D_EVOLUTION,LBM2D_BOUNDARY,LBM2D_INPUT,LBM2D_OUTPUT,LBM2D_INITIALIZATION):
+class LBM2DSolver(LBM2D_EVOLUTION,LBM2D_BOUNDARY,LBM2D_INPUT,LBM2D_OUTPUT,LBM2D_INITIALIZATION,LBM2D_BASE):
     def __init__(self, X, Y,dx = 1,dt =1,name="default_LBM",isThermal = False,isChemical = False,isPoro = False,isRadiation = False):
         super().__init__(X, Y,dx,dt,name,isThermal,isChemical,isPoro,isRadiation)
     def __str__(self):

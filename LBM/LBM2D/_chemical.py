@@ -1,4 +1,5 @@
 import taichi as ti
+# from LBM.LBM2D import LBM2DSolver
 from ._scalarField import ScalarField
 from ..util.flag import *
 @ti.data_oriented
@@ -100,15 +101,6 @@ class Reaction:
                 if ti.static(self.unit==SPECIE_UNIT.MOLE):
                     ds *= specie.molemass # 摩尔质量修正到密度
                 self.reactionResult[j]=ds
-                # if ti.static(specie.FIX):# 固体直接更新密度
-                #     specie.S[i] += ds
-                    
-                # else: # 流体更新分布函数
-                #     for k in ti.static(range(19)):
-                #         self.LBM.f[i][k] += self.LBM.feq19(k,ds,self.LBM.v[i]) # 更新密度分布函数
-                #         if ti.static(k<7):
-                #             specie.g[i][k] += specie.geq7(k,ds/self.LBM.rho[i],i[0],i[1],i[2]) # 更新物种质量分数分布函数，用气体密度用当前密度近似
-                #         # self.LBM.Temperature.g[i][k]+=self.LBM.w7[k]*ds*self.LBM.Temperature.S[i]*specie.capacity_m(i) # 流体的焓随麦克斯韦分布展开
                 # # 物质的生成和消失会影响焓变                    
                 # # dh += ds*self.LBM.Temperature.S[i]*specie.capacity_m(i) # 物种生成和消失带来的焓变
             j+=1
@@ -116,40 +108,25 @@ class Reaction:
         if ti.static(self.LBM.TEMPERATURE):
             dh += -kr*self.deltaH*self.LBM.dt # 注意保证kr deltaH的单位匹配。是质量都是质量，是摩尔数都是摩尔数。
             self.reactionResult[j]=dh
-            # """
-            # 热源项疑似会带来问题，热源项先还原到温度再按照平衡态分配进去。如果直接放在格点中心会导致热量在格点中心堆积，出现温度奇点
-            # """    
-            # for k in ti.static(range(7)):
-            #     self.LBM.TS.g[i][k] += self.LBM.TS.geq7(k,dh/self.LBM.TS.capacity_v(i),i[0],i[1],i[2])
-        
+            
+            
+@ti.data_oriented
+class Reactions:
+    def __init__(self,lbm):
+        self.LBM = lbm
+        self.dS = [ti.field(ti.f32,shape = lbm.rho.shape)]*len(lbm.species)
+        self.dH = ti.field(ti.f32,shape = lbm.rho.shape)
+        self.reactions:list[Reaction] = []
+        pass
+    def add_reaction(self,reaction):
+        self.reactions.append(reaction)
     @ti.func
-    def reaction_macro(self): 
-        for i in ti.grouped(self.LBM.rho):
-            kr = self.Arrehnius(self.LBM.Temperature.S[i])
+    def update_dS(self,i): # 计算所有化学反应带来的物质源项和能量源项
+        dS[i] = 0
+        for r in self.reactions:
+            r.reaction()
             j = 0
-            for specie in ti.static(list(self.LBM.species.values())): 
-                if self.coefReactant[j]>0: # 该物质参与反应
-                    if specie.S[i]>1e-6:
-                        if self.coefRate[j]!=0:#浓度参与化学反应速率计算
-                            if ti.static(self.unit==SPECIE_UNIT.MASS):
-                                kr *= specie.S[i]**self.coefRate[j] # 该物质对反应的贡献 可以不贡献
-                            elif ti.static(self.unit==SPECIE_UNIT.MOLE): # mole表示的化学反应需要按照摩尔质量修正因为物种信息存储的是密度信息
-                                kr *= (specie.S[i]/specie.molemass)**self.coefRate[j] # 该物质对反应的贡献 可以不贡献
-                    else: # 某反应物不存在
-                        kr = 0
-                j += 1
-            j = 0
-            for specie in ti.static(list(self.LBM.species.values())):
-                coef = -self.coefReactant[j]+self.coefProduct[j] 
-                if coef!=0.:
-                    ds = kr*coef*self.LBM.dt
-                    if ti.static(self.unit==SPECIE_UNIT.MOLE):
-                        ds *= specie.molemass # 摩尔质量修正到密度
-                    specie.S[i] += ds
-                    if not ti.static(specie.FIX):
-                        self.LBM.rho[i] += ds # 更新密度分布函数
-                    self.LBM.Temperature.S[i] += ds*self.LBM.Temperature.S[i]*specie.capacity_m(i)/self.LBM.Temperature.capacity_v_all(i)
+            for dS in ti.static(self.dS):
+                dS[i] += r.reactionResult[j]
                 j+=1
-            # 反应热效应
-            de = -kr*self.deltaH*self.LBM.dt
-            self.LBM.Temperature.S[i]+=de/self.LBM.Temperature.capacity_v_all(i) # 反应热直接更新温度场
+            self.dH[i] += r.reactionResult[j]

@@ -1,7 +1,10 @@
 import taichi as ti
 from ..util.flag import *
+from ._core import LBM2D_BASE
 @ti.data_oriented
-class LBM2D_INITIALIZATION:
+class LBM2D_INITIALIZATION(LBM2D_BASE):
+    nx:int
+    ny:int
     # 初始化
     @ti.kernel
     def default_init(self): # 创建时初始化
@@ -80,17 +83,13 @@ class LBM2D_INITIALIZATION:
             for s in ti.static(range(9)):
                 self.f[i][s] = self.feq9(s,i[0],i[1],i[2])
                 self.F[i][s] = self.f[i][s]
-            # if ti.static(self.TEMPERATURE):
-            #     self.IE.uS[i] = self.IE.S[i]*self.v[i]
             for s in ti.static(range(5)):
                 if ti.static(self.CHEMISTRY):
                     for specie in ti.static(list(self.species.values())):
                         if ti.static(not specie.FIX):
-                            # specie.init()
                             specie.g[i][s] = specie.geq5(s,specie.S[i],i[0],i[1],i[2])
                             specie.G[i][s] = specie.g[i][s]
                 if ti.static(self.TEMPERATURE):
-                # self.IE.init()
                     self.TF.g[i][s] = self.TF.geq5(s,self.TF.S[i],i[0],i[1],i[2])
                     self.TF.G[i][s] = self.TF.g[i][s]
                     self.TS.g[i][s] = self.TS.geq5(s,self.TS.S[i],i[0],i[1],i[2])

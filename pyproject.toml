@@ -20,10 +20,12 @@ dependencies = [
     "pyevtk",
     "pytest",
     "setuptools",
+    "ruamel-yaml>=0.18.16",
 ]
 
 [project.scripts]
 lbm = "LBM.cli:main"
+ck2yaml1 = "LBM.cantera_tool.ck2yaml:main"
 
 # [project.urls]
 # Homepage = "https://github.com/lettucecfd/lettuce"

@@ -1,4 +1,3 @@
-from re import M, T
 import time
 import taichi as ti
 import taichi.profiler as profiler
@@ -21,8 +20,8 @@ def main(DX,DT,variant):
 
     # GLOBAL VARIABLE
     # 定义计算域 SI
-    X = 400
-    Y = 300
+    X = 100
+    Y = 100
     name = "validation_darcy"
 
     # 初始化taichi
@@ -35,86 +34,38 @@ def main(DX,DT,variant):
     lb2d = LB2D(X,Y,dx=DX,dt=DT,isPoro=True,isChemical=False,isThermal=False,isRadiation=False)
     # 基础设置
     # lb2d.source_term_model = SOURCE_TERM.MICRO
+    Re  = 0.1
+    Da = 0.001
+    eps = 0.1
+    nv = 0.1
+    rho = 1
+    v = Re*nv/Y/rho
+    K = Da*Y*Y
+    print(nv/K)
     lb2d.force_term_model = FORCE_TERM.GUO
-    lb2d.set_poro_Darcy(1)
+    lb2d.set_poro_Darcy(0.01)
+    lb2d.poro_model=PORO_MODEL.DARCY_HIGH
     lb2d.EOS = FLUID_STATE_EQUATION.INCOMPRESSIBLE
     lb2d.bondary_condition_model = BC_MODEL.NEE
-    lb2d.set_viscosity(0.9)
-    # lb2d.set_radiation_model(RADIATION_MODEL.SURFACE_UNIFORM,T_exp)
-
-    # # 设置物质
-    # ## 物种及其状态
-    # lb2d.set_specie("N2",False)
-    # lb2d.set_species(["wood(S)","tar" ,"char(S)"],
-    #                 [True     ,False,True     ])
+    lb2d.set_viscosity(nv)
     # 设置边界条件
     lb2d.set_BCs([BC_FLOW.inlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall])
-    lb2d.set_v_BCs_value([[0.01,0,0],[0,0,0],[0,0,0],[0,0,0]])
-    lb2d.set_rho_BCs_value([1.1,1,1,1])
-    # ## 杂项
-    # ## 可变边界条件
-    # def setChangingBC():
-    #     def TBC(lbm:LB2D_PYRO,t:float):
-    #         # 先稳定流场再升温，防止数值扰动
-    #         if t<=10:
-    #             lbm.TF.s_BC[0] = T_init
-    #             lbm.TF.s_BC[2] = T_init
-    #             lbm.TF.s_BC[3] = T_init
-    #         else:
-    #             lbm.TF.s_BC[0] = T_exp
-    #             lbm.TF.s_BC[2] = T_exp
-    #             lbm.TF.s_BC[3] = T_exp
-    #     # lb2d.UpdateBCfunc.append(TBC)
-    # setChangingBC()
-    # # 导出局部或者全局变量 观测量
-    # ## 中心温度 表面温度 转化率 
-    # ### 定义变量实现CPU GPU数据传输
-    # allWood = ti.field(ti.f32,shape=())
-    # conv = ti.field(ti.f32,shape=())
-    # total_rad_surface = ti.field(ti.f32,shape=())  
-    # @ti.func
-    # def cal_wood():
-    #     wood = 0.0
-    #     for i in ti.grouped(lb2d.rho):
-    #         wood += lb2d.species["wood(S)"].S[i]
-    #     return wood
-    # @ti.kernel
-    # def cal_allWood():
-    #     allWood[None] = cal_wood()
-    #     print("all wood:",allWood[None])
-    moment = ti.field(ti.f32,shape=())
-
-    def setVariables():
-        def get_moment(lbm:LB2D):
-            cal_moment()
-            return "moment", moment[None]
-        lb2d.GetVariableFunc.append(get_moment)
-        @ti.kernel
-        def cal_moment():
-            moment[None]=0.0
-            for j,k in ti.ndrange(lb2d.ny,lb2d.nz):
-                moment[None]+=lb2d.v[lb2d.nx-10,j,k][0]
-    setVariables()
+    
+    lb2d.set_v_BCs_value([[v,0,0],[0,0,0],[0,0,0],[0,0,0]])
+    lb2d.set_rho_BCs_value([1,1,1,1])
     ## 初始化场 
     lb2d.init_field(lb2d.rho,1)
-    lb2d.init_field(lb2d.solid,0.0)
-    # lb2d.init_field(lb2d.TF.S,T_exp)
-    # lb2d.init_field(lb2d.TS.S,T_init)
-
-    # lb2d.init_specie("N2",1)
-    # lb2d.init_specie("wood(S)",biomass_file)
-    # lb2d.init_field(lb2d.radiation_surface,radiation_surface_file)# vague
-    # lb2d.init_field(lb2d.heat_trasnfer_surface,1) # vague
+    lb2d.init_field(lb2d.solid,1-eps)
     # 初始化lbm
     lb2d.init_simulation()
     lb2d.print_information()
 
     # cal_allWood() # 计算总木材质量
 
-    total_iteration =   50000
-    export_interval = 1000
+    total_iteration =   20000
+    export_interval = 100
     measure_interval= 100
-    print_interval = 1000
+    print_interval = 100
     if DEBUG:
         total_iteration = 2
         export_interval = 1

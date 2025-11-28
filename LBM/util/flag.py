@@ -16,6 +16,7 @@ class PORO_MODEL(Enum):
     SPHERICAL = 0
     DARCY = 1
     DARCYFORCHHEIMER=2
+    DARCY_HIGH = 3
 class SOURCE_TERM(Enum):
     NONE = 0
     MICRO = 1 # 修改分布函数

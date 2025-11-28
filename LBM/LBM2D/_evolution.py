@@ -1,10 +1,10 @@
 import taichi as ti
-
+from ._core import LBM2D_BASE
 from ._chemical import Specie,Reaction
 from ._thermal import TemperatureFluid,TemperatureSolid
 from ..util.flag import *
 @ti.data_oriented
-class LBM2D_EVOLUTION:
+class LBM2D_EVOLUTION(LBM2D_BASE):
     """
     evolution part of LBM
     The realisation of Boundary condition is written in _boundary.py because of its complexity
@@ -29,26 +29,41 @@ class LBM2D_EVOLUTION:
     def collision_source_streaming(self): 
         # collistion + source term + streaming : merge kernels
         for i in ti.grouped(self.rho):
-            # collision f
-            if (self.solid[i] < 1):
+            if (self.solid[i] < 1): # 流体和多孔介质区域 流体 物种 流体温度
                 for k in ti.static(range(9)):
+                    # collision f
                     f =self.f[i][k]-1/self.tau(i)*(self.f[i][k]-self.feq9(k,i[0],i[1],i[2]))
+                    self.f[i][k] = f 
+                    if ti.static(k<5):
+                        if ti.static(self.TEMPERATURE): # 流体温度更新 有固体更新固体温度
+                            # 有气体
+                            g = self.TF.g[i][k]-1/(3*self.TF.coefDiff(i)+0.5)*(self.TF.g[i][k]-self.TF.geq5(k,self.TF.S[i],i[0],i[1],i[2]))
+                            self.TF.g[i][k] =g
+                            if self.solid[i] > 0.0: # 有固体
+                                g = self.TS.g[i][k]-1/(3*self.TS.coefDiff(i)+0.5)*(self.TS.g[i][k]-self.TS.geq5(k,self.TS.S[i],i[0],i[1],i[2]))
+                                self.TS.g[i][k] =g
+                        if ti.static(self.CHEMISTRY):      
+                            for specie in ti.static(list(self.species.values())):
+                                if ti.static(not specie.FIX): # 气体物质更新
+                                    g = specie.g[i][k]-1/(3*specie.coefDiff(i)+0.5)*(specie.g[i][k]-specie.geq5(k,specie.S[i],i[0],i[1],i[2]))
+                                    specie.g[i][k] =g 
+                    # source term f
+                    ## force term for fluid flow: volume force like gravity, darcy drag force
                     if ti.static(self.force_term_model==FORCE_TERM.GUO): # GUO 力模型
-                        f +=self.forceTermGuo(k,i)# 如果力太大，刚性太强->需要使用宏观指数衰减
-                    self.f[i][k] =f
+                        self.f[i][k] +=self.forceTermGuo(k,i)# 如果力太大，刚性太强->需要使用宏观指数衰减
+                        
+                    # streaming f->F
                     ip = self.periodic_index(i+self.e9[k]) # 更新之后的位置索引，默认边界视为周期边界
                     if (self.solid[ip]!=1): # 如果更新之后的位置是液体    
                         self.F[ip][k] = self.f[i][k] # 直接更新F
                     else: 
                         self.F[i][self.LR[k]] = self.f[i][k] # 如果不是 反弹 流固表面处理
-                       
-            #         if ti.static(k<5):
-            #             if ti.static(self.TEMPERATURE):
-            #                 g = self.TF.g[i][k]-1/(3*self.TF.coefDiff(i)+0.5)*(self.TF.g[i][k]-self.TF.geq5(k,self.TF.S[i],i[0],i[1],i[2]))
-            #                 if eps > 0.0:
-            #                     g = self.TS.g[i][k]-1/(3*self.TS.coefDiff(i)+0.5)*(self.TS.g[i][k]-self.TS.geq5(k,self.TS.S[i],i[0],i[1],i[2]))
-            #                     self.TS.g[i][k] =g
-            #                 self.TF.g[i][k] =g
+            else: # 纯固体区域 只更新固体温度
+                for k in ti.static(range(9)):
+                    if ti.static(k<5):
+                        if ti.static(self.TEMPERATURE):
+                            g = self.TS.g[i][k]-1/(3*self.TS.coefDiff(i)+0.5)*(self.TS.g[i][k]-self.TS.geq5(k,self.TS.S[i],i[0],i[1],i[2]))
+                            self.TS.g[i][k] =g
             #             if ti.static(self.CHEMISTRY):            
             #                 for specie in ti.static(list(self.species.values())):
             #                     if ti.static(not specie.FIX):
@@ -118,23 +133,33 @@ class LBM2D_EVOLUTION:
                     self.rho[i] += self.F[i][s] # 宏观量重建 计算密度
                 if self.EOS==FLUID_STATE_EQUATION.IDEAL_GAS:
                     self.v[i] /= self.rho[i]
-                # if self.v[i].norm()>0.5:
-                #     print("warning: high velocity",self.v[i],self.t)
                 if ti.static(self.PORO):
                     if eps!=0 and eps!=1: # 涉及多孔介质的速度修正
                         Dc,Fc = 0.0,0.0
                         if ti.static(self.poro_model==PORO_MODEL.SPHERICAL):
                             Dc = 1.0/self.perm(eps)
                             Fc = 1.75/ti.sqrt(150*ti.pow(eps,3))
+                            c0 = 0.5*(1+eps*self.kinetic_viscosity(i)/2*Dc)
+                            c1 = 0.5*eps*Fc
+                            v = ti.math.length(self.v[i])
+                            self.v[i]/=(c0+ti.sqrt(c0**2+c1*v))
                         elif ti.static(self.poro_model==PORO_MODEL.DARCY):
                             Dc = self.coefDarcy[i]
+                            c = 1+eps*self.kinetic_viscosity(i)*Dc/2
+                            self.v[i]/=c
                         elif ti.static(self.poro_model==PORO_MODEL.DARCYFORCHHEIMER):
                             Dc = self.coefDarcy[i]
                             Fc = self.coefForchheimer[i]
-                        c0 = 0.5*(1+eps*self.kinetic_viscosity(i)/2*Dc)
-                        c1 = 0.5*eps*Fc
-                        v = ti.math.length(self.v[i])
-                        self.v[i]/=(c0+ti.sqrt(c0**2+c1*v))
+                            c0 = 0.5*(1+eps*self.kinetic_viscosity(i)/2*Dc)
+                            c1 = 0.5*eps*Fc
+                            v = ti.math.length(self.v[i])
+                            self.v[i]/=(c0+ti.sqrt(c0**2+c1*v))
+                        elif ti.static(self.poro_model==PORO_MODEL.DARCY_HIGH):
+                            Dc = self.coefDarcy[i]
+                            # c =  1.5-ti.exp(-eps*self.kinetic_viscosity(i)*Dc)/2
+                            c =  0.5+ti.exp(eps*self.kinetic_viscosity(i)*Dc)/2
+                            # c = 1+eps*self.kinetic_viscosity(i)*Dc/2
+                            self.v[i]/=c
                 if ti.static(self.CHEMISTRY): 
                     if ti.static(self.PORO):
                         self.rhos[i]=0.0
@@ -231,12 +256,18 @@ class LBM2D_EVOLUTION:
                     beta = 1.75/ti.sqrt(150*eps*perm)
                     F += (-self.kinetic_viscosity(i)/perm*eps-beta*ti.math.length(self.v[i]))*self.v[i]
                 elif ti.static(self.poro_model==PORO_MODEL.DARCY):
-                    F +=  -self.kinetic_viscosity(i)*self.coefDarcy[i]*self.v[i]
+                    eps = 1.0-self.solid[i]
+                    F +=  -eps*self.kinetic_viscosity(i)*self.coefDarcy[i]*self.v[i]
                 elif ti.static(self.poro_model==PORO_MODEL.DARCYFORCHHEIMER):
-                    F += (-self.kinetic_viscosity(i)*self.coefDarcy[i]-self.coefForchheimer[i]*ti.math.length(self.v[i]))*self.v[i]
+                    eps = 1.0-self.solid[i]
+                    F += (-eps*self.kinetic_viscosity(i)*self.coefDarcy[i]-eps*self.coefForchheimer[i]*ti.math.length(self.v[i]))*self.v[i]
+                elif ti.static(self.poro_model==PORO_MODEL.DARCY_HIGH):
+                    eps = 1.0-self.solid[i]
+                    F +=  -eps*self.kinetic_viscosity(i)*self.coefDarcy[i]*self.v[i]
+                    # F += (ti.exp(-eps*self.kinetic_viscosity(i)*self.coefDarcy[i])-1)*self.v[i]
         return F
     @ti.func
-    def forceTermGuo(self,s,i): # 将力转化为分布函数源项 Guo Zhao
+    def forceTermGuo(self,s,i): # 将力转化为分布函数源项 Guo Zhao 实际上是动量变化量
         rho = self.rho[i]
         u = self.v[i]
         F = self.force(i)
@@ -253,6 +284,7 @@ class LBM2D_EVOLUTION:
     @ti.func
     def scalarCorrectionTerm(self,k,duS,tau):
         return (1.0-1.0/2.0/tau)*3.0*self.w5[k]*self.e5[k].dot(duS)
+    
     @ti.func
     def radiation(self,i):# Wm-2K-4*m-1K4*{m2}=Wm-3 SI # 单位体积辐射 SI
         q = 0.0

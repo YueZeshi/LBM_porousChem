@@ -1,11 +1,12 @@
 from re import escape
 import taichi as ti
+from ._core import LBM2D_BASE
 
 from ._chemical import Specie,Reaction
 from ._thermal import TemperatureFluid,TemperatureSolid
 from ..util.flag import *
 @ti.data_oriented
-class LBM2D_BOUNDARY:
+class LBM2D_BOUNDARY(LBM2D_BASE):
     """
     边界条件实现的时候还需要考虑外力的影响
     """
@@ -54,7 +55,9 @@ class LBM2D_BOUNDARY:
         if ti.static(self.bc_v[0]==BC.fixedValue):
             if self.solid[0,y,z]>0:
                 if self.poro_model == PORO_MODEL.DARCY:
-                    self.v[0,y,z] = self.v_BC[0]*(1-self.kinetic_viscosity(ti.Vector([0,y,z]))*self.coefDarcy[ti.Vector([0,y,z])]*self.dt/2.0)
+                    self.v[0,y,z] = self.v_BC[0]#*(1-self.kinetic_viscosity(ti.Vector([0,y,z]))*self.coefDarcy[ti.Vector([0,y,z])]*self.dt/2.0)
+                elif self.poro_model==PORO_MODEL.DARCY_HIGH:
+                    self.v[0,y,z] = self.v_BC[0]
             else:
                 self.v[0,y,z] = self.v_BC[0]
         elif ti.static(self.bc_v[0]==BC.zeroGadient):

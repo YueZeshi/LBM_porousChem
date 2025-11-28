@@ -1,3 +1,4 @@
+from typing import Literal
 import taichi as ti
 import numpy as np
 from ..util.flag import *
@@ -5,7 +6,7 @@ from ._thermal import TemperatureFluid,TemperatureSolid
 from ._chemical import Specie,Reaction
 from ._info import INFO
 @ti.data_oriented
-class LBM2DSolver:
+class LBM2D_BASE:
     def __init__(self, X, Y ,dx = 0.001,dt = 0.001,name="LBM",isThermal = False,isChemical = False,isPoro = False,isRadiation = False):
         self.name = name
         self.t = 0.0
@@ -66,7 +67,7 @@ class LBM2DSolver:
                 # self.radiation = ti.field(ti.f32,shape=(self.nx,self.ny,self.nz))
                 self.radiation_surface = ti.field(ti.f32,shape = (self.nx,self.ny,self.nz)) # S/V L-1
         if self.CHEMISTRY:
-            self.species = list[Specie]
+            self.species = []
             self.reactions = dict()
         if self.PORO:        
             self.poro_model = PORO_MODEL.SPHERICAL # 使用的多孔介质模型 如球孔介质模型 Darcy Darcy-Forhheimer
@@ -89,4 +90,6 @@ class LBM2DSolver:
         print(self)
     def __str__(self):
         return INFO
-    
+    @ti.func
+    def feq9(self,s,i,j,k):
+        pass
