@@ -3,7 +3,7 @@ import taichi as ti
 import numpy as np
 from ..util.flag import *
 from ._thermal import TemperatureFluid,TemperatureSolid
-from ._chemical import Specie,Reaction
+from ._chemical import Specie,Reaction,Reactions
 from ._info import INFO
 @ti.data_oriented
 class LBM2D_BASE:
@@ -62,8 +62,9 @@ class LBM2D_BASE:
             self.TS = TemperatureSolid("Temperature of Solid",self.nx,self.ny,self.nz,self,isRadiation = self.RADIATION)
             self.min_T = ti.field(ti.f32,shape=())
         if self.CHEMISTRY:
-            self.species:dict[str,Specie] = dict()
-            self.reactions:dict[str,Reaction] = dict()
+            self.specieName = []
+            self.species:list[str,Specie] = []
+            self.reactions = Reactions(self) 
         if self.PORO:        
             self.poro_model = PORO_MODEL.SPHERICAL # 使用的多孔介质模型 如球孔介质模型 Darcy Darcy-Forhheimer
             self.coefDarcy = ti.field(ti.f32,shape=(self.nx,self.ny,self.nz))

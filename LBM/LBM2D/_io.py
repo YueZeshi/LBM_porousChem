@@ -121,9 +121,11 @@ class LBM2D_INPUT(LBM2D_BASE):
             self.init_field(self.TS.real_radiation,param)
     ## 浓度场 (物种密度)
     def set_specie(self,specie,FIX = False):
-        self.species[specie] = Specie(specie,self.nx,self.ny,self.nz,self,FIX)
+        self.species.append(Specie(specie,self.nx,self.ny,self.nz,self,FIX))
+        self.specieName.append(specie)
+
     def set_specie_mole(self,specie,isFix = False,molemass = 1.0):
-        self.species[specie] = Specie(specie,self.nx,self.ny,self.nz,self,Mmass = molemass,FIX=isFix)
+        self.species.append(Specie(specie,self.nx,self.ny,self.nz,self,Mmass = molemass,FIX=isFix))
         
     def set_species(self,species,FIX=None):# 登记所有物质
         if FIX == None:
@@ -142,7 +144,7 @@ class LBM2D_INPUT(LBM2D_BASE):
             self.set_specie_mole(name,FIX[i],molemass[i])
             i += 1
     def init_specie(self,name,param):
-        self.init_field(self.species[name].S,param)
+        self.init_field(self.species[self.specieName.index(name)].S,param)
     def set_specie_diff(self,name,diff,unit="lattice"):
         if unit=="SI":
             diff *=self.dt/self.dx**2
@@ -151,7 +153,7 @@ class LBM2D_INPUT(LBM2D_BASE):
             return diff
         self.set_specie_diff_func(name,new_diff)
     def set_specie_diff_func(self,name,func):
-        self.species[name].coefDiff = func.__get__(self.species[name],ScalarField)
+        self.species[self.specieName.index(name)].coefDiff = func.__get__(self.species[self.specieName.index(name)],ScalarField)
     def set_specie_capacity(self,name:str,cm:float): # 质量热容
         @ti.func
         def new_cm(self,i):
@@ -161,7 +163,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         '''
         定义质量热容
         '''
-        self.species[name].capacity_m = func.__get__(self.species[name],ScalarField)
+        self.species[self.specieName.index(name)].capacity_m = func.__get__(self.species[self.specieName.index(name)],ScalarField)
 
     def set_specie_conductivity(self,name,lamb): # 传热系数
         @ti.func
@@ -169,11 +171,11 @@ class LBM2D_INPUT(LBM2D_BASE):
             return lamb
         self.set_specie_conductivity_func(name,new_lamb)
     def set_specie_conductivity_func(self,name,func):
-        self.species[name].conductivity = func.__get__(self.species[name],ScalarField)
+        self.species[self.specieName.index(name)].conductivity = func.__get__(self.species[self.specieName.index(name)],ScalarField)
     
     # 定义化学反应
     def add_reaction(self,name,reactant,product, param,unit=SPECIE_UNIT.MASS):
-        self.reactions[name]=(Reaction(name,reactant,product,param,self,unit=unit))
+        self.reactions.add_reaction(Reaction(name,reactant,product,param,self,unit=unit))
     
     # 设置边界条件
     def set_BC(self,i,bc):
@@ -231,19 +233,19 @@ class LBM2D_INPUT(LBM2D_BASE):
     def set_specie_BCs(self,specie,BCs):
         self.species[specie].set_BCs(BCs)
     def set_species_BC(self,i,BC):
-        for specie in self.species.values():
+        for specie in self.species:
             specie.set_BCs(i,BC)
     def set_species_BCs(self,BCs):# 定义所有物种的边界条件
-        for specie in self.species.values():
+        for specie in self.species:
             specie.set_BCs(BCs)
-    def set_specie_BC_value(self,specie,i,S):
-        self.species[specie].set_s_BC_value(i,S)
-    def set_specie_BCs_value(self,specie,Ss):
-        self.species[specie].set_s_BCs_value(Ss)
-    def set_specie_BC_flux(self,specie, i,f):
-        self.species[specie].set_s_BC_flux(i,f)
-    def set_specie_BCs_flux(self,specie, fs):
-        self.species[specie].set_s_BCs_flux(fs)
+    def set_specie_BC_value(self,name,i,S):
+        self.species[self.specieName.index(name)].set_s_BC_value(i,S)
+    def set_specie_BCs_value(self,name,Ss):
+        self.species[self.specieName.index(name)].set_s_BCs_value(Ss)
+    def set_specie_BC_flux(self,name, i,f):
+        self.species[self.specieName.index(name)].set_s_BC_flux(i,f)
+    def set_specie_BCs_flux(self,name, fs):
+        self.species[self.specieName.index(name)].set_s_BCs_flux(fs)
     @classmethod
     def CreateLBM3D(cls,case_file):
         with open(case_file,"r") as f:
@@ -441,7 +443,7 @@ class LBM2D_OUTPUT(LBM2D_BASE):
                 if self.TS.radiation_model == RADIATION_MODEL.REAL_RADIATION:
                     data["Real Radiation"] = self.TS.real_radiation.to_numpy()
         if self.CHEMISTRY:
-            for specie in self.species.values():
+            for specie in self.species:
                 if specie.FIX and not specie.name.endswith("(S)"):
                     data[specie.name+"(S)"]=specie.S.to_numpy()
                 else:

@@ -15,7 +15,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
         for j,k in ti.ndrange(self.ny,self.nz):            
             self.Boundary_condition_flow_NEE_0(0,j,k)
             if ti.static(self.CHEMISTRY):
-                for specie in ti.static(list(self.species.values())):
+                for specie in ti.static(list(self.species)):
                     if ti.static(not specie.FIX):
                         specie.Boundary_condition_scalar_0(0,j,k)
             if ti.static(self.TEMPERATURE):
@@ -24,7 +24,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
                 self.TS.Boundary_condition_scalar_0(0,j,k)
             self.Boundary_condition_flow_NEE_1(self.nx-1,j,k)
             if ti.static(self.CHEMISTRY):
-                for specie in ti.static(list(self.species.values())):
+                for specie in ti.static(list(self.species)):
                     if ti.static(not specie.FIX):
                         specie.Boundary_condition_scalar_1(self.nx-1,j,k)
             if ti.static(self.TEMPERATURE):
@@ -33,7 +33,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
         for i,k in ti.ndrange(self.nx,self.nz):
             self.Boundary_condition_flow_NEE_2(i,0,k)
             if ti.static(self.CHEMISTRY):
-               for specie in ti.static(list(self.species.values())):
+               for specie in ti.static(list(self.species)):
                     if ti.static(not specie.FIX):
                         specie.Boundary_condition_scalar_2(i,0,k)
             if ti.static(self.TEMPERATURE):
@@ -42,7 +42,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
                 self.TS.Boundary_condition_scalar_2(i,0,k)
             self.Boundary_condition_flow_NEE_3(i,self.ny-1,k)
             if ti.static(self.CHEMISTRY):
-                for specie in ti.static(list(self.species.values())):
+                for specie in ti.static(list(self.species)):
                     if ti.static(not specie.FIX):
                         specie.Boundary_condition_scalar_3(i,self.ny-1,k)
             if ti.static(self.TEMPERATURE):
@@ -114,7 +114,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
             j = j+1       
             self.Boundary_condition_flow_NEBB_0(0,j,k)
             if ti.static(self.CHEMISTRY):
-                for specie in ti.static(list(self.species.values())):
+                for specie in ti.static(list(self.species)):
                     if ti.static(not specie.FIX):
                         specie.Boundary_condition_scalar_0(0,j,k)
             if ti.static(self.TEMPERATURE):
@@ -123,7 +123,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
                 self.TS.Boundary_condition_scalar_0(0,j,k)
             self.Boundary_condition_flow_NEBB_1(self.nx-1,j,k)
             if ti.static(self.CHEMISTRY):
-                for specie in ti.static(list(self.species.values())):
+                for specie in ti.static(list(self.species)):
                     if ti.static(not specie.FIX):
                         specie.Boundary_condition_scalar_1(self.nx-1,j,k)
             if ti.static(self.TEMPERATURE):
@@ -133,7 +133,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
             # i = i+1
             self.Boundary_condition_flow_NEBB_2(i,0,k)
             if ti.static(self.CHEMISTRY):
-               for specie in ti.static(list(self.species.values())):
+               for specie in ti.static(list(self.species)):
                     if ti.static(not specie.FIX):
                         specie.Boundary_condition_scalar_2(i,0,k)
             if ti.static(self.TEMPERATURE):
@@ -142,7 +142,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
                 self.TS.Boundary_condition_scalar_2(i,0,k)
             self.Boundary_condition_flow_NEBB_3(i,self.ny-1,k)
             if ti.static(self.CHEMISTRY):
-                for specie in ti.static(list(self.species.values())):
+                for specie in ti.static(list(self.species)):
                     if ti.static(not specie.FIX):
                         specie.Boundary_condition_scalar_3(i,self.ny-1,k)
             if ti.static(self.TEMPERATURE):
@@ -239,7 +239,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
         for j,k in ti.ndrange(self.ny,self.nz):            
             self.Boundary_condition_flow_ES_0(0,j,k)
             if ti.static(self.CHEMISTRY):
-                for specie in ti.static(list(self.species.values())):
+                for specie in ti.static(list(self.species)):
                     if ti.static(not specie.FIX):
                         specie.Boundary_condition_scalar_0(0,j,k)
             if ti.static(self.TEMPERATURE):
@@ -248,7 +248,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
                 self.TS.Boundary_condition_scalar_0(0,j,k)
             self.Boundary_condition_flow_ES_1(self.nx-1,j,k)
             if ti.static(self.CHEMISTRY):
-                for specie in ti.static(list(self.species.values())):
+                for specie in ti.static(list(self.species)):
                     if ti.static(not specie.FIX):
                         specie.Boundary_condition_scalar_1(self.nx-1,j,k)
             if ti.static(self.TEMPERATURE):
@@ -257,7 +257,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
         for i,k in ti.ndrange(self.nx,self.nz):
             self.Boundary_condition_flow_ES_2(i,0,k)
             if ti.static(self.CHEMISTRY):
-               for specie in ti.static(list(self.species.values())):
+               for specie in ti.static(list(self.species)):
                     if ti.static(not specie.FIX):
                         specie.Boundary_condition_scalar_2(i,0,k)
             if ti.static(self.TEMPERATURE):
@@ -266,7 +266,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
                 self.TS.Boundary_condition_scalar_2(i,0,k)
             self.Boundary_condition_flow_ES_3(i,self.ny-1,k)
             if ti.static(self.CHEMISTRY):
-                for specie in ti.static(list(self.species.values())):
+                for specie in ti.static(list(self.species)):
                     if ti.static(not specie.FIX):
                         specie.Boundary_condition_scalar_3(i,self.ny-1,k)
             if ti.static(self.TEMPERATURE):

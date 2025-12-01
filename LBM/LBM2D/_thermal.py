@@ -13,7 +13,7 @@ class TemperatureFluid(ScalarField):
     def capacity_v(self,i): # 流体的体积热容 SI
         cv = 0.0
         if ti.static(self.LBM.CHEMISTRY):
-            for specie in ti.static(list(self.LBM.species.values())):
+            for specie in ti.static(list(self.LBM.species)):
                 if ti.static(not specie.FIX):
                     cv += specie.capacity_m(i)*specie.S[i]*self.LBM.rho[i]
         else:
@@ -27,7 +27,7 @@ class TemperatureFluid(ScalarField):
         if ti.static(self.LBM.CHEMISTRY):
             rhoc = 0.0
             k = 0.0
-            for specie in ti.static(list(self.LBM.species.values())):
+            for specie in ti.static(list(self.LBM.species)):
                 if ti.static(not specie.FIX):
                     k+=specie.S[i]*specie.conductivity(i)
                     rhoc += specie.S[i]*self.LBM.rho[i]*specie.capacity_m(i)
@@ -67,7 +67,7 @@ class TemperatureSolid(ScalarField):
             rhoc = 0.0
             rho = 0.0
             k = 0.0
-            for specie in ti.static(list(self.LBM.species.values())):
+            for specie in ti.static(list(self.LBM.species)):
                 if ti.static(specie.FIX):
                     k+=specie.S[i]*specie.conductivity(i)
                     rho += specie.S[i]
@@ -87,7 +87,7 @@ class TemperatureSolid(ScalarField):
     def capacity_v(self,i): # 所有物质的体积热容 按照孔隙率加权。流体密度为纯流体的密度 而固体密度为考虑孔隙率的密度 因此固体密度不需要再用孔隙率修正
         c = 0.0
         if ti.static(self.LBM.CHEMISTRY):
-           for specie in ti.static(list(self.LBM.species.values())):
+           for specie in ti.static(list(self.LBM.species)):
                 if ti.static(specie.FIX):
                     c += specie.S[i]*specie.capacity_m(i)
         else:

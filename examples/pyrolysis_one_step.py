@@ -52,6 +52,7 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.set_specie("N2",False)
     lb2d.set_species(["wood(S)","tar" ,"char(S)"],
                     [True     ,False,True     ])
+    
     # 设置边界条件
     lb2d.set_BCs([BC_FLOW.inlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall])
     lb2d.set_v_BCs_value([[0.01,0,0],[0,0,0],[0,0,0],[0,0,0]])
@@ -64,7 +65,7 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.set_specie_BCs_value("N2",[1]*4)
 
     # # 添加化学反应
-    # lb2d.add_reaction("total reaction",[("wood(S)",1)],[("tar",0.4),("char(S)",0.6)],(2500,0,67500,300,0))
+    lb2d.add_reaction("total reaction",[("wood(S)",1)],[("tar",0.4),("char(S)",0.6)],(2500,0,67500,300,0))
 
     # # 设置物种物性
     # ## 扩散
@@ -80,7 +81,7 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.set_specie_conductivity("char(S)", 0.0837)
     lb2d.set_specie_conductivity("tar", 0.0258)
     lb2d.set_specie_conductivity("N2",0.0258)
-    lb2d.set_specie_conductivity("N2",0.1)
+    # lb2d.set_specie_conductivity("N2",0.1)
 
     # ## 杂项
     # ## 可变边界条件
