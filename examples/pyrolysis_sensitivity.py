@@ -1,3 +1,4 @@
+from tabnanny import verbose
 import time
 import taichi as ti
 import taichi.profiler as profiler
@@ -9,10 +10,9 @@ import sys
 from LBM.LBM2D import LBM2DSolver
 from LBM.GEO.G2D import Mesh2D
 from LBM.util.flag import *
-def main(DX,DT,T_exp,variant="default"):
+def main(DX,DT,T_exp,viscosity,darcy,diffTar,diffN2,cWood,cChar,cTar,cN2,lambdaWood,lambdaChar,lambdaTar,lambdaN2,A,Ea,hExchange,emissivity,variant="default"):
     # 获取环境变量是否启用debug模式
     # debug模式计算较少的步数 用于检验算例是否快速发散
-    print(os.getenv("DEBUG","false"))
     DEBUG = os.getenv("DEBUG","False").lower() == "true" # 默认非debug
     ARCH = os.getenv("ARCH","cpu").lower() # 默认CPU
     ## 用于获取运算时间信息
@@ -29,28 +29,29 @@ def main(DX,DT,T_exp,variant="default"):
     ## convert to lattice unit
     T_init = 303.
 
-    print("executing ",__name__)
+    # print("executing ",__name__)
     name = "pyrolysis_one_step"
     # 初始化taichi
     ## arch=ti.cpu 启用cpu计算；arch=ti.gpu启用gpu运算 (cuda>vulkan)
     if ARCH=="gpu":
-        ti.init(arch=ti.gpu, kernel_profiler=True, print_ir=False)
+        ti.init(arch=ti.gpu, kernel_profiler=True, print_ir=False,verbose = 0)
     else:
-        ti.init(arch=ti.cpu, kernel_profiler=True, print_ir=False)
+        ti.init(arch=ti.cpu, kernel_profiler=True, print_ir=False,verbose = 0)
     # 初始化lbm模型
     lb2d = LBM2DSolver(X,Y,dx=DX,dt=DT,isPoro=True,isChemical=True,isThermal=True,isRadiation=True)
     # 基础设置
     lb2d.source_term_model = SOURCE_TERM.MICRO
     lb2d.force_term_model = FORCE_TERM.GUO
     lb2d.EOS = FLUID_STATE_EQUATION.IDEAL_GAS
-    lb2d.set_viscosity(0.1)
-    lb2d.set_poro_Darcy(2.5e10,unit="SI")
+    lb2d.set_viscosity(viscosity)
+    lb2d.set_poro_Darcy(darcy,unit="SI")
     lb2d.set_radiation(RADIATION_MODEL.SURFACE_UNIFORM,T_exp)
 
     # 设置物质
     ## 物种及其状态
     lb2d.set_specie("N2",False)
     lb2d.set_species(["wood(S)","tar" ,"char(S)"],
+
                     [True     ,False,True     ])
     
     # 设置边界条件
@@ -65,22 +66,22 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.set_specie_BCs_value("N2",[1]*4)
 
     # # 添加化学反应
-    lb2d.add_reaction("total reaction",[("wood(S)",1)],[("tar",0.4),("char(S)",0.6)],(2500,0,67500,300,0))
+    lb2d.add_reaction("total reaction",[("wood(S)",1)],[("tar",0.4),("char(S)",0.6)],(A,0,Ea,400,0))
 
     # # 设置物种物性
     # ## 扩散
-    lb2d.set_specie_diff("tar",0.1)
-    lb2d.set_specie_diff("N2",0.1)
+    lb2d.set_specie_diff("tar",diffTar)
+    lb2d.set_specie_diff("N2",diffN2)
     # ## 热容
-    lb2d.set_specie_capacity("wood(S)",1670)
-    lb2d.set_specie_capacity("char(S)",1000)
-    lb2d.set_specie_capacity("tar",1000)
-    lb2d.set_specie_capacity("N2",1000)
+    lb2d.set_specie_capacity("wood(S)",cWood)
+    lb2d.set_specie_capacity("char(S)",cChar)
+    lb2d.set_specie_capacity("tar",cTar)
+    lb2d.set_specie_capacity("N2",cN2)
     # ## 热导
-    lb2d.set_specie_conductivity("wood(S)", 0.1256)
-    lb2d.set_specie_conductivity("char(S)", 0.0837)
-    lb2d.set_specie_conductivity("tar", 0.0258)
-    lb2d.set_specie_conductivity("N2",0.0258)
+    lb2d.set_specie_conductivity("wood(S)", lambdaWood)
+    lb2d.set_specie_conductivity("char(S)", lambdaChar)
+    lb2d.set_specie_conductivity("tar", lambdaTar)
+    lb2d.set_specie_conductivity("N2",lambdaN2)
     # lb2d.set_specie_conductivity("N2",0.1)
 
     # ## 杂项
@@ -150,19 +151,19 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.init_field(lb2d.TF.S,T_init)
     lb2d.init_field(lb2d.TS.S,T_init)
     lb2d.init_field(lb2d.TS.exchangeSurface,100)
-    lb2d.init_field(lb2d.TS.exchangeCoef,1000)
-    lb2d.init_field(lb2d.TS.emissivity,0.7)
+    lb2d.init_field(lb2d.TS.exchangeCoef,hExchange)
+    lb2d.init_field(lb2d.TS.emissivity,emissivity)
     lb2d.init_specie("N2",1)
     lb2d.init_specie("wood(S)",s*400)
-    lb2d.init_field(lb2d.TS.radiation_surface, l*0.6)# vague
+    lb2d.init_field(lb2d.TS.radiation_surface, l)# vague
     # 初始化lbm
     lb2d.init_simulation()
-    lb2d.check_python()
+    # lb2d.check_python()
     # cal_allWood() # 计算总木材质量
-    total_iteration =   1000
-    export_interval = 10
-    measure_interval= 10
-    print_interval = 10
+    total_iteration =   10
+    export_interval = 1000
+    measure_interval= 1000
+    print_interval = 1000
     if DEBUG:
         total_iteration = 0.01
         export_interval = 0.01
@@ -170,42 +171,80 @@ def main(DX,DT,T_exp,variant="default"):
         print("debug")
 
     for iter in range(int(total_iteration/DT)+1):
-        if iter==1:
-            print("init, complie and execute once time:",time.time()-time_init)
-        if (iter%int(print_interval/DT)==0):
-            time_pre = time_now
-            time_now = time.time()
-            diff_time = int(time_now-time_pre)
-            elap_time = int(time_now-time_init)
-            m_diff, s_diff = divmod(diff_time, 60)
-            h_diff, m_diff = divmod(m_diff, 60)
-            m_elap, s_elap = divmod(elap_time, 60)
-            h_elap, m_elap = divmod(m_elap, 60)
-            max_v = lb2d.get_max_v()
-            min_T = lb2d.get_min_T()
-            print(name,flush=True)
-            print('----------Time between two outputs is %dh %dm %ds; elapsed time is %dh %dm %ds----------------------' %(h_diff, m_diff, s_diff,h_elap,m_elap,s_elap))
-            print('The %dth iteration, Max Force = %f,  Min Temperature = %f\n\n ' %(iter, max_v,  min_T))            
-        if (iter%int(export_interval/DT)==0):
+        # if iter==1:
+        #     print("init, complie and execute once time:",time.time()-time_init)
+        # if (iter%int(print_interval/DT)==0):
+        #     time_pre = time_now
+        #     time_now = time.time()
+        #     diff_time = int(time_now-time_pre)
+        #     elap_time = int(time_now-time_init)
+        #     m_diff, s_diff = divmod(diff_time, 60)
+        #     h_diff, m_diff = divmod(m_diff, 60)
+        #     m_elap, s_elap = divmod(elap_time, 60)
+        #     h_elap, m_elap = divmod(m_elap, 60)
+        #     max_v = lb2d.get_max_v()
+        #     min_T = lb2d.get_min_T()
+        #     print(name,flush=True)
+        #     print('----------Time between two outputs is %dh %dm %ds; elapsed time is %dh %dm %ds----------------------' %(h_diff, m_diff, s_diff,h_elap,m_elap,s_elap))
+        #     print('The %dth iteration, Max Force = %f,  Min Temperature = %f\n\n ' %(iter, max_v,  min_T))            
+        # if (iter%int(export_interval/DT)==0):
         
-            if DEBUG:
-                lb2d.export_VTK(f"debug_{name}_{variant}_{DX}",iter)
-                # lb2d.export_variable(f"simulation_{name}_{int(variant)}_{nx}_{int(T_exp)}",iter)
-            else:
-                lb2d.export_VTK(f"simulation_{name}_{variant}_{DX}",iter)
-        if (iter%int(measure_interval/DT)==0):
-                lb2d.export_variable(f"simulation_{name}_{variant}_{DX}",iter)
+        #     if DEBUG:
+        #         lb2d.export_VTK(f"debug_{name}_{variant}_{DX}",iter)
+        #         # lb2d.export_variable(f"simulation_{name}_{int(variant)}_{nx}_{int(T_exp)}",iter)
+        #     else:
+        #         lb2d.export_VTK(f"simulation_{name}_{variant}_{DX}",iter)
+        # if (iter%int(measure_interval/DT)==0):
+        #         lb2d.export_variable(f"simulation_{name}_{variant}_{DX}",iter)
         lb2d.step()
+    lb2d.check_python()
 
-
-    profiler.print_kernel_profiler_info()
+    # profiler.print_kernel_profiler_info()
     # profiler.print_memory_profiler_info()
+
 if __name__=="__main__":
     # os.environ["DEBUG"]="TRUE"
     DX = float(sys.argv[1])
     DT = float(sys.argv[2])
     T_exp = float(sys.argv[3])
     variant = sys.argv[4]
-    main(DX,DT,T_exp,variant)
-
-    
+    param = {
+    "viscosity":0.1,
+    "darcy":2.5e11,
+    "diffTar":0.1,
+    "diffN2":0.1,
+    "cWood":1670,
+    "cChar":1000,
+    "cTar":1000,
+    "cN2":1000,
+    "lambdaWood":0.1256,
+    "lambdaChar":0.0837,
+    "lambdaTar":0.0258,
+    "lambdaN2":0.0258,
+    "A":2500,
+    "Ea":67500,
+    "hExchange":1000,
+    "emissivity":0.7}
+    def sensitivity(param_name):
+        init_value = param[param_name]
+        print(param_name,flush=True)
+        for i in [-0.05,-0.02,0,0.02,0.05]:
+            param[param_name] = (1+i)*init_value
+            main(DX,DT,T_exp,param["viscosity"],param["darcy"],param["diffTar"],param["diffN2"],param["cWood"],param["cChar"],param["cTar"],param["cN2"],param["lambdaWood"],param["lambdaChar"],param["lambdaTar"],param["lambdaN2"],param["A"],param["Ea"],param["hExchange"],param["emissivity"],variant)
+        param[param_name] = init_value
+    sensitivity("viscosity")
+    sensitivity("darcy")
+    sensitivity("diffTar")
+    sensitivity("diffN2")
+    sensitivity("cWood")
+    sensitivity("cChar")
+    sensitivity("cTar")
+    sensitivity("cN2")
+    sensitivity("lambdaWood")
+    sensitivity("lambdaChar")
+    sensitivity("lambdaTar")
+    sensitivity("lambdaN2")
+    sensitivity("A")
+    sensitivity("Ea")
+    sensitivity("hExchange")
+    sensitivity("emissivity")

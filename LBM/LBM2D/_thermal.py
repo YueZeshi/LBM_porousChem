@@ -58,6 +58,7 @@ class TemperatureSolid(ScalarField):
         if isRadiation:
             self.radiation_model = RADIATION_MODEL.NONE # 辐射模型
             self.radiation_surface = ti.field(ti.f32,shape = (self.nx,self.ny,self.nz)) # S/V L-1
+            self.emissivity = ti.field(ti.f32,shape=(self.nx,self.ny,self.nz))
     @ti.func
     def coefDiff(self, i):
         D = 0.0
@@ -105,7 +106,7 @@ class TemperatureSolid(ScalarField):
     def radiation(self,i):# Wm-2K-4*m-1K4*{m2}=Wm-3 SI # 单位体积辐射 SI
         q = 0.0
         if ti.static(self.radiation_model==RADIATION_MODEL.SURFACE_UNIFORM):
-            q += self.SIGMA*self.radiation_surface[i]/self.LBM.dx*(ti.pow(self.Tambient,4)-ti.pow(self.S[i],4))
+            q += self.emissivity[i]*self.SIGMA*self.radiation_surface[i]/self.LBM.dx*(ti.pow(self.Tambient,4)-ti.pow(self.S[i],4))
         elif ti.static(self.radiation_model==RADIATION_MODEL.REAL_RADIATION):
             q += self.real_radiation[i]-self.SIGMA*self.radiation_surface[i]/self.LBM.dx*ti.pow(self.S[i],4)
         return q
