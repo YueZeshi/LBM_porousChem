@@ -2336,7 +2336,7 @@ def create_argparser():
             If the **ck2yaml** script is not on your path but the Cantera Python module is,
             **ck2yaml** can also be invoked by running::
 
-                python -m LBM.cantera_tool.ck2yaml --input=chem.inp --thermo=therm.dat --transport=tran.dat
+                python -m cantera.ck2yaml --input=chem.inp --thermo=therm.dat --transport=tran.dat
 
             In both cases, the equal signs in the options are optional.
             """),

@@ -59,16 +59,11 @@ class LBM2D_BASE:
         self.RADIATION = isRadiation and isThermal
         if self.TEMPERATURE:
             self.TF = TemperatureFluid("Temperature of Fluid",self.nx,self.ny,self.nz,self)
-            self.TS = TemperatureSolid("Temperature of Solid",self.nx,self.ny,self.nz,self)
-            self.heat_trasnfer_surface = ti.field(ti.f32,shape = (self.nx,self.ny,self.nz))
+            self.TS = TemperatureSolid("Temperature of Solid",self.nx,self.ny,self.nz,self,isRadiation = self.RADIATION)
             self.min_T = ti.field(ti.f32,shape=())
-            if self.RADIATION:
-                self.radiation_model = RADIATION_MODEL.NONE # 辐射模型
-                # self.radiation = ti.field(ti.f32,shape=(self.nx,self.ny,self.nz))
-                self.radiation_surface = ti.field(ti.f32,shape = (self.nx,self.ny,self.nz)) # S/V L-1
         if self.CHEMISTRY:
-            self.species = []
-            self.reactions = dict()
+            self.species:dict[str,Specie] = dict()
+            self.reactions:dict[str,Reaction] = dict()
         if self.PORO:        
             self.poro_model = PORO_MODEL.SPHERICAL # 使用的多孔介质模型 如球孔介质模型 Darcy Darcy-Forhheimer
             self.coefDarcy = ti.field(ti.f32,shape=(self.nx,self.ny,self.nz))

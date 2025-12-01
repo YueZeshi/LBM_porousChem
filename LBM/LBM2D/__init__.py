@@ -3,7 +3,7 @@ from ._core import LBM2D_BASE
 from ._evolution import LBM2D_EVOLUTION
 from ._boundary import LBM2D_BOUNDARY
 from ._io import LBM2D_INPUT,LBM2D_OUTPUT
-from ._init import LBM2D_INITIALIZATION
+from ._initialize import LBM2D_INITIALIZATION
 from ..util.flag import *
 
 

@@ -3,21 +3,25 @@ class SPECIE_UNIT(Enum):
     MASS = 1
     MOLE = 2
 class REACTION_TYPE(Enum):
-    ARREHNIUS = 0
-    LMH = 1
+    ARREHNIUS = 0 # power law
+    LMH = 1 # langemuir--
 class FLUID_STATE_EQUATION(Enum):
-    IDEAL_GAS = 0
+    IDEAL_GAS = 0 # compressible model
     INCOMPRESSIBLE = 1
 class RADIATION_MODEL(Enum):
-    NONE = 0
-    SURFACE_UNIFORM = 1
-    REAL_RADIATION = 2
+    # radiation model
+    NONE = 0 # no radiation
+    SURFACE_UNIFORM = 1 # uniform environmental temperature
+    REAL_RADIATION = 2 # baked radiation
+    P1_APPROACH = 3 # not implemented
 class PORO_MODEL(Enum):
-    SPHERICAL = 0
-    DARCY = 1
-    DARCYFORCHHEIMER=2
-    DARCY_HIGH = 3
+    # the porosity model
+    SPHERICAL = 0 # ergun
+    DARCY = 1 # linear
+    DARCYFORCHHEIMER=2 # non-linear
+    DARCY_HIGH = 3 # correction (not correct)
 class SOURCE_TERM(Enum):
+    # the source term schema
     NONE = 0
     MICRO = 1 # 修改分布函数
     MACRO = 2 # 修改宏观量
@@ -27,16 +31,19 @@ class FORCE_TERM(Enum):
     SHAN = 2 # 改变平衡速度
     MACRO = 3 # 处理外力项太大的刚性问题
 class BC(Enum):
+    # the boundary condition for general field
     periodic = 0
-    zeroGadient = 1
+    zeroGradient = 1
     fixedValue = 2
 class BC_FLOW(Enum):
+    # the combined boundary condition for flow field => one condition will set two field : velocity and density
     periodic = 0
     inlet = 1
     outlet = 2
     wall = 3
     symmetric = 4
 class BC_MODEL(Enum):
+    # the boundary condition schema
     NONE = 0
     NEE = 1
     NEBB = 2

@@ -178,16 +178,16 @@ class LBM3D_INPUT:
         self.bc[i]=bc
         if bc==BC_FLOW.inlet:
             self.set_v_BC(i,BC.fixedValue)
-            self.set_rho_BC(i,BC.zeroGadient)
+            self.set_rho_BC(i,BC.zeroGradient)
         if bc==BC_FLOW.outlet:
-            self.set_v_BC(i,BC.zeroGadient)
+            self.set_v_BC(i,BC.zeroGradient)
             self.set_rho_BC(i,BC.fixedValue)
         if bc==BC_FLOW.symmetric:
-            self.set_v_BC(i,BC.zeroGadient)
-            self.set_rho_BC(i,BC.zeroGadient)
+            self.set_v_BC(i,BC.zeroGradient)
+            self.set_rho_BC(i,BC.zeroGradient)
         if bc==BC_FLOW.wall:
             self.set_v_BC(i,BC.fixedValue)
-            self.set_rho_BC(i,BC.zeroGadient)
+            self.set_rho_BC(i,BC.zeroGradient)
     def set_BCs(self,BCs):
         for i in range(6):
             self.set_BC(i,BCs[i])

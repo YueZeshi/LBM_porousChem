@@ -26,7 +26,9 @@ dependencies = [
 
 [project.scripts]
 lbm = "LBM.cli:main"
-ck2yaml1 = "LBM.cantera_tool.ck2yaml:main"
+ck2yaml = "LBM.cantera_tool.ck2yaml:main"
+cti2yaml = "LBM.cantera_tool.cti2yaml:main"
+cmtl2yaml = "LBM.cantera_tool.cmtl2yaml:main"
 
 # [project.urls]
 # Homepage = "https://github.com/lettucecfd/lettuce"

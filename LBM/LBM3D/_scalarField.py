@@ -46,7 +46,7 @@ class ScalarField:
     def Boundary_condition_scalar_0(self,x,y,z):
         if ti.static(self.BC[0]==BC.FIXVALUE): # fix v
             self.S[x,0,z] = self.s_BC[0]
-        if ti.static(self.BC[0]==BC.zeroGadient): # open
+        if ti.static(self.BC[0]==BC.zeroGradient): # open
             self.S[x,0,z] = self.S[x,1,z]  
         # todo
         for s in ti.static(range(7)):

@@ -18,6 +18,7 @@ class LBM2D_INPUT(LBM2D_BASE):
     # 初始化场
     # 设置场初值
     def init_field(self,field,param):
+        
         if(type(param) in [float,int]):
             data = param*np.ones(shape=(self.nx,self.ny,self.nz),dtype=np.float32) 
             field.from_numpy(data)
@@ -27,6 +28,7 @@ class LBM2D_INPUT(LBM2D_BASE):
             field.from_numpy(in_dat)
         if(type(param)==np.ndarray):
             field.from_numpy(param)
+
         
     def init_field2(self,field,param1,param2): 
         if(type(param1) in [float,int]):
@@ -109,14 +111,14 @@ class LBM2D_INPUT(LBM2D_BASE):
     def set_TF_diff_func(self,func):
         self.TF.coefDiff = func.__get__(self.TF,ScalarField)
     ### 辐射相关
-    def set_radiation_model(self,model,param):
+    def set_radiation(self,model,param):
         if model == RADIATION_MODEL.SURFACE_UNIFORM:
-            self.radiation_model = model
-            self.Tambient = float(param)
+            self.TS.radiation_model = model
+            self.TS.Tambient = float(param)
         if model == RADIATION_MODEL.REAL_RADIATION:
-            self.radiation_model = model
-            self.real_radiation = ti.field(ti.f32,shape=(self.nx,self.ny,self.nz))
-            self.init_field(self.real_radiation,param)
+            self.TS.radiation_model = model
+            self.TS.real_radiation = ti.field(ti.f32,shape=(self.nx,self.ny,self.nz))
+            self.init_field(self.TS.real_radiation,param)
     ## 浓度场 (物种密度)
     def set_specie(self,specie,FIX = False):
         self.species[specie] = Specie(specie,self.nx,self.ny,self.nz,self,FIX)
@@ -178,16 +180,16 @@ class LBM2D_INPUT(LBM2D_BASE):
         self.bc[i]=bc
         if bc==BC_FLOW.inlet:
             self.set_v_BC(i,BC.fixedValue)
-            self.set_rho_BC(i,BC.zeroGadient)
+            self.set_rho_BC(i,BC.zeroGradient)
         if bc==BC_FLOW.outlet:
-            self.set_v_BC(i,BC.zeroGadient)
+            self.set_v_BC(i,BC.zeroGradient)
             self.set_rho_BC(i,BC.fixedValue)
         if bc==BC_FLOW.symmetric:
-            self.set_v_BC(i,BC.zeroGadient)
-            self.set_rho_BC(i,BC.zeroGadient)
+            self.set_v_BC(i,BC.zeroGradient)
+            self.set_rho_BC(i,BC.zeroGradient)
         if bc==BC_FLOW.wall:
             self.set_v_BC(i,BC.fixedValue)
-            self.set_rho_BC(i,BC.zeroGadient)
+            self.set_rho_BC(i,BC.zeroGradient)
     def set_BCs(self,BCs):
         for i in range(4):
             self.set_BC(i,BCs[i])
@@ -434,10 +436,10 @@ class LBM2D_OUTPUT(LBM2D_BASE):
         if self.TEMPERATURE:
             data["Tf"]  = self.TF.S.to_numpy()
             data["Ts"]  = self.TS.S.to_numpy()
-        if self.RADIATION:
-            data["Radiation_surface"] = self.radiation_surface.to_numpy()
-            if self.radiation_model == RADIATION_MODEL.REAL_RADIATION:
-                data["Real Radiation"] = self.real_radiation.to_numpy()
+            if self.RADIATION:
+                data["Radiation_surface"] = self.TS.radiation_surface.to_numpy()
+                if self.TS.radiation_model == RADIATION_MODEL.REAL_RADIATION:
+                    data["Real Radiation"] = self.TS.real_radiation.to_numpy()
         if self.CHEMISTRY:
             for specie in self.species.values():
                 if specie.FIX and not specie.name.endswith("(S)"):
@@ -464,8 +466,8 @@ class LBM2D_OUTPUT(LBM2D_BASE):
     @ti.func
     def check(self):
         s0 = [0,int(self.ny/2),int(self.nz/2)]
-        s1 = [1,int(self.ny/2),int(self.nz/2)]
-        print(self.v[s1],self.F[s1])
+        s1 = [int(self.nx/4),int(self.ny/2),int(self.nz/2)]
+        print(self.TS.coefDiff(s1),self.TS.S[s1])
         # rad = 0.0
         # rad_surface = 0.0
         # for i in ti.grouped(self.rho):

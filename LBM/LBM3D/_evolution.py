@@ -149,11 +149,11 @@ class LBM3D_EVOLUTION:
     def Boundary_condition_flow_0(self,x,y,z):
         if ti.static(self.bc_v[0]==BC.fixedValue):
             self.v[0,y,z] = self.v_BC[0]
-        elif ti.static(self.bc_v[0]==BC.zeroGadient):
+        elif ti.static(self.bc_v[0]==BC.zeroGradient):
             self.v[0,y,z] = self.v[1,y,z]
         if ti.static(self.bc_rho[0]==BC.fixedValue):
             self.rho[0,y,z] = self.rho_BC[0]
-        elif ti.static(self.bc_rho[0]==BC.zeroGadient):
+        elif ti.static(self.bc_rho[0]==BC.zeroGradient):
             self.rho[0,y,z] = self.rho[1,y,z]
         
         for s in ti.static(range(19)):
@@ -163,11 +163,11 @@ class LBM3D_EVOLUTION:
         
         if ti.static(self.bc_v[1]==BC.fixedValue):
             self.v[self.nx-1,y,z] = self.v_BC[1]
-        elif ti.static(self.bc_v[1]==BC.zeroGadient):
+        elif ti.static(self.bc_v[1]==BC.zeroGradient):
             self.v[self.nx-1,y,z] = self.v[self.nx-2,y,z]
         if ti.static(self.bc_rho[1]==BC.fixedValue):
             self.rho[self.nx-1,y,z] = self.rho_BC[1]
-        elif ti.static(self.bc_rho[1]==BC.zeroGadient):
+        elif ti.static(self.bc_rho[1]==BC.zeroGradient):
             self.rho[self.nx-1,y,z] = self.rho[self.nx-2,y,z]
         for s in ti.static(range(19)):
             self.f[self.nx-1,y,z][s] = self.feq19(s,self.rho[self.nx-1,y,z],self.v[self.nx-1,y,z])+(self.f[self.nx-2,y,z][s]-self.feq19(s,self.rho[self.nx-2,y,z],self.v[self.nx-2,y,z]))
@@ -175,11 +175,11 @@ class LBM3D_EVOLUTION:
     def Boundary_condition_flow_2(self,x,y,z):
         if ti.static(self.bc_v[2]==BC.fixedValue):
             self.v[x,0,z] = self.v_BC[2]
-        elif ti.static(self.bc_v[2]==BC.zeroGadient):
+        elif ti.static(self.bc_v[2]==BC.zeroGradient):
             self.v[x,0,z] = self.v[x,1,z]
         if ti.static(self.bc_rho[2]==BC.fixedValue):
             self.rho[x,0,z] = self.rho_BC[2]
-        elif ti.static(self.bc_rho[2]==BC.zeroGadient):
+        elif ti.static(self.bc_rho[2]==BC.zeroGradient):
             self.rho[x,0,z] = self.rho[x,1,z]
         for s in ti.static(range(19)):
             self.f[x,0,z][s] = self.feq19(s,self.rho[x,0,z],self.v[x,0,z])+(self.f[x,1,z][s]-self.feq19(s,self.rho[x,1,z],self.v[x,1,z]))
@@ -187,11 +187,11 @@ class LBM3D_EVOLUTION:
     def Boundary_condition_flow_3(self,x,y,z):
         if ti.static(self.bc_v[3]==BC.fixedValue):
             self.v[x,self.ny-1,z] = self.v_BC[3]
-        elif ti.static(self.bc_v[3]==BC.zeroGadient):
+        elif ti.static(self.bc_v[3]==BC.zeroGradient):
             self.v[x,self.ny-1,z] = self.v[x,self.ny-2,z]
         if ti.static(self.bc_rho[3]==BC.fixedValue):
             self.rho[x,self.ny-1,z] = self.rho_BC[3]
-        elif ti.static(self.bc_rho[3]==BC.zeroGadient):
+        elif ti.static(self.bc_rho[3]==BC.zeroGradient):
             self.rho[x,self.ny-1,z] = self.rho[x,self.ny-2,z]
         for s in ti.static(range(19)):
             self.f[x,self.ny-1,z][s] = self.feq19(s,self.rho[x,self.ny-1,z],self.v[x,self.ny-1,z])+(self.f[x,self.ny-2,z][s]-self.feq19(s,self.rho[x,self.ny-2,z],self.v[x,self.ny-2,z]))
@@ -199,11 +199,11 @@ class LBM3D_EVOLUTION:
     def Boundary_condition_flow_4(self,x,y,z):
         if ti.static(self.bc_v[4]==BC.fixedValue):
             self.v[x,y,0] = self.v_BC[4]
-        elif ti.static(self.bc_v[4]==BC.zeroGadient):
+        elif ti.static(self.bc_v[4]==BC.zeroGradient):
             self.v[x,y,0] = self.v[x,y,1]
         if ti.static(self.bc_rho[4]==BC.fixedValue):
             self.rho[x,y,0] = self.rho_BC[4]
-        elif ti.static(self.bc_rho[4]==BC.zeroGadient):
+        elif ti.static(self.bc_rho[4]==BC.zeroGradient):
             self.rho[x,y,0] = self.rho[x,y,1]
         for s in ti.static(range(19)):
             self.f[x,y,0][s] = self.feq19(s,self.rho[x,y,0],self.v[x,y,0])+(self.f[x,y,1][s]-self.feq19(s,self.rho[x,y,1],self.v[x,y,1]))
@@ -211,11 +211,11 @@ class LBM3D_EVOLUTION:
     def Boundary_condition_flow_5(self,x,y,z):
         if ti.static(self.bc_v[5]==BC.fixedValue):
             self.v[x,y,self.nz-1] = self.v_BC[5]
-        elif ti.static(self.bc_v[5]==BC.zeroGadient):
+        elif ti.static(self.bc_v[5]==BC.zeroGradient):
             self.v[x,y,self.nz-1] = self.v[x,y,self.nz-2]
         if ti.static(self.bc_rho[5]==BC.fixedValue):
             self.rho[x,y,self.nz-1] = self.rho_BC[5]
-        elif ti.static(self.bc_rho[5]==BC.zeroGadient):
+        elif ti.static(self.bc_rho[5]==BC.zeroGradient):
             self.rho[x,y,self.nz-1] = self.rho[x,y,self.nz-2]
         for s in ti.static(range(19)):
             self.f[x,y,self.nz-1][s] = self.feq19(s,self.rho[x,y,self.nz-1],self.v[x,y,self.nz-1])+(self.f[x,y,self.nz-2][s]-self.feq19(s,self.rho[x,y,self.nz-2],self.v[x,y,self.nz-2]))
