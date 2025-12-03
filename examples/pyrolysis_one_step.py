@@ -206,6 +206,7 @@ if __name__=="__main__":
     DT = float(sys.argv[2])
     T_exp = float(sys.argv[3])
     variant = sys.argv[4]
+    startTime = time.time()
     main(DX,DT,T_exp,variant)
-
+    print("execution time: ", time.time()-startTime)
     

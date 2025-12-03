@@ -760,6 +760,8 @@ class Parser:
         self.element_weights = {}  # for custom elements only
         self.species_list = []  # bulk species only
         self.species_dict = {}  # bulk and surface species
+        self.solid_list = []
+        self.solid_dict = {}
         self.surfaces = []
         self.reactions = []
         self.header_lines = []
@@ -1574,6 +1576,7 @@ class Parser:
         sections = {
             "ELEMENTS": re.compile(r"\s*ELEM(?:ENTS)?\b(.*)", re.I),
             "SPECIES": re.compile(r"\s*SPEC(?:IES)?\b(.*)", re.I),
+            "SOLID":re.compile(r"\s*SOLID?\b(.*)", re.I),
             "SITE": re.compile(r"\s*SITE\b(.*)", re.I),
             "THERMO NASA9": re.compile(r"\s*THER(?:M|MO)\s+NASA9(.*)", re.I),
             "THERMO": re.compile(r"\s*THER(?:M|MO)\b(.*)", re.I),
@@ -1597,7 +1600,7 @@ class Parser:
                     line = lines[i, 2] = m.group(1)
                     del sections[section]
                     break
-            if current_section in ("SPECIES", "ELEMENTS", "SITE"):
+            if current_section in ("SPECIES","SOLID", "ELEMENTS", "SITE"):
                 if m := re.match(r"(.*)\s?END\b", line, re.I):
                     current_section = None
                     lines[i+1:, 1] = None
@@ -1615,9 +1618,10 @@ class Parser:
                 logger.error(self.entry() +
                     f"Section starts with unrecognized keyword '{line}'")
                 break
-
         if "ELEMENTS" in found_sections:
             self.parse_elements_section(lines[lines[:,1] == "ELEMENTS"])
+        if "SOLID" in found_sections:
+            self.parse_solid_section(lines[lines[:,1] == "SOLID"])
         if "SPECIES" in found_sections:
             self.parse_species_section(lines[lines[:,1] == "SPECIES"])
         if "SITE" in found_sections:
@@ -1668,6 +1672,47 @@ class Parser:
                 self.element_weights[name] = weight
             else:
                 self.elements.append(element_string.capitalize())
+    def parse_solid_section(self, lines):
+        """
+        Parse the SOLID section of a Chemkin-format input file
+
+        :param lines:
+            A list of ``(line number, section name, line content, comment)`` tuples
+        """
+        comments = {}
+        solid = []
+        for line, comment in lines[:, 2:]:
+            line_solid = line.split()
+            if len(line_solid) == 1 and comment:
+                comments[line_solid[0]] = comment
+            solid.extend(line_solid)
+
+        redundant_count = 0
+        for token in solid:
+            if token in self.solid_dict:
+                redundant_count += 1
+                solid = self.solid_dict[token]
+                if redundant_count > 5:
+                    continue
+                if self.permissive:
+                    logger.warning("Ignoring redundant declaration for "
+                                   f"solid '{solid}'")
+                else:
+                    logger.error(f"Found multiple declarations for solid "
+                        f"'{solid}'. Run ck2yaml again with the\n'--permissive' "
+                        "option to ignore the extra declarations.")
+            else:
+                solid = Species(label=token)
+                if token in comments:
+                    solid.note = comments[token]
+                self.solid_dict[token] = solid
+                self.solid_list.append(solid)
+
+        if redundant_count > 5 and not self.verbose:
+            kind = "warnings" if self.permissive else "errors"
+            logger.warning(f"Suppressed {redundant_count - 5} additional {kind} about "
+                "redundant species declarations.\nRun ck2yaml again with the "
+                f"'--verbose' option to see all {kind}.")
 
     def parse_species_section(self, lines):
         """
