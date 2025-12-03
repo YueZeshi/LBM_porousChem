@@ -1,6 +1,6 @@
 from ruamel.yaml import YAML
 yaml = YAML()
-file = "data/gri30.yaml"
+file = "data/lithium_ion_battery.yaml"
 # print(gas.report())
 with open(file,"r",encoding="utf-8")as f:
     data = yaml.load(f)
@@ -10,4 +10,6 @@ with open(file,"r",encoding="utf-8")as f:
 # phases: name themo elements species kinetics transport state
 # species list[name composition thermo[model temperature-ranges分段 data分段 note注释] transport[model geometry well-depth diameter polarizability rotational-relaxtion]]
 # reactions list[equation+] default->rate-constant (duplicate); type:three-body + efficiencies; type:falloff+ low-P-rate-constant+high-P-rate-constant+ Troe+ efficiencies
-# 
+import cantera as ct
+gas = ct.Interface(file)
+print(gas)

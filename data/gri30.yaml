@@ -952,6 +952,7 @@ species:
 
 reactions:
 - equation: 2 O + M <=> O2 + M  # Reaction 1
+  phase: elementar
   type: three-body
   rate-constant: {A: 1.2e+17, b: -1.0, Ea: 0.0}
   efficiencies: {H2: 2.4, H2O: 15.4, CH4: 2.0, CO: 1.75, CO2: 3.6, C2H6: 3.0,
