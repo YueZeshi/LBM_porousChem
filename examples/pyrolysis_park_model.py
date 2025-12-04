@@ -127,46 +127,37 @@ def main(DX,DT,T_exp,variant="default"):
     # # 导出局部或者全局变量 观测量
     # ## 中心温度 表面温度 转化率 
     # ### 定义变量实现CPU GPU数据传输
-    # allWood = ti.field(ti.f32,shape=())
-    # conv = ti.field(ti.f32,shape=())
-    # total_rad_surface = ti.field(ti.f32,shape=())  
-    # @ti.func
-    # def cal_wood():
-    #     wood = 0.0
-    #     for i in ti.grouped(lb2d.rho):
-    #         wood += lb2d.species["wood(S)"].S[i]
-    #     return wood
-    # @ti.kernel
-    # def cal_allWood():
-    #     allWood[None] = cal_wood()
-    #     print("all wood:",allWood[None])
+    allWood = ti.field(ti.f32,shape=())
+    conv = ti.field(ti.f32,shape=())
+    total_rad_surface = ti.field(ti.f32,shape=())  
+    @ti.func
+    def cal_wood():
+        wood = 0.0
+        for i in ti.grouped(lb2d.rho):
+            wood += lb2d.species[1].S[i]
+        return wood
+    @ti.kernel
+    def cal_allWood():
+        allWood[None] = cal_wood()
+        print("all wood:",allWood[None])
     
-    # def setVariables():
-    #     def Tcenter(lbm:LB2D_PYRO):
-    #         T_center = lbm.TS.S[(int(lbm.nx/2),int(lbm.ny/2),int(lbm.nz/2))]
-    #         return "Ts_center", T_center
-    #     lb2d.GetVariableFunc.append(Tcenter)
-    #     def Tsurface(lbm:LB2D_PYRO):
-    #         T_surface = lbm.TF.S[(int(lbm.nx/2+r-1),int(lbm.ny/2),int(lbm.nz/2))]
-    #         return "Tf_surface", T_surface
-    #     lb2d.GetVariableFunc.append(Tsurface)
-    #     @ti.kernel
-    #     def cal_conversion():
-    #         conv[None] = (allWood[None]-cal_wood())/allWood[None]
-    #     def conversion(lbm:LB2D_PYRO):
-    #         cal_conversion()
-    #         return "conversion", conv[None]
-    #     lb2d.GetVariableFunc.append(conversion)
-    #     @ti.kernel
-    #     def cal_all_rad():
-    #         total_rad_surface[None] = 0.0
-    #         for i,j in ti.ndrange(lb2d.nx,lb2d.ny):
-    #             total_rad_surface[None] += lb2d.radiation_surface[i,j,0]
-    #     def all_rad(lbm:LB2D_PYRO):
-    #         cal_all_rad()
-    #         return "total_rad_surface", total_rad_surface[None]
-    #     lb2d.GetVariableFunc.append(all_rad)
-    # setVariables()
+    def setVariables():
+        def Tcenter(lbm:LBM2DSolver):
+            T_center = lbm.TS.S[(int(lbm.nx/2),int(lbm.ny/2),int(lbm.nz/2))]
+            return "Ts_center", T_center
+        lb2d.GetVariableFunc.append(Tcenter)
+        def Tsurface(lbm:LBM2DSolver):
+            T_surface = lbm.TF.S[(int(lbm.nx/2+R/DX-1),int(lbm.ny/2),int(lbm.nz/2))]
+            return "Tf_surface", T_surface
+        lb2d.GetVariableFunc.append(Tsurface)
+        @ti.kernel
+        def cal_conversion():
+            conv[None] = (allWood[None]-cal_wood())/allWood[None]
+        def conversion(lbm:LBM2DSolver):
+            cal_conversion()
+            return "conversion", conv[None]
+        lb2d.GetVariableFunc.append(conversion)
+    setVariables()
     ## 初始化场 
     lb2d.init_field(lb2d.rho,1)
     m2d  = Mesh2D(lb2d.nx,lb2d.ny)
@@ -187,7 +178,7 @@ def main(DX,DT,T_exp,variant="default"):
     # cal_allWood() # 计算总木材质量
     total_iteration =   1000
     export_interval = 10
-    measure_interval= 10
+    measure_interval= 1
     print_interval = 10
     if DEBUG:
         total_iteration = 0.01
@@ -216,7 +207,6 @@ def main(DX,DT,T_exp,variant="default"):
                 print("diverge")
                 break          
         if (iter%int(export_interval/DT)==0):
-        
             if DEBUG:
                 lb2d.export_VTK(f"debug_{name}_{variant}_{DX}",iter)
                 # lb2d.export_variable(f"simulation_{name}_{int(variant)}_{nx}_{int(T_exp)}",iter)
