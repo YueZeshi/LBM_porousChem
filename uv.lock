@@ -3,6 +3,24 @@ revision = 3
 requires-python = "==3.12.*"
 
 [[package]]
+name = "cantera"
+version = "3.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "ruamel-yaml" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1e/f1/b68fa5512d77ed86b48b57f3a2cd947590a432f56fe9877a38d9fa3b4bd7/cantera-3.2.0.tar.gz", hash = "sha256:d811175e052251a7d2ea70f60fa19a5b8a61bf32d3b5565d2404b22ba57d8d41", size = 1623397, upload-time = "2025-11-18T01:14:18.94Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/14/1b/85b96b205cb127bda0195045e167c7fa24d2aa2568f3653273fb9f49084f/cantera-3.2.0-cp312-cp312-macosx_10_15_x86_64.whl", hash = "sha256:6ab2d45c379cf6ed4e1c74c557bd7023272e654cf2a50d2a13d2af74cd785b84", size = 6279228, upload-time = "2025-11-18T01:13:27.719Z" },
+    { url = "https://files.pythonhosted.org/packages/ba/67/ecf71611a37db631107418f098399c130c7a2e394c56a812ba365569af48/cantera-3.2.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:d58dd40112741423a4b9b95fbbd7789575250af1fa13c77d60fab47f472f694d", size = 5475398, upload-time = "2025-11-18T01:13:30.133Z" },
+    { url = "https://files.pythonhosted.org/packages/fc/d0/cb0c26fa02ba84ccd15191d224863367641adf8a65f046d53ee7d15852e6/cantera-3.2.0-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:1b8e7bb91f92fcc2b1e2cb715543f611edcea62ec0bc3ce3fdc03abac6e02bba", size = 11843454, upload-time = "2025-11-18T01:13:32.764Z" },
+    { url = "https://files.pythonhosted.org/packages/2d/b1/5a89f0a6fa0bcab611564a02e86dea6b95292cab1da7370c35732eeeb596/cantera-3.2.0-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:d7232fd69dda04b350b3d095dd5be234e4f627b8368421f8d1f976956feb3441", size = 19305339, upload-time = "2025-11-18T01:13:35.773Z" },
+    { url = "https://files.pythonhosted.org/packages/b6/f7/9bd49339a73a6f45849ff860fdbf29004ea63a5ce693a89e81d75204076b/cantera-3.2.0-cp312-cp312-win_amd64.whl", hash = "sha256:258b95a4e29f9afd50788eab284e88440174302123c8b3a4a3a493904b40e238", size = 5291378, upload-time = "2025-11-18T01:13:38.566Z" },
+]
+
+[[package]]
 name = "click"
 version = "8.3.1"
 source = { registry = "https://pypi.org/simple" }
@@ -115,6 +133,7 @@ name = "lbm"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "cantera" },
     { name = "click" },
     { name = "matplotlib" },
     { name = "numpy" },
@@ -128,6 +147,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "cantera", specifier = ">=3.2.0" },
     { name = "click" },
     { name = "matplotlib" },
     { name = "numpy" },

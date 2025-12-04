@@ -95,8 +95,8 @@ class Reaction:
         # 计算物种浓度变化和焓变
         dh = 0.0 # 物种变化带来的焓变以及反应焓变
         for j in ti.static(range(len(self.LBM.species))):
-            coef = -self.coefReactant[j]+self.coefProduct[j] 
-            if coef!=0.:
+            coef = -self.coefReactant[j]+self.coefProduct[j] # 物质生成或者消耗
+            if coef != 0.:
                 ds = kr*coef*self.LBM.dt # 密度变化
                 if ti.static(self.unit==SPECIE_UNIT.MOLE):
                     ds *= self.LBM.species[j].molemass # 摩尔质量修正到密度

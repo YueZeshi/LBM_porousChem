@@ -471,7 +471,7 @@ class LBM2D_OUTPUT(LBM2D_BASE):
     @ti.func
     def check(self):
         s1 = [int(self.nx/2),int(self.ny/2),int(self.nz/2)]
-        print(self.TS.S[s1],self.species[2].S[s1])
+        # print(self.TS.S[s1],self.species[2].S[s1])
         # rad = 0.0
         # rad_surface = 0.0
         # for i in ti.grouped(self.rho):

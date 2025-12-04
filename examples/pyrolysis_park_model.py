@@ -27,10 +27,10 @@ def main(DX,DT,T_exp,variant="default"):
     R = 0.02
 
     ## convert to lattice unit
-    T_init = 303.
+    T_init = 600
 
     print("executing ",__name__)
-    name = "pyrolysis_one_step"
+    name = "pyrolysis_Park"
     # 初始化taichi
     ## arch=ti.cpu 启用cpu计算；arch=ti.gpu启用gpu运算 (cuda>vulkan)
     if ARCH=="gpu":
@@ -46,13 +46,11 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.set_viscosity(0.1)
     lb2d.set_poro_Darcy(2.5e10,unit="SI")
     lb2d.set_radiation(RADIATION_MODEL.SURFACE_UNIFORM,T_exp)
-
     # 设置物质
     ## 物种及其状态
     lb2d.set_specie("N2",False)
-    lb2d.set_species(["wood(S)","tar" ,"char(S)"],
-                    [True     ,False,True     ])
-    
+    lb2d.set_species(["wood(S)","intermSolid(S)","tar" ,"gas","char(S)"],
+                    [True     ,     True       ,False ,False,True     ])
     # 设置边界条件
     lb2d.set_BCs([BC_FLOW.inlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall])
     lb2d.set_v_BCs_value([[0.01,0,0],[0,0,0],[0,0,0],[0,0,0]])
@@ -64,26 +62,54 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.set_species_BCs([BC.fixedValue,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient])
     lb2d.set_specie_BCs_value("N2",[1]*4)
 
-    # # 添加化学反应
-    lb2d.add_reaction("total reaction",[("wood(S)",1)],[("tar",0.4),("char(S)",0.6)],(2500,0,67500,300,0))
-
-    # # 设置物种物性
-    # ## 扩散
-    lb2d.set_specie_diff("tar",0.1)
-    lb2d.set_specie_diff("N2",0.1)
-    # ## 热容
-    lb2d.set_specie_capacity("wood(S)",1670)
-    lb2d.set_specie_capacity("char(S)",1000)
-    lb2d.set_specie_capacity("tar",1000)
-    lb2d.set_specie_capacity("N2",1000)
-    # ## 热导
-    lb2d.set_specie_conductivity("wood(S)", 0.1256)
-    lb2d.set_specie_conductivity("char(S)", 0.0837)
+    # 添加化学反应
+    lb2d.add_reaction("w2t",[("wood(S)",1)],[("tar",1)],(1.08e10,0,148000,300,80000))
+    lb2d.add_reaction("w2syn",[("wood(S)",1)],[("gas",1)],(4.38e9,0,152700,300,80000))
+    lb2d.add_reaction("w2is",[("wood(S)",1)],[("intermSolid(S)",1)],(3.75e6,0,111700,300,80000))
+    lb2d.add_reaction("is2c",[("intermSolid(S)",1)],[("char(S)",1)],(1.38e10,0,161000,300,-300000))
+    lb2d.add_reaction("t2c",[("tar",1)],[("char(S)",1)],(1e5,0,108000,300,-42000))
+    lb2d.add_reaction("t2syn",[("tar",1)],[("gas",1)],(4.28e6,0,108000,300,-42000))
+    # 设置物种物性
+    ## 扩散
+    lb2d.set_specie_diff("tar",1e-6,unit="SI")
+    lb2d.set_specie_diff("gas",1e-5,unit="SI")
+    lb2d.set_specie_diff("N2",1e-5,unit="SI")
+    ## 热容
+    @ti.func
+    def intermSolid_capacity(self,i):
+        T = self.LBM.TS.S[i]
+        return 1500+T
+    lb2d.set_specie_capacity_func("intermSolid(S)",intermSolid_capacity)
+    @ti.func
+    def wood_capacity(self,i):
+        T = self.LBM.TS.S[i]
+        return 1500+T
+    lb2d.set_specie_capacity_func("wood(S)",wood_capacity)
+    @ti.func
+    def char_capacity(self,i):
+        T = self.LBM.TS.S[i]
+        return 420+2.09*T+6.85e-4*T**2
+    lb2d.set_specie_capacity_func("char(S)",char_capacity)
+    @ti.func
+    def tar_capacity(self,i):
+        T = self.LBM.TF.S[i]
+        return -100+4.4*T-1.57e-3*T**2
+    lb2d.set_specie_capacity_func("tar",tar_capacity)
+    @ti.func
+    def syngas_capacity(self,i):
+        T = self.LBM.TF.S[i]
+        return 770+0.629*T-1.91e-4*T**2
+    lb2d.set_specie_capacity_func("gas",syngas_capacity)
+    lb2d.set_specie_capacity("N2",742)
+    ## 热导
+    lb2d.set_specie_conductivity("intermSolid(S)", 0.20487)
+    lb2d.set_specie_conductivity("wood(S)", 0.20487)
+    lb2d.set_specie_conductivity("char(S)", 0.0937)
     lb2d.set_specie_conductivity("tar", 0.0258)
+    lb2d.set_specie_conductivity("gas", 0.0258)
     lb2d.set_specie_conductivity("N2",0.0258)
-    # lb2d.set_specie_conductivity("N2",0.1)
+    ## 杂项
 
-    # ## 杂项
     # ## 可变边界条件
     # def setChangingBC():
     #     def TBC(lbm:LB2D_PYRO,t:float):
@@ -185,7 +211,10 @@ def main(DX,DT,T_exp,variant="default"):
             min_T = lb2d.get_min_T()
             print(name,flush=True)
             print('----------Time between two outputs is %dh %dm %ds; elapsed time is %dh %dm %ds----------------------' %(h_diff, m_diff, s_diff,h_elap,m_elap,s_elap))
-            print('The %dth iteration, Max Force = %f,  Min Temperature = %f\n\n ' %(iter, max_v,  min_T))            
+            print('The %dth iteration, Max Force = %f,  Min Temperature = %f\n\n ' %(iter, max_v,  min_T))  
+            if max_v>1:
+                print("diverge")
+                break          
         if (iter%int(export_interval/DT)==0):
         
             if DEBUG:

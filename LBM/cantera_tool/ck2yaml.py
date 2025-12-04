@@ -10,6 +10,8 @@ There are two main entry points to this script, `main` and `convert`. The former
 used from the command line interface and parses the arguments passed. The latter uses
 arguments that correspond to options of the command line interface.
 """
+# 添加了对solid物种的支持，solid物种当作gas处理，也放在species中，但是solid物种名称以(S)结尾，与气态物质加以区分
+# 不使用多个phase的原因是有可能发生气固两相反应，常规的反应类型无法支持该类反应
 
 import logging
 import os.path
@@ -977,13 +979,14 @@ class Parser:
                 try:
                     name, thermo, comp = self.read_NASA7_entry(
                         entry, TintDefault, comments)
+                    # print(name)
                 except ValueError as err:
                     logger.error(self.entry("thermo entry") + str(err))
                     comments = []
                     marker = '1'
                     continue
 
-                if name not in self.species_dict:
+                if name not in self.species_dict :
                     if self.skip_undeclared_species:
                         logger.debug(f"Skipping unexpected species '{name}' while "
                             "reading thermodynamics entry.")
@@ -1574,6 +1577,7 @@ class Parser:
         sections = {
             "ELEMENTS": re.compile(r"\s*ELEM(?:ENTS)?\b(.*)", re.I),
             "SPECIES": re.compile(r"\s*SPEC(?:IES)?\b(.*)", re.I),
+            "SOLID":re.compile(r"\s*SOLID?\b(.*)", re.I),
             "SITE": re.compile(r"\s*SITE\b(.*)", re.I),
             "THERMO NASA9": re.compile(r"\s*THER(?:M|MO)\s+NASA9(.*)", re.I),
             "THERMO": re.compile(r"\s*THER(?:M|MO)\b(.*)", re.I),
@@ -1597,7 +1601,7 @@ class Parser:
                     line = lines[i, 2] = m.group(1)
                     del sections[section]
                     break
-            if current_section in ("SPECIES", "ELEMENTS", "SITE"):
+            if current_section in ("SPECIES","SOLID", "ELEMENTS", "SITE"):
                 if m := re.match(r"(.*)\s?END\b", line, re.I):
                     current_section = None
                     lines[i+1:, 1] = None
@@ -1615,11 +1619,16 @@ class Parser:
                 logger.error(self.entry() +
                     f"Section starts with unrecognized keyword '{line}'")
                 break
-
         if "ELEMENTS" in found_sections:
             self.parse_elements_section(lines[lines[:,1] == "ELEMENTS"])
         if "SPECIES" in found_sections:
             self.parse_species_section(lines[lines[:,1] == "SPECIES"])
+        if "SOLID" in found_sections: 
+            self.parse_solid_section(lines[lines[:,1] == "SOLID"])
+        if "THERMO NASA9" in found_sections:
+            self.parse_nasa9_section(lines[lines[:,1] == "THERMO NASA9"])
+        if "THERMO" in found_sections:
+            self.parse_nasa7_section(lines[lines[:,1] == "THERMO"])
         if "SITE" in found_sections:
             if not surface:
                 logger.error(self.entry("section") +
@@ -1628,15 +1637,10 @@ class Parser:
                     "specified using the '--input' option.")
                 return
             self.parse_site_section(lines[lines[:,1] == "SITE"])
-        if "THERMO NASA9" in found_sections:
-            self.parse_nasa9_section(lines[lines[:,1] == "THERMO NASA9"])
-        if "THERMO" in found_sections:
-            self.parse_nasa7_section(lines[lines[:,1] == "THERMO"])
         if "REACTIONS" in found_sections:
             self.parse_reactions_section(lines[lines[:,1] == "REACTIONS"], surface)
         if "TRANSPORT" in found_sections:
             self.parse_transport_section(lines[lines[:,1] == "TRANSPORT"])
-
         if "HEADER" in found_sections:
             indent = 80
             header = lines[lines[:,1] == "HEADER", 3]
@@ -1668,6 +1672,48 @@ class Parser:
                 self.element_weights[name] = weight
             else:
                 self.elements.append(element_string.capitalize())
+    def parse_solid_section(self, lines):
+        """
+        Parse the SOLID section of a Chemkin-format input file
+
+        :param lines:
+            A list of ``(line number, section name, line content, comment)`` tuples
+        """
+        comments = {}
+        solid = []
+        for line, comment in lines[:, 2:]:
+            line_solid = line.split()
+            if len(line_solid) == 1 and comment:
+                comments[line_solid[0]] = comment
+            solid.extend(line_solid)
+
+        redundant_count = 0
+        for token in solid:
+            # token = token+"(S)" # 将固体也写进species phases中，但是使用(S)标识
+            if token in self.species_dict:
+                redundant_count += 1
+                solid = self.species_dict[token]
+                if redundant_count > 5:
+                    continue
+                if self.permissive:
+                    logger.warning("Ignoring redundant declaration for "
+                                   f"solid '{solid}'")
+                else:
+                    logger.error(f"Found multiple declarations for solid "
+                        f"'{solid}'. Run ck2yaml again with the\n'--permissive' "
+                        "option to ignore the extra declarations.")
+            else:
+                solid = Species(label=token+"(S)") # 只在label中改，保证名称索引不会出现问题，只影响输出
+                if token in comments:
+                    solid.note = comments[token]
+                self.species_dict[token] = solid
+                self.species_list.append(solid)
+
+        if redundant_count > 5 and not self.verbose:
+            kind = "warnings" if self.permissive else "errors"
+            logger.warning(f"Suppressed {redundant_count - 5} additional {kind} about "
+                "redundant species declarations.\nRun ck2yaml again with the "
+                f"'--verbose' option to see all {kind}.")
 
     def parse_species_section(self, lines):
         """
@@ -1971,7 +2017,7 @@ class Parser:
             if not data:
                 continue
 
-            speciesName = data[0]
+            speciesName = data[0] # 读取物种
             if speciesName in self.species_dict:
                 if len(data) != 7:
                     logger.error(self.entry("transport data") + "6 transport "
@@ -1993,7 +2039,17 @@ class Parser:
                             f"Duplicate transport data for species '{speciesName}'. "
                             "Run ck2yaml again with the\n'--permissive' option to "
                             "ignore this redundant entry.")
-
+            # 将没有transport的物种transport设置为none（固相）
+        for speciesName in self.species_dict.keys():
+            if self.species_dict[speciesName].transport is None:
+                n_atom = 0
+                for n in self.species_dict[speciesName].composition.values():
+                    n_atom+=n
+                if n_atom > 1:
+                    self.species_dict[speciesName].transport = TransportData(self,"1",1,100000,1,0,0,0)
+                else:
+                    self.species_dict[speciesName].transport = TransportData(self,"1",0,100000,1,0,0,0)
+                
         if redundant_count > 5 and not self.verbose:
             kind = "warnings" if self.permissive else "errors"
             logger.warning(f"Suppressed {redundant_count - 5} additional {kind} "
@@ -2055,7 +2111,7 @@ class Parser:
             units['activation-energy'] = self.output_energy_units
             units_map = BlockMap([('units', units)])
             units_map.yaml_set_comment_before_after_key('units', before='\n')
-            emitter.dump(units_map, dest)
+            emitter.dump(units_map, dest) # 写unit
 
             phases = []
             reactions = []
@@ -2064,7 +2120,7 @@ class Parser:
                 phase['name'] = name
                 phase['thermo'] = 'ideal-gas'
                 phase['elements'] = FlowList(self.elements)
-                phase['species'] = FlowList(S.label for S in self.species_list)
+                phase['species'] = FlowList(S.label for S in self.species_list) # 固相当作气相一起写在gas中，由于机理类似
                 if self.reactions:
                     phase['kinetics'] = 'gas'
                     if n_reacting_phases == 1:
@@ -2076,7 +2132,8 @@ class Parser:
                 if have_transport:
                     phase['transport'] = 'mixture-averaged'
                 phase['state'] = FlowMap([('T', 300.0), ('P', '1 atm')])
-                phases.append(phase)
+                phases.append(phase) # 加气相phase
+
 
             for surf in self.surfaces:
                 # Write definitions for surface phases
@@ -2098,12 +2155,12 @@ class Parser:
                         phase['reactions'] = [rname]
                         reactions.append((rname, surf.reactions))
                 phase['state'] = FlowMap([('T', 300.0), ('P', '1 atm')])
-                phases.append(phase)
+                phases.append(phase) # 加界面phases
 
             if phases:
                 phases_map = BlockMap([('phases', phases)])
                 phases_map.yaml_set_comment_before_after_key('phases', before='\n')
-                emitter.dump(phases_map, dest)
+                emitter.dump(phases_map, dest) # 写phases
 
             # Write data on custom elements
             if self.element_weights:
@@ -2113,18 +2170,19 @@ class Parser:
                     elements.append(E)
                 elementsMap = BlockMap([('elements', elements)])
                 elementsMap.yaml_set_comment_before_after_key('elements', before='\n')
-                emitter.dump(elementsMap, dest)
+                emitter.dump(elementsMap, dest) # 写elements
 
             # Write the individual species data
             speciesMap = BlockMap([('species', self.all_species)])
             speciesMap.yaml_set_comment_before_after_key('species', before='\n')
-            emitter.dump(speciesMap, dest)
+            emitter.dump(speciesMap, dest) # 写species(thermo+transport)
+            print([sp.label for sp in self.all_species])
 
             # Write the reactions section(s)
             for label, R in reactions:
                 reactionsMap = BlockMap([(label, R)])
                 reactionsMap.yaml_set_comment_before_after_key(label, before='\n')
-                emitter.dump(reactionsMap, dest)
+                emitter.dump(reactionsMap, dest) # 写reactions 
 
         # Names of surface phases need to be returned so they can be imported as
         # part of mechanism validation
@@ -2143,7 +2201,7 @@ class Parser:
         logger.addHandler(loghandler)
         logger.setLevel(logging.INFO)
         logger.propagate = False
-
+        # load ck file
         parser = Parser()
         parser.verbose = verbose
         parser.exit_on_error = exit_on_error
@@ -2173,7 +2231,7 @@ class Parser:
         parser.skip_undeclared_species = bool(input_file)
         parser.load_data_file(thermo_file, parser.load_chemkin_file, "thermo")
 
-        parser.all_species = list(parser.species_list)
+        parser.all_species = list(parser.species_list) # specie+solid=all
         for surf in parser.surfaces:
             parser.all_species.extend(surf.species_list)
 
@@ -2200,7 +2258,7 @@ class Parser:
             else:
                 raise InputError('\n'.join(parser.handler.errors))
 
-        # Write output file
+        # Write output file : yaml
         if out_name:
             out_name = os.path.expanduser(out_name)
         else:
@@ -2290,7 +2348,7 @@ def main(argv=None):
     parser, surfaces = Parser.convert_mech(input_file, thermo_file,
             args.transport, args.surface, args.name, args.extra, out_name,
             args.single_intermediate_temperature, args.quiet, args.permissive,
-            args.verbose, True)
+            args.verbose, True) # 将读取ck书写yaml的函数; return 整个parser和surface phase-特殊处理
 
     if not input_file:
         # Can't validate input files that don't define a phase
@@ -2310,7 +2368,7 @@ def main(argv=None):
     try:
         logger.info('Validating mechanism...')
         gas = Solution(out_name)
-        for surf_name in surfaces:
+        for surf_name in surfaces: # surface phase需要用interface
             phase = Interface(out_name, surf_name, [gas])
         logger.info('PASSED')
     except RuntimeError as e:
