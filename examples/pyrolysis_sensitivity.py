@@ -10,7 +10,7 @@ import sys
 from LBM.LBM2D import LBM2DSolver
 from LBM.GEO.G2D import Mesh2D
 from LBM.util.flag import *
-def main(DX,DT,T_exp,viscosity,darcy,diffTar,diffN2,cWood,cChar,cTar,cN2,lambdaWood,lambdaChar,lambdaTar,lambdaN2,A,Ea,hExchange,emissivity,variant="default"):
+def main(DX,DT,T_exp,viscosity,darcy,diffTar,diffN2,cWood,cChar,cTar,cN2,lambdaWood,lambdaChar,lambdaTar,lambdaN2,A,Ea,hExchange,emissivity,porosity,variant="default"):
     # 获取环境变量是否启用debug模式
     # debug模式计算较少的步数 用于检验算例是否快速发散
     DEBUG = os.getenv("DEBUG","False").lower() == "true" # 默认非debug
@@ -102,21 +102,20 @@ def main(DX,DT,T_exp,viscosity,darcy,diffTar,diffN2,cWood,cChar,cTar,cN2,lambdaW
     # # 导出局部或者全局变量 观测量
     # ## 中心温度 表面温度 转化率 
     # ### 定义变量实现CPU GPU数据传输
-    # allWood = ti.field(ti.f32,shape=())
-    # conv = ti.field(ti.f32,shape=())
+    allWood = ti.field(ti.f32,shape=())
+    conv = ti.field(ti.f32,shape=())
     # total_rad_surface = ti.field(ti.f32,shape=())  
-    # @ti.func
-    # def cal_wood():
-    #     wood = 0.0
-    #     for i in ti.grouped(lb2d.rho):
-    #         wood += lb2d.species["wood(S)"].S[i]
-    #     return wood
-    # @ti.kernel
-    # def cal_allWood():
-    #     allWood[None] = cal_wood()
-    #     print("all wood:",allWood[None])
+    @ti.func
+    def cal_wood():
+        wood = 0.0
+        for i in ti.grouped(lb2d.rho):
+            wood += lb2d.species[1].S[i]
+        return wood
+    @ti.kernel
+    def cal_allWood():
+        allWood[None] = cal_wood()
     
-    # def setVariables():
+    def setVariables():
     #     def Tcenter(lbm:LB2D_PYRO):
     #         T_center = lbm.TS.S[(int(lbm.nx/2),int(lbm.ny/2),int(lbm.nz/2))]
     #         return "Ts_center", T_center
@@ -125,13 +124,13 @@ def main(DX,DT,T_exp,viscosity,darcy,diffTar,diffN2,cWood,cChar,cTar,cN2,lambdaW
     #         T_surface = lbm.TF.S[(int(lbm.nx/2+r-1),int(lbm.ny/2),int(lbm.nz/2))]
     #         return "Tf_surface", T_surface
     #     lb2d.GetVariableFunc.append(Tsurface)
-    #     @ti.kernel
-    #     def cal_conversion():
-    #         conv[None] = (allWood[None]-cal_wood())/allWood[None]
-    #     def conversion(lbm:LB2D_PYRO):
-    #         cal_conversion()
-    #         return "conversion", conv[None]
-    #     lb2d.GetVariableFunc.append(conversion)
+        @ti.kernel
+        def cal_conversion():
+            conv[None] = (allWood[None]-cal_wood())/allWood[None]
+        def conversion(lbm):
+            cal_conversion()
+            return "conversion", conv[None]
+        lb2d.GetVariableFunc.append(conversion)
     #     @ti.kernel
     #     def cal_all_rad():
     #         total_rad_surface[None] = 0.0
@@ -141,13 +140,13 @@ def main(DX,DT,T_exp,viscosity,darcy,diffTar,diffN2,cWood,cChar,cTar,cN2,lambdaW
     #         cal_all_rad()
     #         return "total_rad_surface", total_rad_surface[None]
     #     lb2d.GetVariableFunc.append(all_rad)
-    # setVariables()
+    setVariables()
     ## 初始化场 
     lb2d.init_field(lb2d.rho,1)
     m2d  = Mesh2D(lb2d.nx,lb2d.ny)
     m2d.CreateMesh2DCircle(float(lb2d.nx)/2,float(lb2d.ny)/2,R/DX)
     s,l = m2d.export_numpy()
-    lb2d.init_field(lb2d.solid,s*0.4)
+    lb2d.init_field(lb2d.solid,s*(1-porosity))
     lb2d.init_field(lb2d.TF.S,T_init)
     lb2d.init_field(lb2d.TS.S,T_init)
     lb2d.init_field(lb2d.TS.exchangeSurface,100)
@@ -159,8 +158,8 @@ def main(DX,DT,T_exp,viscosity,darcy,diffTar,diffN2,cWood,cChar,cTar,cN2,lambdaW
     # 初始化lbm
     lb2d.init_simulation()
     # lb2d.check_python()
-    # cal_allWood() # 计算总木材质量
-    total_iteration =   10
+    cal_allWood() # 计算总木材质量
+    total_iteration =   300
     export_interval = 1000
     measure_interval= 1000
     print_interval = 1000
@@ -203,7 +202,7 @@ def main(DX,DT,T_exp,viscosity,darcy,diffTar,diffN2,cWood,cChar,cTar,cN2,lambdaW
     # profiler.print_memory_profiler_info()
 
 if __name__=="__main__":
-    # os.environ["DEBUG"]="TRUE"
+    os.environ["ARCH"]="GPU"
     DX = float(sys.argv[1])
     DT = float(sys.argv[2])
     T_exp = float(sys.argv[3])
@@ -224,27 +223,32 @@ if __name__=="__main__":
     "A":2500,
     "Ea":67500,
     "hExchange":1000,
-    "emissivity":0.7}
+            "emissivity":0.7,
+            "porosity":0.4}
+    print("Base case:",flush=True)
+    main(DX,DT,T_exp,param["viscosity"],param["darcy"],param["diffTar"],param["diffN2"],param["cWood"],param["cChar"],param["cTar"],param["cN2"],param["lambdaWood"],param["lambdaChar"],param["lambdaTar"],param["lambdaN2"],param["A"],param["Ea"],param["hExchange"],param["emissivity"],param["porosity"],variant)
     def sensitivity(param_name):
         init_value = param[param_name]
         print(param_name,flush=True)
-        for i in [-0.05,-0.02,0,0.02,0.05]:
+        for i in [-0.2,-0.1,-0.05,-0.02,0.02,0.05,0.1,0.2]:
             param[param_name] = (1+i)*init_value
-            main(DX,DT,T_exp,param["viscosity"],param["darcy"],param["diffTar"],param["diffN2"],param["cWood"],param["cChar"],param["cTar"],param["cN2"],param["lambdaWood"],param["lambdaChar"],param["lambdaTar"],param["lambdaN2"],param["A"],param["Ea"],param["hExchange"],param["emissivity"],variant)
+            main(DX,DT,T_exp,param["viscosity"],param["darcy"],param["diffTar"],param["diffN2"],param["cWood"],param["cChar"],param["cTar"],param["cN2"],param["lambdaWood"],param["lambdaChar"],param["lambdaTar"],param["lambdaN2"],param["A"],param["Ea"],param["hExchange"],param["emissivity"],param["porosity"],variant)
         param[param_name] = init_value
-    sensitivity("viscosity")
-    sensitivity("darcy")
-    sensitivity("diffTar")
-    sensitivity("diffN2")
+    
+    sensitivity("emissivity")
+    sensitivity("porosity")
+    sensitivity("A")
+    sensitivity("Ea")
     sensitivity("cWood")
-    sensitivity("cChar")
-    sensitivity("cTar")
-    sensitivity("cN2")
     sensitivity("lambdaWood")
     sensitivity("lambdaChar")
     sensitivity("lambdaTar")
     sensitivity("lambdaN2")
-    sensitivity("A")
-    sensitivity("Ea")
+    sensitivity("cChar")
+    sensitivity("cTar")
+    sensitivity("cN2")
+    sensitivity("viscosity")
+    sensitivity("darcy")
+    sensitivity("diffTar")
+    sensitivity("diffN2")
     sensitivity("hExchange")
-    sensitivity("emissivity")

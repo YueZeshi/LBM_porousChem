@@ -462,8 +462,11 @@ class LBM2D_OUTPUT(LBM2D_BASE):
             name,value = func(self)
             res[name]=value
         return res
-    @ti.kernel
     def check_python(self):
+        print(self.GetVariableFunc[0](self)[1],end = " ",flush=True)
+        self.check_kernel()
+    @ti.kernel
+    def check_kernel(self):
         self.check()
     @ti.func
     def check(self):
