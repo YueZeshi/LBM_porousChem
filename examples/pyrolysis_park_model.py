@@ -27,7 +27,7 @@ def main(DX,DT,T_exp,variant="default"):
     R = 0.02
 
     ## convert to lattice unit
-    T_init = 303.
+    T_init = 600
 
     print("executing ",__name__)
     name = "pyrolysis_Park"
@@ -211,7 +211,10 @@ def main(DX,DT,T_exp,variant="default"):
             min_T = lb2d.get_min_T()
             print(name,flush=True)
             print('----------Time between two outputs is %dh %dm %ds; elapsed time is %dh %dm %ds----------------------' %(h_diff, m_diff, s_diff,h_elap,m_elap,s_elap))
-            print('The %dth iteration, Max Force = %f,  Min Temperature = %f\n\n ' %(iter, max_v,  min_T))            
+            print('The %dth iteration, Max Force = %f,  Min Temperature = %f\n\n ' %(iter, max_v,  min_T))  
+            if max_v>1:
+                print("diverge")
+                break          
         if (iter%int(export_interval/DT)==0):
         
             if DEBUG:

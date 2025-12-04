@@ -224,6 +224,8 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                             for s in ti.static(range(5)):
                                 specie.g[i][s] = specie.G[i][s] # 更新G
                                 specie.S[i] += specie.G[i][s]
+                            if specie.S[i]<0:
+                                specie.S[i]=0
                             Yall += specie.S[i]
                         else:
                             if ti.static(self.PORO): # 计算当前固体物质总密度
