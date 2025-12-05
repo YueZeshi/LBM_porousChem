@@ -157,7 +157,7 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.init_field(lb2d.TS.radiation_surface, l*0.6)
     # 初始化lbm
     lb2d.init_simulation()
-    lb2d.check_python()
+    # lb2d.check_python()
     # cal_allWood() # 计算总木材质量
     total_iteration =   1000
     export_interval = 10
@@ -201,6 +201,7 @@ def main(DX,DT,T_exp,variant="default"):
     profiler.print_kernel_profiler_info()
     # profiler.print_memory_profiler_info()
 if __name__=="__main__":
+    os.environ["ARCH"]="GPU"
     DX = float(sys.argv[1])
     DT = float(sys.argv[2])
     T_exp = float(sys.argv[3])

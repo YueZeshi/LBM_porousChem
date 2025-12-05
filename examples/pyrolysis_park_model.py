@@ -27,7 +27,7 @@ def main(DX,DT,T_exp,variant="default"):
     R = 0.02
 
     ## convert to lattice unit
-    T_init = 600
+    T_init = 303
 
     print("executing ",__name__)
     name = "pyrolysis_Park"
@@ -176,7 +176,7 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.init_simulation()
     lb2d.check_python()
     # cal_allWood() # 计算总木材质量
-    total_iteration =   1000
+    total_iteration =   2000
     export_interval = 10
     measure_interval= 1
     print_interval = 10
@@ -220,7 +220,7 @@ def main(DX,DT,T_exp,variant="default"):
     profiler.print_kernel_profiler_info()
     # profiler.print_memory_profiler_info()
 if __name__=="__main__":
-    # os.environ["DEBUG"]="TRUE"
+    os.environ["ARCH"]="GPU"
     DX = float(sys.argv[1])
     DT = float(sys.argv[2])
     T_exp = float(sys.argv[3])
