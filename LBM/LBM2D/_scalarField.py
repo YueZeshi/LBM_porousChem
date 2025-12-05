@@ -11,14 +11,14 @@ class ScalarField:
         self.nx,self.ny,self.nz = nx,ny,nz
         self.LBM = lb2d
         self.FIX = FIX
-        self.S = ti.field(ti.f32,shape = (nx,ny,nz))
-        self.dS = ti.field(ti.f32,shape = (nx,ny,nz))
+        self.S = ti.field(float,shape = (nx,ny,nz))
+        self.dS = ti.field(float,shape = (nx,ny,nz))
         if not self.FIX:
-            self.g = ti.Vector.field(5,ti.f32,shape=(nx,ny,nz))
-            self.G = ti.Vector.field(5,ti.f32,shape=(nx,ny,nz))
+            self.g = ti.Vector.field(5,float,shape=(nx,ny,nz))
+            self.G = ti.Vector.field(5,float,shape=(nx,ny,nz))
             self.BC = [BC.periodic]*4
-            self.flux_BC =ti.field(ti.f32,shape = (4))
-            self.s_BC = ti.field(ti.f32,shape = (4))
+            self.flux_BC =ti.field(float,shape = (4))
+            self.s_BC = ti.field(float,shape = (4))
             for i in range(4):
                 self.flux_BC[i]=0.0
                 self.s_BC[i]=0.0

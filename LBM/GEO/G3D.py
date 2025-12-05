@@ -5,7 +5,7 @@ from typing import Literal
 import numpy as np
 import taichi as ti
 
-TYPE_V3 = ti.types.vector(3,ti.f32)
+TYPE_V3 = ti.types.vector(3,float)
 
 @ti.data_oriented
 class Mesh3D:
@@ -13,9 +13,9 @@ class Mesh3D:
         self.nx = nx
         self.ny = ny
         self.nz = nz
-        self.V = ti.field(ti.f32,shape=(nx,ny,nz))
-        self.S = ti.field(ti.f32,shape=(nx,ny,nz))
-        self.d = ti.field(ti.f32,shape=(nx+1,ny+1,nz+1))
+        self.V = ti.field(float,shape=(nx,ny,nz))
+        self.S = ti.field(float,shape=(nx,ny,nz))
+        self.d = ti.field(float,shape=(nx+1,ny+1,nz+1))
 
     def export_numpy(self):
         return self.V.to_numpy(),self.S.to_numpy()
