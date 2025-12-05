@@ -96,4 +96,14 @@ class LBM3D_BASE:
     @ti.kernel
     def Boundary_condition(self):
         pass
+    @ti.kernel
+    def Boundary_condition_NEBB(self):
+        pass
+        
+    @ti.kernel
+    def Boundary_condition_NEE(self):
+        pass
+    @ti.kernel 
+    def Boundary_condition_ES(self):
+        pass
     

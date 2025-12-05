@@ -33,10 +33,11 @@ def main(DX,DT,T_exp,variant="default"):
     name = "pyrolysis_Park"
     # 初始化taichi
     ## arch=ti.cpu 启用cpu计算；arch=ti.gpu启用gpu运算 (cuda>vulkan)
+    default_fp  = ti.f32
     if ARCH=="gpu":
-        ti.init(arch=ti.gpu, kernel_profiler=True, print_ir=False,default_fp=float)
+        ti.init(arch=ti.gpu, kernel_profiler=True, print_ir=False,default_fp=default_fp)
     else:
-        ti.init(arch=ti.cpu, kernel_profiler=True, print_ir=False,default_fp=ti.f16)
+        ti.init(arch=ti.cpu, kernel_profiler=True, print_ir=False,default_fp=default_fp)
     # 初始化lbm模型
     lb2d = LBM2DSolver(X,Y,dx=DX,dt=DT,isPoro=True,isChemical=True,isThermal=True,isRadiation=True)
     # 基础设置
@@ -176,7 +177,7 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.init_simulation()
     lb2d.check_python()
     # cal_allWood() # 计算总木材质量
-    total_iteration =   2000
+    total_iteration =   1000
     export_interval = 10
     measure_interval= 1
     print_interval = 10
@@ -220,7 +221,7 @@ def main(DX,DT,T_exp,variant="default"):
     profiler.print_kernel_profiler_info()
     # profiler.print_memory_profiler_info()
 if __name__=="__main__":
-    os.environ["ARCH"]="GPU"
+    os.environ["ARCH"]="CPU"
     DX = float(sys.argv[1])
     DT = float(sys.argv[2])
     T_exp = float(sys.argv[3])
