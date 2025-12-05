@@ -34,9 +34,9 @@ def main(DX,DT,T_exp,variant="default"):
     # 初始化taichi
     ## arch=ti.cpu 启用cpu计算；arch=ti.gpu启用gpu运算 (cuda>vulkan)
     if ARCH=="gpu":
-        ti.init(arch=ti.gpu, kernel_profiler=True, print_ir=False)
+        ti.init(arch=ti.gpu, kernel_profiler=True, print_ir=False,default_fp=float)
     else:
-        ti.init(arch=ti.cpu, kernel_profiler=True, print_ir=False)
+        ti.init(arch=ti.cpu, kernel_profiler=True, print_ir=False,default_fp=ti.f16)
     # 初始化lbm模型
     lb2d = LBM2DSolver(X,Y,dx=DX,dt=DT,isPoro=True,isChemical=True,isThermal=True,isRadiation=True)
     # 基础设置
@@ -127,9 +127,9 @@ def main(DX,DT,T_exp,variant="default"):
     # # 导出局部或者全局变量 观测量
     # ## 中心温度 表面温度 转化率 
     # ### 定义变量实现CPU GPU数据传输
-    allWood = ti.field(ti.f32,shape=())
-    conv = ti.field(ti.f32,shape=())
-    total_rad_surface = ti.field(ti.f32,shape=())  
+    allWood = ti.field(float,shape=())
+    conv = ti.field(float,shape=())
+    total_rad_surface = ti.field(float,shape=())  
     @ti.func
     def cal_wood():
         wood = 0.0

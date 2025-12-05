@@ -44,11 +44,11 @@ class Reaction:
         self.deltaH = float(param[4])
         self.LBM = lb2d
         self.unit = unit
-        self.coefProduct = ti.field(ti.f32,shape=(len(self.LBM.species)))
-        self.coefReactant = ti.field(ti.f32,shape=(len(self.LBM.species)))
-        self.coefRate = ti.field(ti.f32,shape=(len(self.LBM.species)))
-        self.reactionResult = ti.Vector.field(len(self.LBM.species),dtype=ti.f32,shape=self.LBM.rho.shape) # specie concentration and enthalpy change
-        self.dH = ti.field(ti.f32,shape=self.LBM.rho.shape)
+        self.coefProduct = ti.field(float,shape=(len(self.LBM.species)))
+        self.coefReactant = ti.field(float,shape=(len(self.LBM.species)))
+        self.coefRate = ti.field(float,shape=(len(self.LBM.species)))
+        self.reactionResult = ti.Vector.field(len(self.LBM.species),dtype=float,shape=self.LBM.rho.shape) # specie concentration and enthalpy change
+        self.dH = ti.field(float,shape=self.LBM.rho.shape)
         for i in range(len(self.LBM.species)):
             for r in reactant:
                 if r[0]==self.LBM.specieName[i]:
@@ -113,7 +113,7 @@ class Reactions:
     def __init__(self,lbm):
         self.LBM = lbm
         self.dS = None # initialize during init_python
-        self.dH = ti.field(ti.f32,shape=self.LBM.rho.shape)
+        self.dH = ti.field(float,shape=self.LBM.rho.shape)
         self.reactions:list[Reaction] = []
         self.specieNum = 0
 

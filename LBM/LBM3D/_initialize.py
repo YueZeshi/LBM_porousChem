@@ -1,4 +1,4 @@
-from LBM3D.utils import BC, BC_FLOW
+from ..util.flag import *
 import taichi as ti
 
 @ti.data_oriented

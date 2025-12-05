@@ -11,13 +11,13 @@ class ScalarField:
         self.nx,self.ny,self.nz = nx,ny,nz
         self.LBM = lb3d
         self.FIX = FIX
-        self.S = ti.field(ti.f32,shape=(nx,ny,nz))
+        self.S = ti.field(float,shape=(nx,ny,nz))
         if not self.FIX:
-            self.g = ti.Vector.field(7,ti.f32,shape=(nx,ny,nz))
-            self.G = ti.Vector.field(7,ti.f32,shape=(nx,ny,nz))
+            self.g = ti.Vector.field(7,float,shape=(nx,ny,nz))
+            self.G = ti.Vector.field(7,float,shape=(nx,ny,nz))
             self.BC = [BC.PERIODIC,BC.PERIODIC,BC.PERIODIC,BC.PERIODIC,BC.PERIODIC,BC.PERIODIC]
-            self.flux_BC =ti.field(ti.f32,shape = (6))
-            self.s_BC = ti.field(ti.f32,shape = (6))
+            self.flux_BC =ti.field(float,shape = (6))
+            self.s_BC = ti.field(float,shape = (6))
             for i in range(6):
                 self.flux_BC[i]=0.0
                 self.s_BC[i]=0.0

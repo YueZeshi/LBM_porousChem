@@ -52,7 +52,7 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
         self.init_taichi()
     def init_python(self):
         if ti.static(self.CHEMISTRY):
-            self.reactions.dS = ti.Vector.field(len(self.species),dtype = ti.f32,shape=self.rho.shape)
+            self.reactions.dS = ti.Vector.field(len(self.species),dtype = float,shape=self.rho.shape)
             self.reactions.specieNum = len(self.species)
     @ti.kernel
     def init_taichi(self):# 用户设置完数值之后进行手动初始化

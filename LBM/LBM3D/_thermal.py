@@ -91,9 +91,9 @@ class Reaction:
         self.deltaH = float(param[4])
         self.LBM = lb2d
         self.unit = unit
-        self.coefProduct = ti.field(ti.f32,shape=(len(self.LBM.species)))
-        self.coefReactant = ti.field(ti.f32,shape=(len(self.LBM.species)))
-        self.coefRate = ti.field(ti.f32,shape=(len(self.LBM.species)))
+        self.coefProduct = ti.field(float,shape=(len(self.LBM.species)))
+        self.coefReactant = ti.field(float,shape=(len(self.LBM.species)))
+        self.coefRate = ti.field(float,shape=(len(self.LBM.species)))
         for i in range(len(self.LBM.species)):
             for r in reactant:
                 if r[0]==list(self.LBM.species.keys())[i]:

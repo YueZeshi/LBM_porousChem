@@ -51,14 +51,14 @@ class TemperatureSolid(ScalarField):
     SIGMA = 5.67e-8
     def __init__(self,name,nx,ny,nz,lb2d,FIX = False,isRadiation = False):
         super().__init__(name,nx,ny,nz,lb2d,FIX)
-        self.exchangeCoef = ti.field(ti.f32,shape=(nx,ny,nz))
-        self.exchangeSurface = ti.field(ti.f32,shape=(nx,ny,nz))
+        self.exchangeCoef = ti.field(float,shape=(nx,ny,nz))
+        self.exchangeSurface = ti.field(float,shape=(nx,ny,nz))
         self.default_cv = 100000.0
         self.default_coefDiff = 0.01
         if isRadiation:
             self.radiation_model = RADIATION_MODEL.NONE # 辐射模型
-            self.radiation_surface = ti.field(ti.f32,shape = (self.nx,self.ny,self.nz)) # S/V L-1
-            self.emissivity = ti.field(ti.f32,shape=(self.nx,self.ny,self.nz))
+            self.radiation_surface = ti.field(float,shape = (self.nx,self.ny,self.nz)) # S/V L-1
+            self.emissivity = ti.field(float,shape=(self.nx,self.ny,self.nz))
     @ti.func
     def coefDiff(self, i):
         D = 0.0

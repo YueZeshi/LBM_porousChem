@@ -4,16 +4,16 @@ generation of 2D geometry mesh using taichi
 import numpy as np
 import taichi as ti
 
-TYPE_V2 = ti.types.vector(2,ti.f32)
-TYPE_V3 = ti.types.vector(3,ti.f32)
+TYPE_V2 = ti.types.vector(2,float)
+TYPE_V3 = ti.types.vector(3,float)
 @ti.data_oriented
 class Mesh2D:
     def __init__(self,nx,ny):
         self.nx = nx
         self.ny = ny
-        self.S = ti.field(ti.f32,shape=(nx,ny,1))
-        self.L = ti.field(ti.f32,shape=(nx,ny,1))
-        self.d = ti.field(ti.f32,shape=(nx+1,ny+1,1))
+        self.S = ti.field(float,shape=(nx,ny,1))
+        self.L = ti.field(float,shape=(nx,ny,1))
+        self.d = ti.field(float,shape=(nx+1,ny+1,1))
 
     def export_numpy(self):
         return self.S.to_numpy(),self.L.to_numpy()

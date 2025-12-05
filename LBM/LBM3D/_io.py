@@ -115,7 +115,7 @@ class LBM3D_INPUT:
             self.Tambient = float(param)
         if model == RADIATION_MODEL.REAL_RADIATION:
             self.radiation_model = model
-            self.real_radiation = ti.field(ti.f32,shape=(self.nx,self.ny,self.nz))
+            self.real_radiation = ti.field(float,shape=(self.nx,self.ny,self.nz))
             self.init_field(self.real_radiation,param)
     ## 浓度场 (物种密度)
     def set_specie(self,specie,FIX = False):
