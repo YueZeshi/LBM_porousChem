@@ -27,7 +27,7 @@ def main(DX,DT,T_exp,variant="default"):
     R = 0.02
 
     ## convert to lattice unit
-    T_init = 600
+    T_init = 303
 
     print("executing ",__name__)
     name = "pyrolysis_Park"
