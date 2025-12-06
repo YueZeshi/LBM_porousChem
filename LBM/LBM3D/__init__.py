@@ -3,9 +3,9 @@ from ._core import LBM3D_BASE
 from ._evolution import LBM3D_EVOLUTION
 from ._io import LBM3D_INPUT,LBM3D_OUTPUT
 from ._initialize import LBM3D_INITIALIZATION
-from util.flag import *
+from ..util.flag import *
 @ti.data_oriented
-class LBM3D_BASE(LBM3D_BASE,LBM3D_EVOLUTION,LBM3D_INPUT,LBM3D_OUTPUT,LBM3D_INITIALIZATION):
+class LBM3DSolver(LBM3D_EVOLUTION,LBM3D_INPUT,LBM3D_OUTPUT,LBM3D_INITIALIZATION,LBM3D_BASE):
     """
     LBM3DSolver: Combined class for 3D LBM solver with evolution, I/O, and initialization functionalities
     """

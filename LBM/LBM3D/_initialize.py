@@ -20,11 +20,11 @@ class LBM3D_INITIALIZATION:
         print("It contains :")
         if self.PORO:
             print(" -porous medium")
-        if self.THERMAL:
+        if self.TEMPERATURE:
             print(" -thermal transfer")
         if self.RADIATION:
             print(" -radiation")
-        if ti.static(self.CHEMICAL):
+        if ti.static(self.CHEMISTRY):
             print(" -chemical reaction")
             print("The species concerned: ",end="")
             for specie in ti.static(list(self.species.keys())):
@@ -75,9 +75,9 @@ class LBM3D_INITIALIZATION:
         for i in ti.grouped(self.rho):
             eps = 1-self.solid[i]
             if ti.static(self.PORO):
-                if ti.static(self.CHEMICAL): # 计算固体物质密度
+                if ti.static(self.CHEMISTRY): # 计算固体物质密度
                     self.rhos[i]=0.0
-                    for specie in ti.static(list(self.species.values())):
+                    for specie in ti.static(list(self.species)):
                         if ti.static(specie.FIX):
                             self.rhos[i] += specie.S[i]
                 if self.solid[i]!=0: # 计算孔隙率为1的密度作为参考
@@ -87,16 +87,16 @@ class LBM3D_INITIALIZATION:
             for s in ti.static(range(19)):
                 self.f[i][s] = self.feq19(s,self.rho[i],self.v[i],eps)
                 self.F[i][s] = self.f[i][s]
-            # if ti.static(self.THERMAL):
+            # if ti.static(self.TEMPERATURE):
             #     self.IE.uS[i] = self.IE.S[i]*self.v[i]
             for s in ti.static(range(7)):
-                if ti.static(self.CHEMICAL):
-                    for specie in ti.static(list(self.species.values())):
+                if ti.static(self.CHEMISTRY):
+                    for specie in ti.static(list(self.species)):
                         if ti.static(not specie.FIX):
                             # specie.init()
                             specie.g[i][s] = specie.geq7(s,specie.S[i],i[0],i[1],i[2])
                             specie.G[i][s] = specie.g[i][s]
-                if ti.static(self.THERMAL):
+                if ti.static(self.TEMPERATURE):
                 # self.IE.init()
                     self.TF.g[i][s] = self.TF.geq7(s,self.TF.S[i],i[0],i[1],i[2])
                     self.TF.G[i][s] = self.TF.g[i][s]

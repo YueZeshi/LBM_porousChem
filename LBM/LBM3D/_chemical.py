@@ -2,7 +2,6 @@ import taichi as ti
 
 from ._scalarField import ScalarField
 from ..util.flag import *
-
 @ti.data_oriented
 class Specie(ScalarField): # 物种质量分数场
     def __init__(self,name,nx,ny,nz,lb3d,FIX = False,Mmass = 1.0):
@@ -43,7 +42,7 @@ class Reaction:
         self.Ea = float(param[2])
         self.Tmin = float(param[3])
         self.deltaH = float(param[4])
-        self.LBM = lb3d
+        self.LBM:LBM3D_BASE = lb3d
         self.unit = unit
         self.coefProduct = ti.field(float,shape=(len(self.LBM.species)))
         self.coefReactant = ti.field(float,shape=(len(self.LBM.species)))
