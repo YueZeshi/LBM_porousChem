@@ -3,8 +3,6 @@ from ..util.flag import *
 from ._core import LBM2D_BASE
 @ti.data_oriented
 class LBM2D_INITIALIZATION(LBM2D_BASE):
-    nx:int
-    ny:int
     # 初始化
     @ti.kernel
     def default_init(self): # 创建时初始化
@@ -28,11 +26,11 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
         if ti.static(self.CHEMISTRY):
             print(" -chemical reaction")
             print("The species concerned: ",end="")
-            for specie in ti.static(list(self.species.keys())):
+            for specie in ti.static(list(self.specieName)):
                 print(specie,end=" ")
             print("")
         print("Boundary condition model:",end=" ")
-        print(BC_MODEL(self.bondary_condition_model).name)
+        print(BC_MODEL(self.boundary_condition_model).name)
         print("The boundary conditions of the flow field are set to :")
         sideName = ti.static(["left","right","bottom","top"])
         for i in ti.static(range(4)):
@@ -49,6 +47,7 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
                 print(sideName[i]+": SYMMETRIC")
     def init_simulation(self):
         self.init_python()
+        self.print_information()
         self.init_taichi()
     def init_python(self):
         if ti.static(self.CHEMISTRY):

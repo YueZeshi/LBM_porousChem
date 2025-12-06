@@ -4,14 +4,14 @@ import os
 from pyevtk.hl import gridToVTK
 import pickle
 import json
-import LBM3D
-from GEO.G3D import Mesh3D
-from util.flag import *
+from ._core import LBM3D_BASE
+from LBM.GEO.G3D import Mesh3D
+from ..util.flag import *
 from ._scalarField import ScalarField
 from ._chemical import Specie,Reaction
 from ._thermal import TemperatureFluid,TemperatureSolid
 @ti.data_oriented
-class LBM3D_INPUT:
+class LBM3D_INPUT(LBM3D_BASE):
     #----------
     # 用户使用函数
     #----------
@@ -109,14 +109,14 @@ class LBM3D_INPUT:
     def set_TF_diff_func(self,func):
         self.TF.coefDiff = func.__get__(self.TF,ScalarField)
     ### 辐射相关
-    def set_radiation_model(self,model,param):
+    def set_radiation(self,model,param):
         if model == RADIATION_MODEL.SURFACE_UNIFORM:
-            self.radiation_model = model
-            self.Tambient = float(param)
+            self.TS.radiation_model = model
+            self.TS.Tambient = float(param)
         if model == RADIATION_MODEL.REAL_RADIATION:
-            self.radiation_model = model
-            self.real_radiation = ti.field(float,shape=(self.nx,self.ny,self.nz))
-            self.init_field(self.real_radiation,param)
+            self.TS.radiation_model = model
+            self.TS.real_radiation = ti.field(float,shape=(self.nx,self.ny,self.nz))
+            self.init_field(self.TS.real_radiation,param)
     ## 浓度场 (物种密度)
     def set_specie(self,specie,FIX = False):
         self.species[specie] = Specie(specie,self.nx,self.ny,self.nz,self,FIX)
@@ -229,10 +229,10 @@ class LBM3D_INPUT:
     def set_specie_BCs(self,specie,BCs):
         self.species[specie].set_BCs(BCs)
     def set_species_BC(self,i,BC):
-        for specie in self.species.values():
+        for specie in self.species:
             specie.set_BCs(i,BC)
     def set_species_BCs(self,BCs):# 定义所有物种的边界条件
-        for specie in self.species.values():
+        for specie in self.species:
             specie.set_BCs(BCs)
     def set_specie_BC_value(self,specie,i,S):
         self.species[specie].set_s_BC_value(i,S)
@@ -254,9 +254,9 @@ class LBM3D_INPUT:
         nx = int(x/dx)
         ny = int(y/dx)
         nz = int(z/dx)
-        isThermal = config["BASIC"]["THERMAL"]
+        isThermal = config["BASIC"]["TEMPERATURE"]
         isPoro = config["BASIC"]["PORO"]
-        isChemical = config["BASIC"]["CHEMICAL"]
+        isChemical = config["BASIC"]["CHEMISTRY"]
         isRadiation = config["BASIC"]["RADIATION"]
         name = config["BASIC"]["name"]
         # initial setting
@@ -320,13 +320,13 @@ class LBM3D_INPUT:
         return LBM
 # 输出 可视化
 @ti.data_oriented
-class LBM3D_OUTPUT:
+class LBM3D_OUTPUT(LBM3D_BASE):
     def get_max_v(self): # 获得最大速度，用于判断模型是否发散
         self.max_v[None] = -1e10        
         self.cal_max_v()
         return self.max_v[None]
     def get_min_T(self):
-        if self.THERMAL:
+        if self.TEMPERATURE:
             self.min_T[None]= 1e10
             self.cal_min_T()
             return self.min_T[None]
@@ -354,8 +354,8 @@ class LBM3D_OUTPUT:
         "DX":self.dx,
         "DT":self.dt,
         "PORO":self.PORO,
-        "CHEMICAL":self.CHEMICAL,
-        "THERMAL":self.THERMAL,
+        "CHEMISTRY":self.CHEMISTRY,
+        "TEMPERATURE":self.TEMPERATURE,
         "RADIATION":self.RADIATION
         }
         lbm_info["BASIC"]=basic_info
@@ -388,7 +388,7 @@ class LBM3D_OUTPUT:
         ## SOLID
         solid = self.solid.to_numpy().tolist()
         lbm_info["SOLID"]=solid
-        if self.THERMAL:
+        if self.TEMPERATURE:
             ## TEMPERATURE FLUID
             TF_info = {}
             lbm_info["TEMPERATURE_FLUID"]=TF_info
@@ -400,15 +400,16 @@ class LBM3D_OUTPUT:
                 radiation_info = {}
                 lbm_info["RADIATION"]=radiation_info
         ## SPECIES
-        if self.CHEMICAL:
+        if self.CHEMISTRY:
             species_info = {}
         with open(path,"w") as f:
             json.dump(lbm_info,f,indent=4)
    
-    def export_VTK(self, path, n): # 导出为vtk 到指定文件夹中
+    def export_VTK(self, name, n): # 导出为vtk 到指定文件夹中
+        path = os.path.join("result",name)
         os.makedirs(path,exist_ok=True)
         gridToVTK(
-                os.path.join(path,self.name+"_"+str(n)),
+                os.path.join(path,name+"_"+str(n)),
                 self.x,
                 self.y,
                 self.z,
@@ -425,21 +426,21 @@ class LBM3D_OUTPUT:
                         np.ascontiguousarray(self.v.to_numpy()[:,:,:,2]), 
                         ),
                 }
-        if self.PORO:
-            data["SOLID_INIT"]=self.rho1.to_numpy(),
-        if self.THERMAL:
-            data["Tf"]  = self.TF.S.to_numpy()
-            data["Ts"]  = self.TS.S.to_numpy()
-        if self.RADIATION:
-            data["Radiation_surface"] = self.radiation_surface.to_numpy()
-            if self.radiation_model == RADIATION_MODEL.REAL_RADIATION:
-                data["Real Radiation"] = self.real_radiation.to_numpy()
-        if self.CHEMICAL:
-            for specie in self.species.values():
-                if specie.FIX and not specie.name.endswith("(S)"):
-                    data[specie.name+"(S)"]=specie.S.to_numpy()
-                else:
-                    data[specie.name]=specie.S.to_numpy()
+        # if self.PORO:
+        #     data["SOLID_INIT"]=self.rho1.to_numpy(),
+        # if self.TEMPERATURE:
+        #     data["Tf"]  = self.TF.S.to_numpy()
+        #     data["Ts"]  = self.TS.S.to_numpy()
+        # if self.RADIATION:
+        #     data["Radiation_surface"] = self.TS.radiation_surface.to_numpy()
+        #     if self.TS.radiation_model == RADIATION_MODEL.REAL_RADIATION:
+        #         data["Real Radiation"] = self.TS.real_radiation.to_numpy()
+        # if self.CHEMISTRY:
+        #     for specie in self.species.values():
+        #         if specie.FIX and not specie.name.endswith("(S)"):
+        #             data[specie.name+"(S)"]=specie.S.to_numpy()
+        #         else:
+        #             data[specie.name]=specie.S.to_numpy()
         return data    
 
     def export_variable(self, name,iter):

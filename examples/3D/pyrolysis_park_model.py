@@ -6,8 +6,8 @@ import os
 import numpy as np
 import sys
 # 指定求解器
-from LBM.LBM2D import LBM2DSolver
-from LBM.GEO.G2D import Mesh2D
+from LBM.LBM3D import LBM3DSolver
+from LBM.GEO.G3D import Mesh3D
 from LBM.util.flag import *
 def main(DX,DT,T_exp,variant="default"):
     # 获取环境变量是否启用debug模式
@@ -24,6 +24,7 @@ def main(DX,DT,T_exp,variant="default"):
     # 定义计算域 SI
     X = 0.6
     Y = 0.2
+    Z = 0.2
     R = 0.02
 
     ## convert to lattice unit
@@ -33,12 +34,13 @@ def main(DX,DT,T_exp,variant="default"):
     name = "pyrolysis_Park"
     # 初始化taichi
     ## arch=ti.cpu 启用cpu计算；arch=ti.gpu启用gpu运算 (cuda>vulkan)
+    default_fp  = ti.f32
     if ARCH=="gpu":
-        ti.init(arch=ti.gpu, kernel_profiler=True, print_ir=False,default_fp=float)
+        ti.init(arch=ti.gpu, kernel_profiler=True, print_ir=False,default_fp=default_fp)
     else:
-        ti.init(arch=ti.cpu, kernel_profiler=True, print_ir=False,default_fp=ti.f16)
+        ti.init(arch=ti.cpu, kernel_profiler=True, print_ir=False,default_fp=default_fp)
     # 初始化lbm模型
-    lb2d = LBM2DSolver(X,Y,dx=DX,dt=DT,isPoro=True,isChemical=True,isThermal=True,isRadiation=True)
+    lb2d = LBM3DSolver(X,Y,Z,dx=DX,dt=DT,isPoro=True,isChemical=True,isThermal=True,isRadiation=True)
     # 基础设置
     lb2d.source_term_model = SOURCE_TERM.MICRO
     lb2d.force_term_model = FORCE_TERM.GUO
@@ -142,25 +144,25 @@ def main(DX,DT,T_exp,variant="default"):
         print("all wood:",allWood[None])
     
     def setVariables():
-        def Tcenter(lbm:LBM2DSolver):
+        def Tcenter(lbm:LBM3DSolver):
             T_center = lbm.TS.S[(int(lbm.nx/2),int(lbm.ny/2),int(lbm.nz/2))]
             return "Ts_center", T_center
         lb2d.GetVariableFunc.append(Tcenter)
-        def Tsurface(lbm:LBM2DSolver):
+        def Tsurface(lbm:LBM3DSolver):
             T_surface = lbm.TF.S[(int(lbm.nx/2+R/DX-1),int(lbm.ny/2),int(lbm.nz/2))]
             return "Tf_surface", T_surface
         lb2d.GetVariableFunc.append(Tsurface)
         @ti.kernel
         def cal_conversion():
             conv[None] = (allWood[None]-cal_wood())/allWood[None]
-        def conversion(lbm:LBM2DSolver):
+        def conversion(lbm:LBM3DSolver):
             cal_conversion()
             return "conversion", conv[None]
         lb2d.GetVariableFunc.append(conversion)
     setVariables()
     ## 初始化场 
     lb2d.init_field(lb2d.rho,1)
-    m2d  = Mesh2D(lb2d.nx,lb2d.ny)
+    m2d  = Mesh3D(lb2d.nx,lb2d.ny)
     m2d.CreateMesh2DCircle(float(lb2d.nx)/2,float(lb2d.ny)/2,R/DX)
     s,l = m2d.export_numpy()
     lb2d.init_field(lb2d.solid,s*0.4)
@@ -220,7 +222,7 @@ def main(DX,DT,T_exp,variant="default"):
     profiler.print_kernel_profiler_info()
     # profiler.print_memory_profiler_info()
 if __name__=="__main__":
-    # os.environ["DEBUG"]="TRUE"
+    os.environ["ARCH"]="CPU"
     DX = float(sys.argv[1])
     DT = float(sys.argv[2])
     T_exp = float(sys.argv[3])

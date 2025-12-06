@@ -54,7 +54,7 @@ class Mesh2D:
         dv = abs(point[1]-(v1[1]+v2[1]/2))-abs(v2[1]-v1[1])/2
         return max(dh,dv)
     @ti.func
-    def calculate_s_l(self,d1,d2,d3,d4):
+    def calculate_s_l(self,d1,d2,d3,d4): # f16时有问题 调用了inverse函数 除法有问题
         s = 0.0
         l = 0.0
         in_point_count = 0
@@ -83,7 +83,7 @@ class Mesh2D:
                 x = -d4/(d2-d4)
                 y = -d4/(d3-d4)
             l = ti.math.sqrt(x**2+y**2)
-            s = x*y/2
+            s = x*y
         elif in_point_count==2:
             x = 0.0
             y = 0.0

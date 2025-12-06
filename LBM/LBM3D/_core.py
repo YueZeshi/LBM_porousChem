@@ -1,6 +1,6 @@
 import taichi as ti
 import numpy as np
-from util.flag import *
+from ..util.flag import *
 from ._thermal import TemperatureFluid,TemperatureSolid
 from ._chemical import Specie,Reaction,Reactions
 from ._info import INFO
@@ -57,15 +57,15 @@ class LBM3D_BASE:
         self.GetVariableFunc = [] # 获取观测量的函数
         
         # 定义标量场
-        self.THERMAL = isThermal
-        self.CHEMICAL = isChemical
+        self.TEMPERATURE= isThermal
+        self.CHEMISTRY = isChemical
         self.PORO = isPoro
         self.RADIATION = isRadiation and isThermal
-        if self.THERMAL:
-            self.TF = TemperatureFluid("Temperature of Fluid",self.nx,self.ny,self.nz,self)
-            self.TS = TemperatureSolid("Temperature of Solid",self.nx,self.ny,self.nz,self,isRadiation=self.RADIATION)
+        if self.TEMPERATURE:
+            self.TF:TemperatureFluid = TemperatureFluid("Temperature of Fluid",self.nx,self.ny,self.nz,self)
+            self.TS:TemperatureSolid = TemperatureSolid("Temperature of Solid",self.nx,self.ny,self.nz,self,isRadiation = self.RADIATION)
             self.min_T = ti.field(float,shape=())
-        if self.CHEMICAL:
+        if self.CHEMISTRY:
             self.specieName = []
             self.species:list[str,Specie] = []
             self.reactions = Reactions(self) 
@@ -74,15 +74,15 @@ class LBM3D_BASE:
             self.coefDarcy = ti.field(float,shape=(self.nx,self.ny,self.nz))
             self.coefForchheimer = ti.field(float,shape=(self.nx,self.ny,self.nz))
             self.rhos = ti.field(float,shape=(self.nx,self.ny,self.nz))
-            self.rho1 = ti.field(float,shape=(self.nx,self.ny,self.self.nz))
-        # 默认初始化所有场
+            self.rho1 = ti.field(float,shape=(self.nx,self.ny,self.nz))
+        # default init all fields
         self.default_init()
         if self.TEMPERATURE:
             self.TS.default_init()
             self.TF.default_init()
         if self.CHEMISTRY:
             for specie in self.species:
-                specie.default_init()  
+                specie.default_init()
     # 内置函数
     def __repr__(self):
         return self.__str__()
@@ -91,9 +91,22 @@ class LBM3D_BASE:
     def __str__(self):
         return INFO
     @ti.func
-    def feq9(self,s,i,j,k):
+    def feq19(self,s,i,j,k):
         pass
-    @ti.kernel
+    def default_init(self):
+        pass
+
+    @ti.func
     def Boundary_condition(self):
+        pass
+    @ti.func
+    def Boundary_condition_NEBB(self):
+        pass
+        
+    @ti.func
+    def Boundary_condition_NEE(self):
+        pass
+    @ti.func 
+    def Boundary_condition_ES(self):
         pass
     

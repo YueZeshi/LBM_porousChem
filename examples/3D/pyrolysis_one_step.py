@@ -1,4 +1,3 @@
-from re import T
 import time
 import taichi as ti
 import taichi.profiler as profiler
@@ -31,9 +30,7 @@ def main(DX,DT,T_exp,variant="default"):
     T_init = 303.
 
     print("executing ",__name__)
-
-    name = "pyrolysis_no_reaction"
-
+    name = "pyrolysis_one_step"
     # 初始化taichi
     ## arch=ti.cpu 启用cpu计算；arch=ti.gpu启用gpu运算 (cuda>vulkan)
     if ARCH=="gpu":
@@ -41,48 +38,50 @@ def main(DX,DT,T_exp,variant="default"):
     else:
         ti.init(arch=ti.cpu, kernel_profiler=True, print_ir=False)
     # 初始化lbm模型
-    lb2d = LBM2DSolver(X,Y,dx=DX,dt=DT,isPoro=True,isChemical=False,isThermal=True,isRadiation=True)
+    lb2d = LBM2DSolver(X,Y,dx=DX,dt=DT,isPoro=True,isChemical=True,isThermal=True,isRadiation=True)
     # 基础设置
     lb2d.source_term_model = SOURCE_TERM.MICRO
     lb2d.force_term_model = FORCE_TERM.GUO
+    lb2d.EOS = FLUID_STATE_EQUATION.IDEAL_GAS
     lb2d.set_viscosity(0.1)
-    lb2d.set_poro_Darcy(2.5e11,unit="SI")
+    lb2d.set_poro_Darcy(2.5e10,unit="SI")
     lb2d.set_radiation(RADIATION_MODEL.SURFACE_UNIFORM,T_exp)
 
-    # # 设置物质
-    # ## 物种及其状态
-    # lb2d.set_specie("N2",False)
-    # lb2d.set_species(["wood(S)","tar" ,"char(S)"],
-    #                 [True     ,False,True     ])
+    # 设置物质
+    ## 物种及其状态
+    lb2d.set_specie("N2",False)
+    lb2d.set_species(["wood(S)","tar" ,"char(S)"],
+                    [True     ,False,True     ])
+    
     # 设置边界条件
     lb2d.set_BCs([BC_FLOW.inlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall])
     lb2d.set_v_BCs_value([[0.01,0,0],[0,0,0],[0,0,0],[0,0,0]])
     lb2d.set_rho_BCs_value([1]*4)
-    # lb2d.set_TF_BCs([BC.fixedValue]*4)
     lb2d.set_TF_BCs([BC.fixedValue,BC.zeroGradient,BC.fixedValue,BC.fixedValue])
     lb2d.set_TF_BCs_value([T_exp]*4)
     lb2d.set_TS_BCs([BC.fixedValue,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient])
     lb2d.set_TS_BCs_value([T_init]*4)
-    # lb2d.set_species_BCs([BC_S.FIXVALUE,BC_S.OPEN,BC_S.WALL,BC_S.WALL])
-    # lb2d.set_specie_BCs_value("N2",[1]*4)
+    lb2d.set_species_BCs([BC.fixedValue,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient])
+    lb2d.set_specie_BCs_value("N2",[1]*4)
 
     # # 添加化学反应
-    # lb2d.add_reaction("total reaction",[("wood(S)",1)],[("tar",0.4),("char(S)",0.6)],(2500,0,67500,300,0))
+    lb2d.add_reaction("total reaction",[("wood(S)",1)],[("tar",0.4),("char(S)",0.6)],(2500,0,67500,300,0))
 
     # # 设置物种物性
     # ## 扩散
-    # lb2d.set_specie_diff("tar",1e-6,unit="SI")
-    # lb2d.set_specie_diff("N2",1e-5,unit="SI")
+    lb2d.set_specie_diff("tar",0.1)
+    lb2d.set_specie_diff("N2",0.1)
     # ## 热容
-    # lb2d.set_specie_capacity("wood(S)",1670)
-    # lb2d.set_specie_capacity("char(S)",1000)
-    # lb2d.set_specie_capacity("tar",1040)
-    # lb2d.set_specie_capacity("N2",1040)
+    lb2d.set_specie_capacity("wood(S)",1670)
+    lb2d.set_specie_capacity("char(S)",1000)
+    lb2d.set_specie_capacity("tar",1000)
+    lb2d.set_specie_capacity("N2",1000)
     # ## 热导
-    # lb2d.set_specie_conductivity("wood(S)", 0.1256)
-    # lb2d.set_specie_conductivity("char(S)", 0.0837)
-    # lb2d.set_specie_conductivity("tar", 0.0258)
-    # lb2d.set_specie_conductivity("N2",0.0258)
+    lb2d.set_specie_conductivity("wood(S)", 0.1256)
+    lb2d.set_specie_conductivity("char(S)", 0.0837)
+    lb2d.set_specie_conductivity("tar", 0.0258)
+    lb2d.set_specie_conductivity("N2",0.0258)
+    # lb2d.set_specie_conductivity("N2",0.1)
 
     # ## 杂项
     # ## 可变边界条件
@@ -151,10 +150,11 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.init_field(lb2d.TF.S,T_init)
     lb2d.init_field(lb2d.TS.S,T_init)
     lb2d.init_field(lb2d.TS.exchangeSurface,100)
-    lb2d.init_field(lb2d.TS.exchangeCoef,10)
-    # lb2d.init_specie("N2",1)
-    # lb2d.init_specie("wood(S)",biomass_file)
-    lb2d.init_field(lb2d.TS.radiation_surface, l*0.6)
+    lb2d.init_field(lb2d.TS.exchangeCoef,1000)
+    lb2d.init_field(lb2d.TS.emissivity,0.7)
+    lb2d.init_specie("N2",1)
+    lb2d.init_specie("wood(S)",s*400)
+    lb2d.init_field(lb2d.TS.radiation_surface, l*0.6)# vague
     # 初始化lbm
     lb2d.init_simulation()
     lb2d.check_python()
@@ -164,9 +164,9 @@ def main(DX,DT,T_exp,variant="default"):
     measure_interval= 10
     print_interval = 10
     if DEBUG:
-        total_iteration = 2
-        export_interval = 1
-        print_interval = 1
+        total_iteration = 0.01
+        export_interval = 0.01
+        print_interval = 0.01
         print("debug")
 
     for iter in range(int(total_iteration/DT)+1):
@@ -201,8 +201,12 @@ def main(DX,DT,T_exp,variant="default"):
     profiler.print_kernel_profiler_info()
     # profiler.print_memory_profiler_info()
 if __name__=="__main__":
+    # os.environ["DEBUG"]="TRUE"
     DX = float(sys.argv[1])
     DT = float(sys.argv[2])
     T_exp = float(sys.argv[3])
     variant = sys.argv[4]
+    startTime = time.time()
     main(DX,DT,T_exp,variant)
+    print("execution time: ", time.time()-startTime)
+    

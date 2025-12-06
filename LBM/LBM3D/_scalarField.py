@@ -1,5 +1,5 @@
 import taichi as ti
-from util.flag import BC
+from ..util.flag import BC
 
 @ti.data_oriented    
 class ScalarField:
@@ -12,15 +12,28 @@ class ScalarField:
         self.LBM = lb3d
         self.FIX = FIX
         self.S = ti.field(float,shape=(nx,ny,nz))
+        self.dS = ti.field(float,shape = (nx,ny,nz))
         if not self.FIX:
             self.g = ti.Vector.field(7,float,shape=(nx,ny,nz))
             self.G = ti.Vector.field(7,float,shape=(nx,ny,nz))
-            self.BC = [BC.PERIODIC,BC.PERIODIC,BC.PERIODIC,BC.PERIODIC,BC.PERIODIC,BC.PERIODIC]
+            self.BC = [BC.periodic]*6
             self.flux_BC =ti.field(float,shape = (6))
             self.s_BC = ti.field(float,shape = (6))
             for i in range(6):
                 self.flux_BC[i]=0.0
                 self.s_BC[i]=0.0
+                
+    @ti.kernel
+    def default_init(self):
+        for i in range(6):
+            self.flux_BC[i]=0.0
+            self.s_BC[i]=0.0
+        for i in ti.grouped(self.S):
+            self.S[i]=0.0
+            if not self.FIX:
+                for k in ti.static(range(5)):
+                    self.g[i][k]=0.0
+                    self.G[i][k]=0.0
     @ti.func
     def coefDiff(self,i):
         return 0.1
