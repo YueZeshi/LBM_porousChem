@@ -6,6 +6,7 @@ import pickle
 import json
 from ._core import LBM3D_BASE
 from LBM.GEO.G3D import Mesh3D
+from LBM.LBM3D import LBM3DSolver
 from ..util.flag import *
 from ._scalarField import ScalarField
 from ._chemical import Specie,Reaction
@@ -262,7 +263,7 @@ class LBM3D_INPUT(LBM3D_BASE):
         isRadiation = config["BASIC"]["RADIATION"]
         name = config["BASIC"]["name"]
         # initial setting
-        LBM = LBM3D.LBM3DSolver(x,y,z,dx,dt,name,isThermal,isPoro,isChemical,isRadiation)
+        LBM = LBM3DSolver(x,y,z,dx,dt,name,isThermal,isPoro,isChemical,isRadiation)
         # viscosity
         if config["FLOW"]["viscosity"]["function"]=="uniform":
             LBM.set_viscosity(config["FLOW"]["viscosity"]["value"])

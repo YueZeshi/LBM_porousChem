@@ -42,7 +42,7 @@ class Reaction:
         self.Ea = float(param[2])
         self.Tmin = float(param[3])
         self.deltaH = float(param[4])
-        self.LBM:LBM3D_BASE = lb3d
+        self.LBM= lb3d
         self.unit = unit
         self.coefProduct = ti.field(float,shape=(len(self.LBM.species)))
         self.coefReactant = ti.field(float,shape=(len(self.LBM.species)))
