@@ -6,8 +6,8 @@ import os
 import numpy as np
 import sys
 # 指定求解器
-from LBM.LBM2D import LBM2DSolver
-from LBM.GEO.G2D import Mesh2D
+from LBM.LBM3D import LBM3DSolver
+from LBM.GEO.G3D import Mesh3D
 from LBM.util.flag import *
 def main(DX,DT,T_exp,variant="default"):
     # 获取环境变量是否启用debug模式
@@ -24,13 +24,14 @@ def main(DX,DT,T_exp,variant="default"):
     # 定义计算域 SI
     X = 0.6
     Y = 0.2
+    Z = 0.2
     R = 0.02
 
     ## convert to lattice unit
     T_init = 303.
 
     print("executing ",__name__)
-    name = "pyrolysis_one_step"
+    name = "pyrolysis_one_step_3D"
     # 初始化taichi
     ## arch=ti.cpu 启用cpu计算；arch=ti.gpu启用gpu运算 (cuda>vulkan)
     if ARCH=="gpu":
@@ -38,13 +39,13 @@ def main(DX,DT,T_exp,variant="default"):
     else:
         ti.init(arch=ti.cpu, kernel_profiler=True, print_ir=False)
     # 初始化lbm模型
-    lb2d = LBM2DSolver(X,Y,dx=DX,dt=DT,isPoro=True,isChemical=True,isThermal=True,isRadiation=True)
+    lb2d = LBM3DSolver(X,Y,Z,dx=DX,dt=DT,isPoro=True,isChemical=True,isThermal=True,isRadiation=True)
     # 基础设置
     lb2d.source_term_model = SOURCE_TERM.MICRO
     lb2d.force_term_model = FORCE_TERM.GUO
     lb2d.EOS = FLUID_STATE_EQUATION.IDEAL_GAS
     lb2d.set_viscosity(0.1)
-    lb2d.set_poro_Darcy(2.5e10,unit="SI")
+    lb2d.set_poro_Darcy(2.5e11,unit="SI")
     lb2d.set_radiation(RADIATION_MODEL.SURFACE_UNIFORM,T_exp)
 
     # 设置物质
@@ -54,15 +55,15 @@ def main(DX,DT,T_exp,variant="default"):
                     [True     ,False,True     ])
     
     # 设置边界条件
-    lb2d.set_BCs([BC_FLOW.inlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall])
-    lb2d.set_v_BCs_value([[0.01,0,0],[0,0,0],[0,0,0],[0,0,0]])
-    lb2d.set_rho_BCs_value([1]*4)
-    lb2d.set_TF_BCs([BC.fixedValue,BC.zeroGradient,BC.fixedValue,BC.fixedValue])
-    lb2d.set_TF_BCs_value([T_exp]*4)
-    lb2d.set_TS_BCs([BC.fixedValue,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient])
-    lb2d.set_TS_BCs_value([T_init]*4)
-    lb2d.set_species_BCs([BC.fixedValue,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient])
-    lb2d.set_specie_BCs_value("N2",[1]*4)
+    lb2d.set_BCs([BC_FLOW.inlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall,BC_FLOW.wall,BC_FLOW.wall])
+    lb2d.set_v_BCs_value([[0.01,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]])
+    lb2d.set_rho_BCs_value([1]*6)
+    lb2d.set_TF_BCs([BC.fixedValue,BC.zeroGradient,BC.fixedValue,BC.fixedValue,BC.fixedValue,BC.fixedValue])
+    lb2d.set_TF_BCs_value([T_exp]*6)
+    lb2d.set_TS_BCs([BC.fixedValue,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient])
+    lb2d.set_TS_BCs_value([T_init]*6)
+    lb2d.set_species_BCs([BC.fixedValue,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient])
+    lb2d.set_specie_BCs_value("N2",[1]*6)
 
     # # 添加化学反应
     lb2d.add_reaction("total reaction",[("wood(S)",1)],[("tar",0.4),("char(S)",0.6)],(2500,0,67500,300,0))
@@ -143,8 +144,8 @@ def main(DX,DT,T_exp,variant="default"):
     # setVariables()
     ## 初始化场 
     lb2d.init_field(lb2d.rho,1)
-    m2d  = Mesh2D(lb2d.nx,lb2d.ny)
-    m2d.CreateMesh2DCircle(float(lb2d.nx)/2,float(lb2d.ny)/2,R/DX)
+    m2d  = Mesh3D(lb2d.nx,lb2d.ny,lb2d.nz)
+    m2d.CreateMesh3D_Sphere_Decimal(float(lb2d.nx)/2,float(lb2d.ny)/2,float(lb2d.nz)/2,R/DX)
     s,l = m2d.export_numpy()
     lb2d.init_field(lb2d.solid,s*0.4)
     lb2d.init_field(lb2d.TF.S,T_init)
@@ -159,10 +160,10 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.init_simulation()
     lb2d.check_python()
     # cal_allWood() # 计算总木材质量
-    total_iteration =   1000
-    export_interval = 10
+    total_iteration =   50
+    export_interval = 0.1
     measure_interval= 10
-    print_interval = 10
+    print_interval = 1
     if DEBUG:
         total_iteration = 0.01
         export_interval = 0.01
@@ -196,6 +197,7 @@ def main(DX,DT,T_exp,variant="default"):
         if (iter%int(measure_interval/DT)==0):
                 lb2d.export_variable(f"simulation_{name}_{variant}_{DX}",iter)
         lb2d.step()
+        lb2d.check_python()
 
 
     profiler.print_kernel_profiler_info()

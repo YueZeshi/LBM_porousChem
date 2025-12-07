@@ -124,8 +124,9 @@ class LBM2D_INPUT(LBM2D_BASE):
         self.species.append(Specie(specie,self.nx,self.ny,self.nz,self,FIX))
         self.specieName.append(specie)
 
-    def set_specie_mole(self,specie,isFix = False,molemass = 1.0):
-        self.species.append(Specie(specie,self.nx,self.ny,self.nz,self,Mmass = molemass,FIX=isFix))
+    def set_specie_mole(self,specie,Fix = False,molemass = 1.0):
+        self.species.append(Specie(specie,self.nx,self.ny,self.nz,self,Mmass = molemass,FIX=Fix))
+        self.specieName.append(specie)
         
     def set_species(self,species,FIX=None):# 登记所有物质
         if FIX == None:

@@ -33,9 +33,9 @@ class LBM3D_BASE:
         self.e7 = ti.Vector.field(3,ti.i32, shape=(7)) # e 方向向量
         self.w7 = ti.field(float, shape=(7)) # 权重
         # self.LR5 = [0,3,4,1,2] #对称索引
-        self.x = np.linspace(0, self.nx, self.nx)
-        self.y = np.linspace(0, self.ny, self.ny)
-        self.z = np.linspace(0, self.nz, self.nz)
+        self.x = np.linspace(0, self.X, self.nx)
+        self.y = np.linspace(0, self.Y, self.ny)
+        self.z = np.linspace(0, self.Z, self.nz)
         self.ext_f = ti.Vector.field(3,float,shape=()) # 外部力
         
         #X, Y, Z = np.meshgrid(self.x, self.y, self.z, indexing='ij')

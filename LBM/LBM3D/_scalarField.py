@@ -35,6 +35,9 @@ class ScalarField:
                     self.g[i][k]=0.0
                     self.G[i][k]=0.0
     @ti.func
+    def tau(self,i):
+        return 3*self.coefDiff(i)+0.5
+    @ti.func
     def coefDiff(self,i):
         return 0.1
     # boundary condition
@@ -57,63 +60,61 @@ class ScalarField:
         return 0
     @ti.func
     def Boundary_condition_scalar_0(self,x,y,z):
-        if ti.static(self.BC[0]==BC.FIXVALUE): # fix v
-            self.S[x,0,z] = self.s_BC[0]
+        if ti.static(self.BC[0]==BC.fixedValue): # fix v
+            self.S[0,y,z] = self.s_BC[0]
         if ti.static(self.BC[0]==BC.zeroGradient): # open
-            self.S[x,0,z] = self.S[x,1,z]  
+            self.S[0,y,z] = self.S[1,y,z]  
         # todo
         for s in ti.static(range(7)):
-            self.G[x,0,z][s] = self.geq7(s,self.S[x,0,z],x,0,z)+(self.G[x,0,z][s]-self.geq7(s,self.S[x,1,z],x,1,z))
+            self.G[0,y,z][s] = self.geq7(s,self.S[0,y,z],0,y,z)+(self.G[1,y,z][s]-self.geq7(s,self.S[1,y,z],1,y,z))
+            self.g[0,y,z][s] = self.G[0,y,z][s]
     @ti.func
     def Boundary_condition_scalar_1(self,x,y,z):
-        if ti.static(self.BC[1]==BC.WALL):# no slip
-            self.S[x,self.ny-1,z] = self.S[x,self.ny-2,z]  
-        if ti.static(self.BC[1]==BC.FIXVALUE): # fix v
+        if ti.static(self.BC[1]==BC.fixedValue): # fix v
             self.S[self.nx-1,y,z] = self.s_BC[1]
-        if ti.static(self.BC[1]==BC.ZEROGRADIENT): # open
+        if ti.static(self.BC[1]==BC.zeroGradient): # open
             self.S[self.nx-1,y,z] = self.S[self.nx-2,y,z]  
         # todo
         for s in ti.static(range(7)):
             self.G[self.nx-1,y,z][s] = self.geq7(s,self.S[self.nx-1,y,z],self.nx-1,y,z)+(self.G[self.nx-2,y,z][s]-self.geq7(s,self.S[self.nx-2,y,z],self.nx-2,y,z))
+            self.g[self.nx-1,y,z] = self.G[self.nx-1,y,z]
     @ti.func
     def Boundary_condition_scalar_2(self,x,y,z):
-        if ti.static(self.BC[2]==BC.WALL):# no slip
-            self.S[x,0,z] = self.S[x,1,z]  
-        if ti.static(self.BC[2]==BC.FIXVALUE): # fix v
+        if ti.static(self.BC[2]==BC.fixedValue): # fix v
             self.S[x,0,z] = self.s_BC[2]
-        if ti.static(self.BC[2]==BC.ZEROGRADIENT): # open
+        if ti.static(self.BC[2]==BC.zeroGradient): # open
             self.S[x,0,z] = self.S[x,1,z]  
         # todo
         for s in ti.static(range(7)):
             self.G[x,0,z][s] = self.geq7(s,self.S[x,0,z],x,0,z)+(self.G[x,1,z][s]-self.geq7(s,self.S[x,1,z],x,1,z))
+            self.g[x,0,z] = self.G[x,0,z]
     @ti.func
     def Boundary_condition_scalar_3(self,x,y,z):
-        if ti.static(self.BC[3]==BC.WALL):# no slip
-            self.S[x,self.ny-1,z] = self.S[x,self.ny-2,z]  
-        if ti.static(self.BC[3]==BC.FIXVALUE): # fix v
+        if ti.static(self.BC[3]==BC.fixedValue): # fix v
             self.S[x,self.ny-1,z] = self.s_BC[3]
-        if ti.static(self.BC[3]==BC.ZEROGRADIENT): # open
+        if ti.static(self.BC[3]==BC.zeroGradient): # open
             self.S[x,self.ny-1,z] = self.S[x,self.ny-2,z]  
         # todo
         for s in ti.static(range(7)):
             self.G[x,self.ny-1,z][s] = self.geq7(s,self.S[x,self.ny-1,z],x,self.ny-1,z)+(self.G[x,self.ny-2,z][s]-self.geq7(s,self.S[x,self.ny-2,z],x,self.ny-2,z))
+            self.g[x,self.ny-1,z] = self.G[x,self.ny-1,z]
     @ti.func
     def Boundary_condition_scalar_4(self,x,y,z):
-        if ti.static(self.BC[4]==BC.WALL):# no slip
-            self.S[x,y,0] = self.S[x,y,1]  
-        if ti.static(self.BC[4]==BC.FIXVALUE): # fix v
+        if ti.static(self.BC[4]==BC.fixedValue): # fix v
             self.S[x,y,0] = self.s_BC[4]
-        if ti.static(self.BC[4]==BC.ZEROGRADIENT): # open
+        if ti.static(self.BC[4]==BC.zeroGradient): # open
             self.S[x,y,0] = self.S[x,y,1]  
         # todo
         for s in ti.static(range(7)):
             self.G[x,y,0][s] = self.geq7(s,self.S[x,y,0],x,y,0)+(self.G[x,y,1][s]-self.geq7(s,self.S[x,y,1],x,y,1))
+            self.g[x,y,0] = self.G[x,y,0]
     @ti.func
     def Boundary_condition_scalar_5(self,x,y,z):
-        if ti.static(self.BC[5]==BC.FIXVALUE): # fix v
+        if ti.static(self.BC[5]==BC.fixedValue): # fix v
             self.S[x,y,self.nz-1] = self.s_BC[5]
-        if ti.static(self.BC[5]==BC.ZEROGRADIENT): # open
+        if ti.static(self.BC[5]==BC.zeroGradient): # open
             self.S[x,y,self.nz-1] = self.S[x,y,self.nz-2]  
         # todo
         for s in ti.static(range(7)):
             self.G[x,y,self.nz-1][s] = self.geq7(s,self.S[x,y,self.nz-1],x,y,self.nz-1)+(self.G[x,y,self.nz-2][s]-self.geq7(s,self.S[x,y,self.nz-2],x,y,self.nz-2))
+            self.g[x,y,self.nz-1] = self.G[x,y,self.nz-1]

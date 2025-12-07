@@ -48,7 +48,7 @@ class LBM3D_BOUNDARY(LBM3D_BASE):
                 # print("boundary IE")
                 self.TF.Boundary_condition_scalar_3(i,self.ny-1,k) # note: 后更新焓的边界条件，使用到的热容计算需要边界区域的物质浓度
                 self.TS.Boundary_condition_scalar_3(i,self.ny-1,k)
-        for i,j in ti.static(self.nx,self.ny):
+        for i,j in ti.ndrange(self.nx,self.ny):
             self.Boundary_condition_flow_NEE_4(i,j,0)
             if ti.static(self.CHEMISTRY):
                for specie in ti.static(list(self.species)):

@@ -26,9 +26,9 @@ class Specie(ScalarField): # 物种质量分数场
     @ti.func
     def geq7(self,k,S,x,y,z):
         u = self.LBM.v[x,y,z]
-        eu = self.LBM.e5[k].dot(u)
+        eu = self.LBM.e7[k].dot(u)
         geqout = 0.0
-        geqout += self.LBM.w5[k]*S*(1+3*eu)
+        geqout += self.LBM.w7[k]*S*(1+3*eu)
         return geqout
 
 @ti.data_oriented

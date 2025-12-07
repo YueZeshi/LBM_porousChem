@@ -1,8 +1,9 @@
+from ._core import LBM3D_BASE
 from ..util.flag import *
 import taichi as ti
 
 @ti.data_oriented
-class LBM3D_INITIALIZATION:
+class LBM3D_INITIALIZATION(LBM3D_BASE):
     # 初始化
     @ti.kernel
     def default_init(self): # 创建时初始化
@@ -85,7 +86,7 @@ class LBM3D_INITIALIZATION:
                     if self.rho1[i]==0:
                         self.rho1[i]=1.0
             for s in ti.static(range(19)):
-                self.f[i][s] = self.feq19(s,self.rho[i],self.v[i],eps)
+                self.f[i][s] = self.feq19(s,i[0],i[1],i[2])
                 self.F[i][s] = self.f[i][s]
             # if ti.static(self.TEMPERATURE):
             #     self.IE.uS[i] = self.IE.S[i]*self.v[i]

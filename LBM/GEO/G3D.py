@@ -36,10 +36,10 @@ class Mesh3D:
             else:
                 raise ValueError
     @ti.kernel
-    def CreateMesh3D_Sphere_Decimal(self, center:TYPE_V3, radius:float): # type: ignore
+    def CreateMesh3D_Sphere_Decimal(self, center_x:float,center_y:float,center_z:float, radius:float): # type: ignore
         for i in ti.grouped(self.d): # 计算并存储各个格子顶点的距离值
-            point = i-ti.Vector([0.5,0.5,0.5])
-            self.d[i] = self.sphere(point,center,radius)
+            point = i
+            self.d[i] = self.sphere(point,ti.Vector([center_x,center_y,center_z]),radius)
         for i in ti.grouped(self.S):
             v,s = self.calculate_v_s(\
                 self.d[i],self.d[i+ti.Vector([1,0,0])],self.d[i+ti.Vector([0,1,0])],self.d[i+ti.Vector([0,0,1])],\
@@ -49,7 +49,7 @@ class Mesh3D:
     @ti.kernel
     def CreateMesh3D_Sphere_Integer(self, center:TYPE_V3, radius:float): # type: ignore
         for i in ti.grouped(self.d): # 计算并存储各个格子顶点的距离值
-            point = i-ti.Vector([0.5,0.5,0.5])
+            point = i
             self.d[i] = self.sphere(point,center,radius)
         for i in ti.grouped(self.S):
             v,s = self.calculate_v_s(\
@@ -61,7 +61,7 @@ class Mesh3D:
     @ti.kernel
     def CreateMesh3D_Cylinder_Decimal(self, center:TYPE_V3, up:TYPE_V3,radius:float,height:float): # type: ignore
         for i in ti.grouped(self.d): # 计算并存储各个格子顶点的距离值
-            point = i-ti.Vector([0.5,0.5,0.5])
+            point = i
             self.d[i] = self.cylinder(point,center,up,radius,height)
         for i in ti.grouped(self.S):
             v,s = self.calculate_v_s(\
@@ -72,7 +72,7 @@ class Mesh3D:
     @ti.kernel
     def CreateMesh3D_Cylinder_Integer(self, center:TYPE_V3, up:TYPE_V3,radius:float,height:float): # type: ignore
         for i in ti.grouped(self.d): # 计算并存储各个格子顶点的距离值
-            point = i-ti.Vector([0.5,0.5,0.5])
+            point = i
             self.d[i] = self.cylinder(point,center,up,radius,height)
         for i in ti.grouped(self.S):
             v,s = self.calculate_v_s(\
