@@ -42,7 +42,7 @@ class TemperatureFluid(ScalarField):
         eu = self.LBM.e7[k].dot(u)
         uv = u.dot(u)
         geqout=0.0
-        geqout += self.LBM.w7[k]*T*(1.0 + (3.0*eu+4.5*eu**2-1.5*uv))
+        geqout += self.LBM.w7[k]*T*(1.0 + 4.0*eu+8.0*eu*eu-2.0*uv)
         return geqout
 
 

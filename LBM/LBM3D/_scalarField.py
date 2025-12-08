@@ -36,7 +36,7 @@ class ScalarField:
                     self.G[i][k]=0.0
     @ti.func
     def tau(self,i):
-        return 3*self.coefDiff(i)+0.5
+        return 4*self.coefDiff(i)+0.5
     @ti.func
     def coefDiff(self,i):
         return 0.1

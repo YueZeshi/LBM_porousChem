@@ -147,7 +147,7 @@ def main(DX,DT,T_exp,variant="default"):
     m2d  = Mesh2D(lb2d.nx,lb2d.ny)
     m2d.CreateMesh2DCircle(float(lb2d.nx)/2,float(lb2d.ny)/2,R/DX)
     s,l = m2d.export_numpy()
-    lb2d.init_field(lb2d.solid,s*0.4)
+    lb2d.init_field(lb2d.solid,s*1000)
     lb2d.init_field(lb2d.TF.S,T_init)
     lb2d.init_field(lb2d.TS.S,T_init)
     lb2d.init_field(lb2d.TS.exchangeSurface,100)

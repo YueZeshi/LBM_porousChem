@@ -32,7 +32,10 @@ class ScalarField:
             if not self.FIX:
                 for k in ti.static(range(5)):
                     self.g[i][k]=0.0
-                    self.G[i][k]=0.0        
+                    self.G[i][k]=0.0 
+    @ti.func
+    def tau(self,i):
+        return 3*self.coefDiff(i)+.5      
     @ti.func
     def coefDiff(self,i):
         return 0.1

@@ -36,15 +36,15 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                     if ti.static(k<5):
                         if ti.static(self.TEMPERATURE): # 流体温度更新 有固体更新固体温度
                             # 有气体
-                            g = self.TF.g[i][k]-1/(3*self.TF.coefDiff(i)+0.5)*(self.TF.g[i][k]-self.TF.geq5(k,self.TF.S[i],i[0],i[1],i[2]))
+                            g = self.TF.g[i][k]-1/self.TF.tau(i)*(self.TF.g[i][k]-self.TF.geq5(k,self.TF.S[i],i[0],i[1],i[2]))
                             self.TF.g[i][k] = g
                             if self.solid[i] > 0.0: # 有固体
-                                g = self.TS.g[i][k]-1/(3*self.TS.coefDiff(i)+0.5)*(self.TS.g[i][k]-self.TS.geq5(k,self.TS.S[i],i[0],i[1],i[2]))
+                                g = self.TS.g[i][k]-1/self.TS.tau(i)*(self.TS.g[i][k]-self.TS.geq5(k,self.TS.S[i],i[0],i[1],i[2]))
                                 self.TS.g[i][k] = g
                         if ti.static(self.CHEMISTRY):      
                             for specie in ti.static(list(self.species)):
                                 if ti.static(not specie.FIX): # 气体物质更新
-                                    g = specie.g[i][k]-1/(3*specie.coefDiff(i)+0.5)*(specie.g[i][k]-specie.geq5(k,specie.S[i],i[0],i[1],i[2]))
+                                    g = specie.g[i][k]-1/specie.tau(i)*(specie.g[i][k]-specie.geq5(k,specie.S[i],i[0],i[1],i[2]))
                                     specie.g[i][k] = g 
 
                     # source term f # 将预先计算好的源项施加到各个分布函数分量当中 (化学反应 体积热源（辐射）)
@@ -101,7 +101,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                     # collision
                     if ti.static(k<5):
                         if ti.static(self.TEMPERATURE):
-                            g = self.TS.g[i][k]-1/(3*self.TS.coefDiff(i)+0.5)*(self.TS.g[i][k]-self.TS.geq5(k,self.TS.S[i],i[0],i[1],i[2]))
+                            g = self.TS.g[i][k]-1/self.TS.tau(i)*(self.TS.g[i][k]-self.TS.geq5(k,self.TS.S[i],i[0],i[1],i[2]))
                             self.TS.g[i][k] =g
                     # source term
                     # streaming

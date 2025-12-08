@@ -27,10 +27,10 @@ class LBM3D_BASE:
         self.boundary_condition_model = BC_MODEL.NEE
         self.EOS = FLUID_STATE_EQUATION.IDEAL_GAS
         # LBM使用常量
-        self.e19 = ti.Vector.field(3,ti.i32, shape=(19)) # e 方向向量
+        self.e19 = ti.Vector.field(3,int, shape=(19)) # e 方向向量
         self.w19 = ti.field(float, shape=(19)) # 权重
         self.LR = [0,2,1,4,3,6,5,10,9,8,7,14,13,12,11,18,17,16,15] #对称索引
-        self.e7 = ti.Vector.field(3,ti.i32, shape=(7)) # e 方向向量
+        self.e7 = ti.Vector.field(3,int, shape=(7)) # e 方向向量
         self.w7 = ti.field(float, shape=(7)) # 权重
         # self.LR5 = [0,3,4,1,2] #对称索引
         self.x = np.linspace(0, self.X, self.nx)

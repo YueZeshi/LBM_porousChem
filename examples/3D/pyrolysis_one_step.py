@@ -160,10 +160,10 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.init_simulation()
     lb2d.check_python()
     # cal_allWood() # 计算总木材质量
-    total_iteration =   50
-    export_interval = 0.1
-    measure_interval= 10
-    print_interval = 1
+    total_iteration =   10000
+    export_interval = 100
+    measure_interval= 1
+    print_interval = 10
     if DEBUG:
         total_iteration = 0.01
         export_interval = 0.01
@@ -196,8 +196,8 @@ def main(DX,DT,T_exp,variant="default"):
                 lb2d.export_VTK(f"simulation_{name}_{variant}_{DX}",iter)
         if (iter%int(measure_interval/DT)==0):
                 lb2d.export_variable(f"simulation_{name}_{variant}_{DX}",iter)
+                lb2d.check_python()
         lb2d.step()
-        lb2d.check_python()
 
 
     profiler.print_kernel_profiler_info()
