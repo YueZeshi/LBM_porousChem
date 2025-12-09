@@ -161,8 +161,8 @@ def main(DX,DT,T_exp,variant="default"):
     # cal_allWood() # 计算总木材质量
     total_iteration =   1000
     export_interval = 10
-    measure_interval= 10
-    print_interval = 10
+    measure_interval= 1
+    print_interval = 1
     if DEBUG:
         total_iteration = 0.01
         export_interval = 0.01

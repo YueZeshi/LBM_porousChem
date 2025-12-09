@@ -46,7 +46,7 @@ def main(DX,DT,T_exp,variant="default"):
     lb3D.source_term_model = SOURCE_TERM.MICRO
     lb3D.force_term_model = FORCE_TERM.GUO
     lb3D.set_viscosity(0.1)
-    lb3D.set_poro_Darcy(2.5e7,unit="SI")
+    lb3D.set_poro_Darcy(2.5e11,unit="SI")
     lb3D.set_radiation(RADIATION_MODEL.SURFACE_UNIFORM,T_exp)
 
     # # 设置物质
@@ -63,6 +63,7 @@ def main(DX,DT,T_exp,variant="default"):
     lb3D.set_TF_BCs_value([T_exp]*6)
     lb3D.set_TS_BCs([BC.fixedValue,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient])
     lb3D.set_TS_BCs_value([T_init]*6)
+    lb3D.TF.default_coefDiff = 0.002
     # lb3D.set_species_BCs([BC_S.FIXVALUE,BC_S.OPEN,BC_S.WALL,BC_S.WALL])
     # lb3D.set_specie_BCs_value("N2",[1]*6)
 
@@ -161,10 +162,10 @@ def main(DX,DT,T_exp,variant="default"):
     lb3D.print_information()
     lb3D.check_python()
     # cal_allWood() # 计算总木材质量
-    total_iteration =   10
-    export_interval = 0.1
+    total_iteration =   10000
+    export_interval = 100
     measure_interval= 10
-    print_interval = 1
+    print_interval = 10
     if DEBUG:
         total_iteration = 2
         export_interval = 1
