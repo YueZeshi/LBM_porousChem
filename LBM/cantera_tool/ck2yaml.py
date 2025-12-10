@@ -2046,9 +2046,9 @@ class Parser:
                 for n in self.species_dict[speciesName].composition.values():
                     n_atom+=n
                 if n_atom > 1:
-                    self.species_dict[speciesName].transport = TransportData(self,"1",1,100000,1,0,0,0)
+                    self.species_dict[speciesName].transport = TransportData(self,"1",1,1e10,1,0,0,0)
                 else:
-                    self.species_dict[speciesName].transport = TransportData(self,"1",0,100000,1,0,0,0)
+                    self.species_dict[speciesName].transport = TransportData(self,"1",0,1e10,1,0,0,0)
                 
         if redundant_count > 5 and not self.verbose:
             kind = "warnings" if self.permissive else "errors"

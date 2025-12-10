@@ -25,10 +25,6 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
             print(" -radiation")
         if ti.static(self.CHEMISTRY):
             print(" -chemical reaction")
-            print("The species concerned: ",end="")
-            for specie in ti.static(list(self.specieName)):
-                print(specie,end=" ")
-            print("")
         print("Boundary condition model:",end=" ")
         print(BC_MODEL(self.boundary_condition_model).name)
         print("The boundary conditions of the flow field are set to :")
@@ -45,6 +41,11 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
                 print(sideName[i]+": OUTLET")
             if ti.static(self.bc[i]==BC_FLOW.symmetric):
                 print(sideName[i]+": SYMMETRIC")
+        if ti.static(self.CHEMISTRY):
+            print("The species involved are:")
+            for specie in self.species:
+                print(specie)
+            print(self.reactions)
     def init_simulation(self):
         self.init_python()
         self.print_information()

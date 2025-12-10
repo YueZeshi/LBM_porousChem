@@ -58,12 +58,12 @@ class LBM2D_BASE:
         self.PORO = isPoro
         self.RADIATION = isRadiation and isThermal
         if self.TEMPERATURE:
-            self.TF = TemperatureFluid("Temperature of Fluid",self.nx,self.ny,self.nz,self)
-            self.TS = TemperatureSolid("Temperature of Solid",self.nx,self.ny,self.nz,self,isRadiation = self.RADIATION)
+            self.TF = TemperatureFluid("Temperature of Fluid",self)
+            self.TS = TemperatureSolid("Temperature of Solid",self,isRadiation = self.RADIATION)
             self.min_T = ti.field(float,shape=())
         if self.CHEMISTRY:
             self.specieName = []
-            self.species:list[str,Specie] = []
+            self.species:list[Specie] = []
             self.reactions = Reactions(self) 
         if self.PORO:        
             self.poro_model = PORO_MODEL.SPHERICAL # 使用的多孔介质模型 如球孔介质模型 Darcy Darcy-Forhheimer

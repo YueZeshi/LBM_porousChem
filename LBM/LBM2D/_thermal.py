@@ -5,8 +5,8 @@ from ._scalarField import ScalarField
 
 @ti.data_oriented
 class TemperatureFluid(ScalarField):
-    def __init__(self,name,nx,ny,nz,lb2d,FIX = False):
-        super().__init__(name,nx,ny,nz,lb2d,FIX)
+    def __init__(self,name,lb2d,FIX = False):
+        super().__init__(name,lb2d,FIX)
         self.default_cv = 1000
         self.default_coefDiff = 0.1
     @ti.func
@@ -15,7 +15,7 @@ class TemperatureFluid(ScalarField):
         if ti.static(self.LBM.CHEMISTRY):
             for specie in ti.static(list(self.LBM.species)):
                 if ti.static(not specie.FIX):
-                    cv += specie.capacity_m(i)*specie.S[i]*self.LBM.rho[i]
+                    cv += specie.capacity_m(self.S[i])*specie.S[i]*self.LBM.rho[i]
         else:
             cv += self.default_cv
         if cv == 0.0:
@@ -30,7 +30,7 @@ class TemperatureFluid(ScalarField):
             for specie in ti.static(list(self.LBM.species)):
                 if ti.static(not specie.FIX):
                     k+=specie.S[i]*specie.conductivity(i)
-                    rhoc += specie.S[i]*self.LBM.rho[i]*specie.capacity_m(i)
+                    rhoc += specie.S[i]*self.LBM.rho[i]*specie.capacity_m(self.S[i])
             D += k*self.LBM.dt/rhoc/self.LBM.dx**2
         else:
             D += self.default_coefDiff
@@ -49,10 +49,10 @@ class TemperatureFluid(ScalarField):
 @ti.data_oriented
 class TemperatureSolid(ScalarField):
     SIGMA = 5.67e-8
-    def __init__(self,name,nx,ny,nz,lb2d,FIX = False,isRadiation = False):
-        super().__init__(name,nx,ny,nz,lb2d,FIX)
-        self.exchangeCoef = ti.field(float,shape=(nx,ny,nz))
-        self.exchangeSurface = ti.field(float,shape=(nx,ny,nz))
+    def __init__(self,name,lb2d,FIX = False,isRadiation = False):
+        super().__init__(name,lb2d,FIX)
+        self.exchangeCoef = ti.field(float,shape=(self.nx,self.ny,self.nz))
+        self.exchangeSurface = ti.field(float,shape=(self.nx,self.ny,self.nz))
         self.default_cv = 100000.0
         self.default_coefDiff = 0.01
         if isRadiation:
@@ -72,7 +72,7 @@ class TemperatureSolid(ScalarField):
                 if ti.static(specie.FIX):
                     k+=specie.S[i]*specie.conductivity(i)
                     rho += specie.S[i]
-                    rhoc += specie.S[i]*specie.capacity_m(i)
+                    rhoc += specie.S[i]*specie.capacity_m(self.S[i])
             if rhoc != 0 and rho!=0:
                 D += k*self.LBM.dt/rhoc/rho/self.LBM.dx**2
             else:
@@ -90,7 +90,7 @@ class TemperatureSolid(ScalarField):
         if ti.static(self.LBM.CHEMISTRY):
            for specie in ti.static(list(self.LBM.species)):
                 if ti.static(specie.FIX):
-                    c += specie.S[i]*specie.capacity_m(i)
+                    c += specie.S[i]*specie.capacity_m(self.S[i])
         else:
             c += self.default_cv
         if c == 0.0:

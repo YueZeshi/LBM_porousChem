@@ -1,0 +1,17 @@
+ELEMENTS
+C H O N
+END
+
+SPECIES
+CO2
+END
+
+SOLID
+LIGO
+LIGOH 
+END
+
+REACTIONS    
+LIGO=>LIGOH+CO2                                                                                                                                                                          3.300E+08  0.000  25500.0
+
+END

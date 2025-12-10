@@ -49,9 +49,10 @@ def main(DX,DT,T_exp,variant="default"):
 
     # 设置物质
     ## 物种及其状态
+    lb2d.load_yaml("data/biomass_test/LIG_test.yaml")
     lb2d.set_specie("N2",False)
-    lb2d.set_species(["wood(S)","tar" ,"char(S)"],
-                    [True     ,False,True     ])
+    lb2d.set_species(["LIGO(S)"],
+                    [True     ])
     
     # 设置边界条件
     lb2d.set_BCs([BC_FLOW.inlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall])
@@ -70,17 +71,10 @@ def main(DX,DT,T_exp,variant="default"):
 
     # # 设置物种物性
     # ## 扩散
-    lb2d.set_specie_diff("tar",0.1)
     lb2d.set_specie_diff("N2",0.1)
     # ## 热容
-    lb2d.set_specie_capacity("wood(S)",1670)
-    lb2d.set_specie_capacity("char(S)",1000)
-    lb2d.set_specie_capacity("tar",1000)
     lb2d.set_specie_capacity("N2",1000)
     # ## 热导
-    lb2d.set_specie_conductivity("wood(S)", 0.1256)
-    lb2d.set_specie_conductivity("char(S)", 0.0837)
-    lb2d.set_specie_conductivity("tar", 0.0258)
     lb2d.set_specie_conductivity("N2",0.0258)
     # lb2d.set_specie_conductivity("N2",0.1)
 
@@ -154,7 +148,7 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.init_field(lb2d.TS.exchangeCoef,1000)
     lb2d.init_field(lb2d.TS.emissivity,0.7)
     lb2d.init_specie("N2",1)
-    lb2d.init_specie("wood(S)",s*400)
+    lb2d.init_specie("LIGO(S)",s*400)
     lb2d.init_field(lb2d.TS.radiation_surface, l*0.6)# vague
     # 初始化lbm
     lb2d.init_simulation()
@@ -164,39 +158,39 @@ def main(DX,DT,T_exp,variant="default"):
     export_interval = 10
     measure_interval= 1
     print_interval = 1
-    # if DEBUG:
-    #     total_iteration = 0.01
-    #     export_interval = 0.01
-    #     print_interval = 0.01
-    #     print("debug")
+    if DEBUG:
+        total_iteration = 0.01
+        export_interval = 0.01
+        print_interval = 0.01
+        print("debug")
 
-    # for iter in range(int(total_iteration/DT)+1):
-    #     if iter==1:
-    #         print("init, complie and execute once time:",time.time()-time_init)
-    #     if (iter%int(print_interval/DT)==0):
-    #         time_pre = time_now
-    #         time_now = time.time()
-    #         diff_time = int(time_now-time_pre)
-    #         elap_time = int(time_now-time_init)
-    #         m_diff, s_diff = divmod(diff_time, 60)
-    #         h_diff, m_diff = divmod(m_diff, 60)
-    #         m_elap, s_elap = divmod(elap_time, 60)
-    #         h_elap, m_elap = divmod(m_elap, 60)
-    #         max_v = lb2d.get_max_v()
-    #         min_T = lb2d.get_min_T()
-    #         print(name,flush=True)
-    #         print('----------Time between two outputs is %dh %dm %ds; elapsed time is %dh %dm %ds----------------------' %(h_diff, m_diff, s_diff,h_elap,m_elap,s_elap))
-    #         print('The %dth iteration, Max Force = %f,  Min Temperature = %f\n\n ' %(iter, max_v,  min_T))            
-    #     if (iter%int(export_interval/DT)==0):
+    for iter in range(int(total_iteration/DT)+1):
+        if iter==1:
+            print("init, complie and execute once time:",time.time()-time_init)
+        if (iter%int(print_interval/DT)==0):
+            time_pre = time_now
+            time_now = time.time()
+            diff_time = int(time_now-time_pre)
+            elap_time = int(time_now-time_init)
+            m_diff, s_diff = divmod(diff_time, 60)
+            h_diff, m_diff = divmod(m_diff, 60)
+            m_elap, s_elap = divmod(elap_time, 60)
+            h_elap, m_elap = divmod(m_elap, 60)
+            max_v = lb2d.get_max_v()
+            min_T = lb2d.get_min_T()
+            print(name,flush=True)
+            print('----------Time between two outputs is %dh %dm %ds; elapsed time is %dh %dm %ds----------------------' %(h_diff, m_diff, s_diff,h_elap,m_elap,s_elap))
+            print('The %dth iteration, Max Force = %f,  Min Temperature = %f\n\n ' %(iter, max_v,  min_T))            
+        if (iter%int(export_interval/DT)==0):
         
-    #         if DEBUG:
-    #             lb2d.export_VTK(f"debug_{name}_{variant}_{DX}",iter)
-    #             # lb2d.export_variable(f"simulation_{name}_{int(variant)}_{nx}_{int(T_exp)}",iter)
-    #         else:
-    #             lb2d.export_VTK(f"simulation_{name}_{variant}_{DX}",iter)
-    #     if (iter%int(measure_interval/DT)==0):
-    #             lb2d.export_variable(f"simulation_{name}_{variant}_{DX}",iter)
-    #     lb2d.step()
+            if DEBUG:
+                lb2d.export_VTK(f"debug_{name}_{variant}_{DX}",iter)
+                # lb2d.export_variable(f"simulation_{name}_{int(variant)}_{nx}_{int(T_exp)}",iter)
+            else:
+                lb2d.export_VTK(f"simulation_{name}_{variant}_{DX}",iter)
+        if (iter%int(measure_interval/DT)==0):
+                lb2d.export_variable(f"simulation_{name}_{variant}_{DX}",iter)
+        lb2d.step()
 
 
     profiler.print_kernel_profiler_info()

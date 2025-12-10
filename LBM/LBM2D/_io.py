@@ -4,9 +4,12 @@ import os
 from pyevtk.hl import gridToVTK
 import pickle
 import json
+
+from ruamel.yaml import YAML
 from ._core import LBM2D_BASE
 from LBM.GEO.G2D import Mesh2D
 from ..util.flag import *
+from ..util import constant
 from ._scalarField import ScalarField
 from ._chemical import Specie,Reaction
 from ._thermal import TemperatureFluid,TemperatureSolid
@@ -121,13 +124,24 @@ class LBM2D_INPUT(LBM2D_BASE):
             self.init_field(self.TS.real_radiation,param)
     ## 浓度场 (物种密度)
     def set_specie(self,specie,FIX = False):
-        self.species.append(Specie(specie,self.nx,self.ny,self.nz,self,FIX))
+        self.species.append(Specie(specie,self,FIX))
         self.specieName.append(specie)
 
     def set_specie_mole(self,specie,Fix = False,molemass = 1.0):
-        self.species.append(Specie(specie,self.nx,self.ny,self.nz,self,Mmass = molemass,FIX=Fix))
+        self.species.append(Specie(specie,self,Mmass = molemass,FIX=Fix))
         self.specieName.append(specie)
-        
+    def set_specie_NASA7(self,specieName:str,TRange:list[float],coef:list):
+        specie = self.species[self.specieName.index(specieName)]
+        for i in range(len(TRange)):
+            specie.Trange[i] = TRange[i]
+        if len(coef)==1:
+            for i in range(7):
+                specie.NASAcoef1[i] = coef[0][i]
+                specie.NASAcoef2[i] = coef[0][i]
+        else:
+            for i in range(7):
+                specie.NASAcoef1[i] = coef[0][i]
+                specie.NASAcoef2[i] = coef[1][i]
     def set_species(self,species,FIX=None):# 登记所有物质
         if FIX == None:
             FIX = [False]*len(species)
@@ -156,27 +170,13 @@ class LBM2D_INPUT(LBM2D_BASE):
     def set_specie_diff_func(self,name,func):
         self.species[self.specieName.index(name)].coefDiff = func.__get__(self.species[self.specieName.index(name)],ScalarField)
     def set_specie_capacity(self,name:str,cm:float): # 质量热容
-        @ti.func
-        def new_cm(self,i):
-            return cm
-        self.set_specie_capacity_func(name,new_cm)
-    def set_specie_capacity_func(self,name,func):
-        '''
-        定义质量热容
-        '''
-        self.species[self.specieName.index(name)].capacity_m = func.__get__(self.species[self.specieName.index(name)],ScalarField)
+        self.set_specie_NASA7(name,[0,0,0],[[0,cm,0,0,0,0,0]]) # Jkg-1K-1 to kJkg-1K-1
 
     def set_specie_conductivity(self,name,lamb): # 传热系数
-        @ti.func
-        def new_lamb(self,i):
-            return lamb
-        self.set_specie_conductivity_func(name,new_lamb)
-    def set_specie_conductivity_func(self,name,func):
-        self.species[self.specieName.index(name)].conductivity = func.__get__(self.species[self.specieName.index(name)],ScalarField)
-    
+        self.species[self.specieName.index(name)].default_conductivity = lamb
     # 定义化学反应
-    def add_reaction(self,name,reactant,product, param,unit=SPECIE_UNIT.MASS):
-        self.reactions.add_reaction(Reaction(name,reactant,product,param,self,unit=unit))
+    def add_reaction(self,formula,A,Ea,b = 0,Tmin = 0,deltaH = 0,name="unnamed",unit=SPECIE_UNIT.MASS,fixDH = True):
+        self.reactions.add_reaction(Reaction(formula,A,Ea,b,Tmin,deltaH,self,name,unit,fixDH))
     
     # 设置边界条件
     def set_BC(self,i,bc):
@@ -247,6 +247,31 @@ class LBM2D_INPUT(LBM2D_BASE):
         self.species[self.specieName.index(name)].set_s_BC_flux(i,f)
     def set_specie_BCs_flux(self,name, fs):
         self.species[self.specieName.index(name)].set_s_BCs_flux(fs)
+    def load_yaml(self,file):
+        """
+        load_yaml 读取yaml机理文件 cantera格式
+        
+        :param file: file path
+        """
+        yaml = YAML()
+        with open(file,"r") as f:
+            data = yaml.load(f)
+            for specie_info in data["species"]:
+                name = specie_info["name"]
+                mmass = 0.0
+                for elem,number in specie_info["composition"].items():
+                    mmass+=number*constant.MOLEMASS[elem]
+                if name.endswith("(S)"):
+                    self.set_specie_mole(name,Fix = True,molemass=mmass)
+                else:
+                    self.set_specie_mole(name,Fix = False,molemass=mmass)
+                self.set_specie_NASA7(name,specie_info["thermo"]["temperature-ranges"],specie_info["thermo"]["data"])
+                
+            for reaction_info in data["reactions"]:
+                A = reaction_info["rate-constant"]["A"]
+                Ea = reaction_info["rate-constant"]["Ea"]
+                b = reaction_info["rate-constant"]["b"]
+                self.add_reaction(reaction_info["equation"],A,Ea,b,unit = SPECIE_UNIT.MOLE,fixDH = False)
     @classmethod
     def CreateLBM3D(cls,case_file):
         with open(case_file,"r") as f:

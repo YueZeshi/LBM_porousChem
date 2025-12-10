@@ -6,16 +6,16 @@ class ScalarField:
     '''
     标量场 D2Q5
     '''
-    def __init__(self,name,nx,ny,nz,lb2d,FIX = False):
+    def __init__(self,name,lb2d,FIX = False):
         self.name = name
-        self.nx,self.ny,self.nz = nx,ny,nz
+        self.nx,self.ny,self.nz = lb2d.nx,lb2d.ny,lb2d.nz
         self.LBM = lb2d
         self.FIX = FIX
-        self.S = ti.field(float,shape = (nx,ny,nz))
-        self.dS = ti.field(float,shape = (nx,ny,nz))
-        if not self.FIX:
-            self.g = ti.Vector.field(5,float,shape=(nx,ny,nz))
-            self.G = ti.Vector.field(5,float,shape=(nx,ny,nz))
+        self.S = ti.field(float,shape = (self.nx,self.ny,self.nz))
+        self.dS = ti.field(float,shape = (self.nx,self.ny,self.nz))
+        if ti.static(not self.FIX):
+            self.g = ti.Vector.field(5,float,shape=(self.nx,self.ny,self.nz))
+            self.G = ti.Vector.field(5,float,shape=(self.nx,self.ny,self.nz))
             self.BC = [BC.periodic]*4
             self.flux_BC =ti.field(float,shape = (4))
             self.s_BC = ti.field(float,shape = (4))
@@ -25,11 +25,12 @@ class ScalarField:
     @ti.kernel
     def default_init(self):
         for i in range(4):
-            self.flux_BC[i]=0.0
-            self.s_BC[i]=0.0
+            if ti.static(not self.FIX):
+                self.flux_BC[i]=0.0
+                self.s_BC[i]=0.0
         for i in ti.grouped(self.S):
             self.S[i]=0.0
-            if not self.FIX:
+            if ti.static(not self.FIX):
                 for k in ti.static(range(5)):
                     self.g[i][k]=0.0
                     self.G[i][k]=0.0 

@@ -1,0 +1,54 @@
+description: |-
+  This thermodynamic database was obtained by fitting the thermodynamic properties
+  extracted from the following file: thermo.CHEMKIN.CKT
+  The thermodynamic properties are fitted in order to preserve not only the 
+  continuity of each function at the intermediate temperature, but also the  continuity
+  of the derivatives, from the 1st to the 3rd order
+  The intermediate temperatures are chosen in order to minimize the fitting error.
+  Last update: 11/20/2019
+  Correction non-validated : ASH 0K->0O;change of LVG NASA7 coef - high temperature a1 a6 a7 
+
+generator: ck2yaml
+input-files: [LIG_test.inp, BIO.CKT]
+cantera-version: 3.3.0a1
+date: Wed, 10 Dec 2025 16:59:11 +0800
+
+units: {length: cm, time: s, quantity: mol, activation-energy: cal/mol}
+
+phases:
+- name: gas
+  thermo: ideal-gas
+  elements: [C, H, O, N]
+  species: [CO2, LIGO(S), LIGOH(S)]
+  kinetics: gas
+  state: {T: 300.0, P: 1 atm}
+
+species:
+- name: CO2
+  composition: {C: 1, O: 2}
+  thermo:
+    model: NASA7
+    temperature-ranges: [200.0, 1450.0, 3500.0]
+    data:
+    - [2.31684348, 9.22755029e-03, -7.7565408e-06, 3.28225351e-09, 
+        -5.48722465e-13, -4.83626067e+04, 10.0786234]
+    - [4.70876459, 2.62914723e-03, -9.30606601e-07, 1.43892961e-10, 
+        -7.62581847e-15, -4.90562638e+04, -2.34976404]
+- name: LIGO(S)
+  composition: {C: 20, H: 22, O: 10}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 4000.0]
+    data:
+    - [76.2062786, 0.0508041857, 0.0, 0.0, 0.0, -2.51431603e+05, 0.0]
+- name: LIGOH(S)
+  composition: {C: 19, H: 22, O: 8}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 4000.0]
+    data:
+    - [68.2662377, 0.0455108251, 0.0, 0.0, 0.0, -1.8615594e+05, 0.0]
+
+reactions:
+- equation: LIGO(S) => LIGOH(S) + CO2  # Reaction 1
+  rate-constant: {A: 3.3e+08, b: 0.0, Ea: 2.55e+04}
