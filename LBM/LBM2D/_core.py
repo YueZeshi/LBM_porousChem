@@ -48,6 +48,15 @@ class LBM2D_BASE:
         self.bc_rho = [BC.periodic]*4
         self.v_BC = ti.Vector.field(3,float,shape = (4))
         self.rho_BC = ti.field(float,shape = (4))
+        self.flow_BC = ti.field(float,shape = (4))
+        self.v_bc_profile = [ti.Vector.field(3,float,shape = (1,self.ny,self.nz)),
+                             ti.Vector.field(3,float,shape = (1,self.ny,self.nz)),
+                             ti.Vector.field(3,float,shape = (self.nx,1,self.nz)),
+                             ti.Vector.field(3,float,shape = (self.nx,1,self.nz)),]
+        self.rho_bc_profile = [ti.field(float,shape = (1,self.ny,self.nz)),
+                               ti.field(float,shape = (1,self.ny,self.nz)),
+                               ti.field(float,shape = (self.nx,1,self.nz)),
+                               ti.field(float,shape = (self.nx,1,self.nz)),] 
         self.sideName = ["left","right","bottom","top"]
         self.UpdateBCfunc = [] # 可变边界条件
         self.GetVariableFunc = [] # 获取观测量的函数
@@ -98,4 +107,6 @@ class LBM2D_BASE:
         pass
     @ti.func 
     def Boundary_condition_ES(self):
+        pass
+    def updateBC(self):
         pass

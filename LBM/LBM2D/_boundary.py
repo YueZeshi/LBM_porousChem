@@ -53,26 +53,17 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
     @ti.func
     def Boundary_condition_flow_NEE_0(self,x,y,z):
         if ti.static(self.bc_v[0]==BC.fixedValue):
-            if ti.static(self.PORO):    
-                if self.solid[0,y,z]>0:
-                    self.v[0,y,z] = self.v_BC[0]#*(1-self.kinetic_viscosity(ti.Vector([0,y,z]))*self.coefDarcy[ti.Vector([0,y,z])]*self.dt/2.0)
-                else:
-                    self.v[0,y,z] = self.v_BC[0]
-            else:
-                self.v[0,y,z] = self.v_BC[0]    
+            self.v[0,y,z] = self.v_bc_profile[0][0,y,z]
         elif ti.static(self.bc_v[0]==BC.zeroGradient):
             self.v[0,y,z] = self.v[1,y,z]
         if ti.static(self.bc_rho[0]==BC.fixedValue):
-            self.rho[0,y,z] = self.rho_BC[0]
+            self.rho[0,y,z] = self.rho_bc_profile[0][0,y,z]
         elif ti.static(self.bc_rho[0]==BC.zeroGradient):
             self.rho[0,y,z] = 2*self.rho[1,y,z]-self.rho[2,y,z]
         for s in ti.static(range(9)):
             self.f[0,y,z][s] = self.feq9(s,0,y,z)+(self.f[1,y,z][s]-self.feq9(s,1,y,z))
-        if ti.static(self.bc_v[0]==BC.fixedValue):
-            self.v[0,y,z] = self.v_BC[0]
     @ti.func
     def Boundary_condition_flow_NEE_1(self,x,y,z):
-        
         if ti.static(self.bc_v[1]==BC.fixedValue):
             self.v[self.nx-1,y,z] = self.v_BC[1]
         elif ti.static(self.bc_v[1]==BC.zeroGradient):
@@ -322,3 +313,28 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
             self.rho[x,self.ny-1,z] = self.rho[x,self.ny-2,z]
         for s in ti.static(range(9)):
             self.f[x,self.ny-1,z][s] = self.feq9(s,x,self.ny-1,z)
+
+    def updateBC(self,t):
+        # internal update
+        self.updateBC_kernel()
+        # external update
+        for func in self.UpdateBCfunc:
+            func(self,t)
+    @ti.kernel
+    def updateBC_kernel(self):
+        if ti.static(self.bc[0]==BC_FLOW.inlet_flow):
+            flow0 = 0.0
+            for j,k in ti.ndrange(self.ny,self.nz):
+                flow0 += self.rho[0,j,k]*self.v[0,j,k][0]
+            coef = self.flow_BC[0]/flow0
+            a = .1
+            for j,k in ti.ndrange(self.ny,self.nz):
+                self.v_bc_profile[0][0,j,k] = (a*coef+1-a)*self.v[1,j,k]
+                self.rho_bc_profile[0][0,j,k] = self.rho[1,j,k]
+            
+        # if ti.static(self.bc[0]==BC_FLOW.inlet_flow):
+        # for j,k in ti.ndrange(self.ny,self.nz):
+        # if ti.static(self.bc[0]==BC_FLOW.inlet_flow):
+        # for i,k in ti.ndrange(self.nx,self.nz):
+        # if ti.static(self.bc[0]==BC_FLOW.inlet_flow):
+        # for i,k in ti.ndrange(self.nx,self.nz):

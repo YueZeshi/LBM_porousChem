@@ -23,7 +23,7 @@ def main(DX,DT,T_exp,variant="default"):
 
     # GLOBAL VARIABLE
     # 定义计算域 SI
-    X = 0.6
+    X = 0.5
     Y = 0.2
     R = 0.02
 
@@ -41,13 +41,21 @@ def main(DX,DT,T_exp,variant="default"):
     else:
         ti.init(arch=ti.cpu, kernel_profiler=True, print_ir=False)
     # 初始化lbm模型
-    lb2d = LBM2DSolver(X,Y,dx=DX,dt=DT,isPoro=True,isChemical=False,isThermal=False,isRadiation=False)
+    lb2d = LBM2DSolver(X,Y,dx=DX,dt=DT,isPoro=True,isChemical=False,isThermal=True,isRadiation=True)
     # 基础设置
     lb2d.source_term_model = SOURCE_TERM.MICRO
     lb2d.force_term_model = FORCE_TERM.GUO
     lb2d.set_viscosity(0.1)
-    # lb2d.set_poro_Darcy(2.5e11,unit="SI")
-    # lb2d.set_radiation(RADIATION_MODEL.SURFACE_UNIFORM,T_exp)
+    lb2d.set_poro_Darcy(2.5e11,unit="SI")
+    # lb2d.EOS = FLUID_STATE_EQUATION.INCOMPRESSIBLE
+    lb2d.set_radiation(RADIATION_MODEL.SURFACE_UNIFORM,T_exp)
+
+
+    # lb2d.TF.default_coefDiff = 0.001
+    # lb2d.TF.v_ref = 500
+    # lb2d.TF.v_scale = 200
+    # lb2d.TS.v_ref = 100
+    # lb2d.TS.v_scale = 100
 
     # # 设置物质
     # ## 物种及其状态
@@ -55,15 +63,16 @@ def main(DX,DT,T_exp,variant="default"):
     # lb2d.set_species(["wood(S)","tar" ,"char(S)"],
     #                 [True     ,False,True     ])
     # 设置边界条件
-    lb2d.set_BCs([BC_FLOW.inlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall])
+    lb2d.set_BCs([BC_FLOW.inlet_flow,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall])
     lb2d.set_v_BCs_value([[0.01,0,0],[0,0,0],[0,0,0],[0,0,0]])
     lb2d.set_rho_BCs_value([1]*4)
-    # lb2d.set_TF_BCs([BC.fixedValue]*4)
-    # lb2d.set_TF_BCs([BC.fixedValue,BC.zeroGradient,BC.fixedValue,BC.fixedValue])
-    # lb2d.set_TF_BCs_value([T_exp]*4)
-    # lb2d.set_TS_BCs([BC.fixedValue,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient])
-    # lb2d.set_TS_BCs_value([T_init]*4)
-    # lb2d.TF.default_coefDiff = 0.002
+    lb2d.set_flow_BC_value(0,5)
+    
+    lb2d.set_TF_BCs([BC.fixedValue]*4)
+    lb2d.set_TF_BCs([BC.fixedValue,BC.zeroGradient,BC.fixedValue,BC.fixedValue])
+    lb2d.set_TF_BCs_value([T_exp]*4)
+    lb2d.set_TS_BCs([BC.fixedValue,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient])
+    lb2d.set_TS_BCs_value([T_init]*4)
     # lb2d.set_species_BCs([BC_S.FIXVALUE,BC_S.OPEN,BC_S.WALL,BC_S.WALL])
     # lb2d.set_specie_BCs_value("N2",[1]*4)
 
@@ -145,14 +154,16 @@ def main(DX,DT,T_exp,variant="default"):
     # setVariables()
     ## 初始化场 
     lb2d.init_field(lb2d.rho,1)
+    # lb2d.init_field3(lb2d.v,0.0,0.0,0.0)
     m2d  = Mesh2D(lb2d.nx,lb2d.ny)
     m2d.CreateMesh2DCircle(float(lb2d.nx)/2,float(lb2d.ny)/2,R/DX)
     s,l = m2d.export_numpy()
-    lb2d.init_field(lb2d.solid,s*400)
-    # lb2d.init_field(lb2d.TF.S,T_init)
-    # lb2d.init_field(lb2d.TS.S,T_init)
-    # lb2d.init_field(lb2d.TS.exchangeSurface,100)
-    # lb2d.init_field(lb2d.TS.exchangeCoef,10)
+    lb2d.init_field(lb2d.solid,s*0.4)
+    # lb2d.init_field3(lb2d.v,0.1*(s==0).astype(float),0,0)
+    lb2d.init_field(lb2d.TF.S,lb2d.TF.get_normalized_value(T_init))
+    lb2d.init_field(lb2d.TS.S,lb2d.TS.get_normalized_value(T_init))
+    lb2d.init_field(lb2d.TS.exchangeSurface,100)
+    lb2d.init_field(lb2d.TS.exchangeCoef,10)
     # lb2d.init_specie("N2",1)
     # lb2d.init_specie("wood(S)",biomass_file)
     # lb2d.init_field(lb2d.TS.radiation_surface, l*0.6)
@@ -160,13 +171,13 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.init_simulation()
     # lb2d.check_python()
     # cal_allWood() # 计算总木材质量
-    total_iteration =   1000
-    export_interval = 100
-    measure_interval= 10
+    total_iteration =   100
+    export_interval = 0.1
+    measure_interval= 100
     print_interval = 10
     if DEBUG:
         total_iteration = 2
-        export_interval = 1
+        export_interval = 0.01
         print_interval = 1
         print("debug")
 
@@ -186,9 +197,9 @@ def main(DX,DT,T_exp,variant="default"):
             min_T = lb2d.get_min_T()
             print(name,flush=True)
             print('----------Time between two outputs is %dh %dm %ds; elapsed time is %dh %dm %ds----------------------' %(h_diff, m_diff, s_diff,h_elap,m_elap,s_elap))
-            print('The %dth iteration, Max Force = %f,  Min Temperature = %f\n\n ' %(iter, max_v,  min_T))            
+            print('The %dth iteration, Max Force = %f,  Min Temperature = %f\n\n ' %(iter, max_v,  min_T))   
+                     
         if (iter%int(export_interval/DT)==0):
-        
             if DEBUG:
                 lb2d.export_VTK(f"debug_{name}_{variant}_{DX}",iter)
                 # lb2d.export_variable(f"simulation_{name}_{int(variant)}_{nx}_{int(T_exp)}",iter)
@@ -197,12 +208,14 @@ def main(DX,DT,T_exp,variant="default"):
         if (iter%int(measure_interval/DT)==0):
                 lb2d.export_variable(f"simulation_{name}_{variant}_{DX}",iter)
         lb2d.step()
+        # lb2d.check_python()
 
 
     profiler.print_kernel_profiler_info()
     # profiler.print_memory_profiler_info()
 if __name__=="__main__":
     # os.environ["ARCH"]="GPU"
+    # os.environ["DEBUG"]="True"
     DX = float(sys.argv[1])
     DT = float(sys.argv[2])
     T_exp = float(sys.argv[3])

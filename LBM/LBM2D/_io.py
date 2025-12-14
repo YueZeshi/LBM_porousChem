@@ -21,7 +21,6 @@ class LBM2D_INPUT(LBM2D_BASE):
     # 初始化场
     # 设置场初值
     def init_field(self,field,param):
-        
         if(type(param) in [float,int]):
             data = param*np.ones(shape=(self.nx,self.ny,self.nz),dtype=np.float32) 
             field.from_numpy(data)
@@ -39,6 +38,8 @@ class LBM2D_INPUT(LBM2D_BASE):
         if(type(param1) is str):
             dat1 = np.loadtxt(param1)
             dat1 = np.reshape(dat1, (self.nx,self.ny,self.nz),order='F')
+        if(type(param1)==np.ndarray):
+            dat1 = param1
         if(type(param2) in [float,int]):
             dat2 = param2*np.ones(shape=(self.nx,self.ny,self.nz))   
         if(type(param2) is str):
@@ -52,18 +53,22 @@ class LBM2D_INPUT(LBM2D_BASE):
         if(type(param1) is str):
             dat1 = np.loadtxt(param1)
             dat1 = np.reshape(dat1, (self.nx,self.ny,self.nz),order='F')
-
+        if(type(param1)==np.ndarray):
+            dat1 = np.array(param1)
         if(type(param2) in [float,int]):
             dat2 = param2*np.ones(shape=(self.nx,self.ny,self.nz))   
         if(type(param2) is str):
             dat2 = np.loadtxt(param2)
             dat2 = np.reshape(dat2, (self.nx,self.ny,self.nz),order='F')
-
+        if(type(param2)==np.ndarray):
+            dat2 = np.array(param2)
         if(type(param3) in [float,int]):
             dat3 = param3*np.ones(shape=(self.nx,self.ny,self.nz))   
         if(type(param3) is str):
             dat3 = np.loadtxt(param3)
             dat3 = np.reshape(dat3, (self.nx,self.ny,self.nz),order='F')
+        if(type(param3)==np.ndarray):
+            dat3 = np.array(param3)
         dat1 = np.expand_dims(dat1,3)
         dat2 = np.expand_dims(dat2,3)
         dat3 = np.expand_dims(dat3,3)
@@ -193,6 +198,9 @@ class LBM2D_INPUT(LBM2D_BASE):
         if bc==BC_FLOW.wall:
             self.set_v_BC(i,BC.fixedValue)
             self.set_rho_BC(i,BC.zeroGradient)
+        if bc==BC_FLOW.inlet_flow:
+            self.set_v_BC(i,BC.fixedValue)
+            self.set_rho_BC(i,BC.zeroGradient)
     def set_BCs(self,BCs):
         for i in range(4):
             self.set_BC(i,BCs[i])
@@ -211,7 +219,13 @@ class LBM2D_INPUT(LBM2D_BASE):
         self.rho_BC[i]=r
     def set_rho_BCs_value(self,rhos):
         for i in range(4):        
-            self.set_rho_BC_value(i,rhos[i])
+            self.set_rho_BC_value(i,rhos[i])    
+    def set_flow_BC_value(self,i,v):
+        self.flow_BC[i]=v
+    def set_flow_BCs_value(self,vs,unit = "lattice"):
+        for i in range(4):
+            self.set_flow_BC_value(i,vs[i])
+
     def set_TS_BC(self,i,BC):
         self.TS.set_BC(i,BC)
     def set_TS_BCs(self,BCs):
@@ -360,7 +374,7 @@ class LBM2D_OUTPUT(LBM2D_BASE):
         if self.TEMPERATURE:
             self.min_T[None]= 1e10
             self.cal_min_T()
-            return self.min_T[None]
+            return self.TF.get_physical_value(self.min_T[None])
         else:
             return -1
     @ti.kernel
@@ -372,7 +386,6 @@ class LBM2D_OUTPUT(LBM2D_BASE):
         for I in ti.grouped(self.rho):
             ti.atomic_min(self.min_T[None], self.TF.S[I])
     
-
     def export_LBM(self,path):
         lbm_info = {"TYPE":"snapshot"}
         # config
@@ -462,8 +475,8 @@ class LBM2D_OUTPUT(LBM2D_BASE):
             # data["solid"]=self.solid.to_numpy()
             data["solid_init"]=self.rho1.to_numpy()
         if self.TEMPERATURE:
-            data["Tf"]  = self.TF.S.to_numpy()
-            data["Ts"]  = self.TS.S.to_numpy()
+            data["Tf"]  = self.TF.get_physical_value(self.TF.S.to_numpy())
+            data["Ts"]  = self.TS.get_physical_value(self.TS.S.to_numpy())
             if self.RADIATION:
                 data["Radiation_surface"] = self.TS.radiation_surface.to_numpy()
                 if self.TS.radiation_model == RADIATION_MODEL.REAL_RADIATION:
@@ -496,7 +509,7 @@ class LBM2D_OUTPUT(LBM2D_BASE):
     @ti.func
     def check(self):
         s1 = [int(self.nx/2),int(self.ny/2),int(self.nz/2)]
-        # print(self.TS.S[s1],self.species[2].S[s1])
+        print(self.TF.S[s1], self.TF.physical_value(self.TF.S[s1]),self.TF.coefDiff(s1))
         # rad = 0.0
         # rad_surface = 0.0
         # for i in ti.grouped(self.rho):

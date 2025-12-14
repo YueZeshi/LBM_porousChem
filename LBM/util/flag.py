@@ -42,6 +42,7 @@ class BC_FLOW(Enum):
     outlet = 2
     wall = 3
     symmetric = 4
+    inlet_flow = 5
 class BC_MODEL(Enum):
     # the boundary condition schema
     NONE = 0
