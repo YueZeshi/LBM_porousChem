@@ -14,9 +14,11 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
             self.v[i] = ti.Vector([0,0,0])
             self.rho[i] = 1.0
     def print_information(self):
-        print("\n \nBasic information of the LBM simulation:")
+        print("\n------------------------------------------")
+        print("Basic information of the LBM simulation:")
         print(self.name,f": Size: {self.nx} x {self.ny} x {self.nz}, dx: {self.dx}, dt: {self.dt}")
         print("It contains :")
+        print(" -flow field")
         if self.PORO:
             print(" -porous medium")
         if self.TEMPERATURE:
@@ -25,6 +27,7 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
             print(" -radiation")
         if ti.static(self.CHEMISTRY):
             print(" -chemical reaction")
+
         print("Boundary condition model:",end=" ")
         print(BC_MODEL(self.boundary_condition_model).name)
         print("The boundary conditions of the flow field are set to :")
@@ -48,6 +51,7 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
             for specie in self.species:
                 print(specie)
             print(self.reactions)
+        print("------------------------------------------\n")
     def init_simulation(self):
         self.init_python()
         self.print_information()

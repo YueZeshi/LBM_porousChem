@@ -20,6 +20,9 @@ class LBM2D_INPUT(LBM2D_BASE):
     #----------
     # 初始化场
     # 设置场初值
+    def set_vtk_path(self,path):
+        self.path = path
+        self.PVD.path = path
     def init_field(self,field,param):
         if(type(param) in [float,int]):
             data = param*np.ones(shape=(self.nx,self.ny,self.nz),dtype=np.float32) 
@@ -261,7 +264,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         self.species[self.specieName.index(name)].set_s_BC_flux(i,f)
     def set_specie_BCs_flux(self,name, fs):
         self.species[self.specieName.index(name)].set_s_BCs_flux(fs)
-    def load_yaml(self,file):
+    def load_cantera(self,file):
         """
         load_yaml 读取yaml机理文件 cantera格式
         
@@ -287,9 +290,7 @@ class LBM2D_INPUT(LBM2D_BASE):
                 b = reaction_info["rate-constant"]["b"]
                 self.add_reaction(reaction_info["equation"],A,Ea,b,unit = SPECIE_UNIT.MOLE,fixDH = False)
     @classmethod
-    def CreateLBM3D(cls,case_file):
-        with open(case_file,"r") as f:
-            config = json.load(f)
+    def CreateLBM(cls,config):
         if config["BASIC"]["model"]!="2D":
             raise ValueError("Please specify mode type (2D/3D) in json file.")
         x = config["BASIC"]["X"]
@@ -385,7 +386,11 @@ class LBM2D_OUTPUT(LBM2D_BASE):
     def cal_min_T(self):
         for I in ti.grouped(self.rho):
             ti.atomic_min(self.min_T[None], self.TF.S[I])
-    
+    def log_info(self):
+        p = f"    t(LU)={self.tLattice} : Max velocity magnitude (LU) : {self.get_max_v()}, "
+        if self.TEMPERATURE:
+            p +=f"Min temperature: {self.get_min_T()} K"
+        return p
     def export_LBM(self,path):
         lbm_info = {"TYPE":"snapshot"}
         # config
@@ -450,19 +455,19 @@ class LBM2D_OUTPUT(LBM2D_BASE):
         with open(path,"w") as f:
             json.dump(lbm_info,f,indent=4)
    
-    def export_VTK(self, name, n): # 导出为vtk 到指定文件夹中
-        path = os.path.join("result",name)
-        os.makedirs(path,exist_ok=True)
+    def export_VTK(self): # 导出为vtk 到指定文件夹中
+        filename = os.path.join(self.path,self.name+"_"+str(self.tLattice))
         gridToVTK(
-                os.path.join(path,name+"_"+str(n)),
+                filename,
                 self.x,
                 self.y,
                 self.z,
                 # cellData={"pressure": pressure},
                 pointData=self.get_data()
             )
+        self.PVD.addVTK(self.tLattice*self.dt,os.path.basename(filename)+".vtr")
+        self.PVD.writePVD()
     def get_data(self): # 获取所有数据（字典）
-        
         data = {    "solid":self.solid.to_numpy(),
                     "rho": self.rho.to_numpy(),
                     "velocity": (

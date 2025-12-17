@@ -12,8 +12,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
     def step(self):
         self.updateBC(self.t)
         self.step_kernel()
-        self.t+=self.dt
-        
+        self.tLattice += 1
     @ti.kernel
     def step_kernel(self):
         self.collision_source_streaming() # f->F

@@ -5,6 +5,7 @@ from ..util.flag import *
 from ._thermal import TemperatureFluid,TemperatureSolid
 from ._chemical import Specie,Reaction,Reactions
 from ._info import INFO
+from ..vtk_tool.paraview import PVDWriter
 @ti.data_oriented
 class LBM2D_BASE:
     def __init__(self, X, Y ,dx = 0.001,dt = 0.001,name="LBM",isThermal = False,isChemical = False,isPoro = False,isRadiation = False):
@@ -13,7 +14,7 @@ class LBM2D_BASE:
         # 模型参数
         self.X = X
         self.Y = Y
-        self.t = 0
+        self.tLattice : int = 0
         self.dx,self.dt = dx,dt #格子尺度 步进时间
         self.nx=int(self.X/self.dx)
         self.ny=int(self.Y/self.dx)
@@ -88,6 +89,7 @@ class LBM2D_BASE:
         if self.CHEMISTRY:
             for specie in self.species:
                 specie.default_init()
+        self.PVD = PVDWriter(name=self.name)
     # 内置函数
     def __repr__(self):
         return self.__str__()

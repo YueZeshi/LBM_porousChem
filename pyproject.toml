@@ -23,13 +23,17 @@ dependencies = [
     "ruamel-yaml>=0.18.16",
     "typing-extensions>=4.15.0",
     "cantera>=3.2.0",
+    "torchvision>=0.24.1",
+    "torch>=2.9.1",
 ]
 
 [project.scripts]
-lbm = "LBM.cli:main"
+lbm = "LBM.cli:run"
+paraLbm = "LBM.cli:paraview"
 ck2yaml = "LBM.cantera_tool.ck2yaml:main"
 cti2yaml = "LBM.cantera_tool.cti2yaml:main"
 cmtl2yaml = "LBM.cantera_tool.cmtl2yaml:main"
+
 
 # [project.urls]
 # Homepage = "https://github.com/lettucecfd/lettuce"
@@ -37,6 +41,15 @@ cmtl2yaml = "LBM.cantera_tool.cmtl2yaml:main"
 [tool.setuptools.packages.find]
 include = ["LBM*"]
 
+[tool.uv]
+# 使用国内镜像
+index-url = "https://pypi.tuna.tsinghua.edu.cn/simple"
+
+# 对于 PyTorch 使用官方源作为额外源
+extra-index-url = [
+    # "https://download.pytorch.org/whl/cu118",
+    "https://mirrors.aliyun.com/pypi/simple/",  # 阿里云备份
+]
 # [tool.versioneer]
 # VCS = "git"
 # style = "pep440"
