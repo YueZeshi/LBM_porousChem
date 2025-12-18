@@ -187,7 +187,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         self.reactions.add_reaction(Reaction(formula,A,Ea,b,Tmin,deltaH,self,name,unit,fixDH))
     
     # 设置边界条件
-    def set_BC(self,i,bc):
+    def set_BC(self,i,bc): # v and rho can't be fixed together - overconstrain
         self.bc[i]=bc
         if bc==BC_FLOW.inlet:
             self.set_v_BC(i,BC.fixedValue)
@@ -387,74 +387,13 @@ class LBM2D_OUTPUT(LBM2D_BASE):
         for I in ti.grouped(self.rho):
             ti.atomic_min(self.min_T[None], self.TF.S[I])
     def log_info(self):
-        p = f"    t(LU)={self.tLattice} : Max velocity magnitude (LU) : {self.get_max_v()}, "
+        p = f"    t(LU)={self.tLattice} : Max velocity magnitude (LU) : {self.get_max_v():.7f}, "
         if self.TEMPERATURE:
-            p +=f"Min temperature: {self.get_min_T()} K"
+            p +=f"Min temperature: {self.get_min_T():.7f} K"
         return p
-    def export_LBM(self,path):
-        lbm_info = {"TYPE":"snapshot"}
-        # config
-        ## BASIC
-        basic_info = {
-        "model":"2D",
-        "name":self.name,
-        "X":self.X,
-        "Y":self.Y,
-        "Z":self.Z,
-        "DX":self.dx,
-        "DT":self.dt,
-        "PORO":self.PORO,
-        "CHEMICAL":self.CHEMISTRY,
-        "THERMAL":self.TEMPERATURE,
-        "RADIATION":self.RADIATION
-        }
-        lbm_info["BASIC"]=basic_info
-        ## FLOW
-        flow_info = {}
-        flow_info["viscosity"] = {
-            "function":"uniform",
-            "value":1e-5
-            }
-        flow_BC = {}
-        for i in range(4):
-            flow_BC_side = {}
-            if self.bc[i]==BC_FLOW.periodic:
-                flow_BC_side["type"]="periodic"
-            elif self.bc[i]==BC_FLOW.inlet:
-                flow_BC_side["type"]="inlet"
-                flow_BC_side["velocity"] = list(self.v_BC[i])
-            elif self.bc[i]==BC_FLOW.outlet:
-                flow_BC_side["type"]="outlet"
-                flow_BC_side["rho"]= self.rho_BC[i]
-            elif self.bc[i]==BC_FLOW.wall:
-                flow_BC_side["type"]="wall"
-            elif self.bc[i]==BC_FLOW.symmetric:
-                flow_BC_side["type"]="symmetric"
-            flow_BC[self.sideName[i]]=flow_BC_side
-        flow_info["boundaryCondition"]=flow_BC
-        flow_info["f"]=self.f.to_numpy().tolist()
-        flow_info["v"] = self.v.to_numpy().tolist()
-        lbm_info["FLOW"] = flow_info
-        ## SOLID
-        solid = self.solid.to_numpy().tolist()
-        lbm_info["SOLID"]=solid
-        if self.TEMPERATURE:
-            ## TEMPERATURE FLUID
-            TF_info = {}
-            lbm_info["TEMPERATURE_FLUID"]=TF_info
-            ## TEMPERATURE SOLID
-            TS_info = {}
-            lbm_info["TEMPERATURE_SOLID"]=TS_info
-            ## RADIATION
-            if self.RADIATION:
-                radiation_info = {}
-                lbm_info["RADIATION"]=radiation_info
-        ## SPECIES
-        if self.CHEMICAL:
-            species_info = {}
-        with open(path,"w") as f:
-            json.dump(lbm_info,f,indent=4)
-   
+    def export_snapshot(self,config):
+        pass
+
     def export_VTK(self): # 导出为vtk 到指定文件夹中
         filename = os.path.join(self.path,self.name+"_"+str(self.tLattice))
         gridToVTK(

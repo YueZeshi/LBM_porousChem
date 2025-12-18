@@ -1,5 +1,5 @@
 basic:
-  name      : poiseuille
+  name      : lid_driven
   author    : Sylvain
   date      : 2025-12-15
   dimension : 2
@@ -25,27 +25,23 @@ timeControl:
   DT : 1e-3
 
 flowProperties:
-  model : LBGK
   viscosity : 0.01
 
-chemicalProperties:
-  source : cantera
 
 boundaryCondition:
   left:
     flow:
-      type: inlet
-      velocity : [0.01,0,0]
+      type: wall
   right:
     flow:
-      type: outlet
-      rho: 1
+      type: wall
   down:
     flow:
       type: wall
   up:
     flow:
-      type : wall
+      type : inlet
+      velocity : [0.01,0.0,0.0]
   
 initialCondition:
   flow:

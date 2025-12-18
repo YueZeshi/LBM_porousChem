@@ -13,9 +13,9 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
     startTime = time.time()
     from LBM.LBM2D import LBM2DSolver
     ARCH = ""
-    if config["basic"]["arch"]=="cuda":
+    if config["basic"]["arch"]=="gpu":
         ti.init(arch=ti.gpu)
-        ARCH = "cuda"
+        ARCH = "gpu"
     else:
         ti.init(arch=ti.cpu)
         ARCH = "cpu"
@@ -57,6 +57,9 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
             v = bc_flow["velocity"]
             lb.set_BC(i,BC_FLOW.inlet)
             lb.set_v_BC_value(i,v)
+            rho = bc_flow.get("rho")
+            if rho:
+                lb.set_rho_BC_value(i,rho)
         elif bc_flow["type"]=="outlet":
             rho = bc_flow["rho"]
             lb.set_BC(i,BC_FLOW.outlet)
@@ -169,15 +172,21 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
     os.makedirs(exportPath,exist_ok=True)
     snapshotInterval = int(config["outputControl"]["snapshot"]["interval"]/lb.dt)
     preTime = time.time()
+    latticeUpdateBetweenLog = lb.nx*lb.ny*lb.nz*printInterval
     while lb.tLattice<=endTimeLattice:
         if lb.tLattice%printInterval==0:
-            print(f"Execution time:{time.time()-preTime} s , Collapsed time:{time.time()-startTime} s.")
-            print(lb.log_info())
+            calTime = time.time()-preTime
             preTime = time.time()
+            if calTime ==0:
+                MLUPS = 0
+            else:
+                MLUPS = latticeUpdateBetweenLog/calTime/1e6
+            print(f"Execution time:{calTime:.2f} s , Collapsed time:{(time.time()-startTime):.2f} s, MLUPS = {MLUPS:.2f}")
+            print(lb.log_info())
         if lb.tLattice%exportInterval==0:
             lb.export_VTK()
         # if lb.tLattice%snapshotInterval==0:
-        #     lb.export_snapshot()
+        #     lb.export_snapshot(config)
         lb.step()
 def application_3D(config):
     # Implementation for 3D application

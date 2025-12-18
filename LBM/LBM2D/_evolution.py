@@ -9,7 +9,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
     evolution part of LBM
     The realisation of Boundary condition is written in _boundary.py because of its complexity
     """
-    def step(self):
+    def step(self): # run one step
         self.updateBC(self.t)
         self.step_kernel()
         self.tLattice += 1
