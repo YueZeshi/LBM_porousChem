@@ -97,8 +97,8 @@ outputControl:
     LOD : 1
     clear : true
   log:
-    interval : 10
+    interval : 100
     LOD : 1
   snapshot:
-    interval : 100
+    interval : 1000
     path : snapshot

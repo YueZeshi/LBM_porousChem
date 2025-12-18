@@ -25,13 +25,12 @@ class Mesh2D:
         if shape.lower()=="circle":
             self.CreateMesh2DCircle(params[0][0],params[0][1],params[1]) 
         if shape.lower()=="rectangular":
-            self.CreateMesh2DRectangle(ti.Vector(params[0]),ti.Vector(params[1]))
+            self.CreateMesh2DRectangle(params[0][0],params[0][1],params[1][0],params[1][1])
 
     @ti.kernel
     def CreateMesh2DRectangle(self,p11:float,p12:float,p21:float,p22:float):# type: ignore
         vertex1 = ti.Vector([p11/self.dx,p12/self.dx,0.0])
         vertex2 = ti.Vector([p21/self.dx,p22/self.dx,0.0])
-        print(vertex1,vertex2)
         for i,j in ti.ndrange(self.nx+1,self.ny+1): # 计算并存储各个格子顶点的距离值
             point = ti.Vector([i,j,0])
             self.d[i,j,0] = self.rectangle(point,vertex1,vertex2)

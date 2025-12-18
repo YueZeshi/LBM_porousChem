@@ -12,12 +12,21 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
     # Implementation for 2D application
     startTime = time.time()
     from LBM.LBM2D import LBM2DSolver
-    ARCH = ""
-    if config["basic"]["arch"]=="gpu":
-        ti.init(arch=ti.gpu)
-        ARCH = "gpu"
-    else:
+    ARCH = config["basic"].get("arch")
+    try:
+        if ARCH=="gpu":
+            ti.init(arch=ti.gpu)
+        elif ARCH == "cpu":
+            ti.init(arch=ti.cpu)
+        elif ARCH == "vulkan":
+            ti.init(arch=ti.vulkan)
+        else:
+            ti.init(arch=ti.cpu)
+            print(f"ARCH {ARCH} not valid.")
+            ARCH = "cpu"
+    except:
         ti.init(arch=ti.cpu)
+        print(f"ARCH {ARCH} not valid.")
         ARCH = "cpu"
     print(f"Running 2D LBM on {ARCH}...")
     x = config["spaceControl"]["geometry"][0]
@@ -159,7 +168,8 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
     lb.tLattice = int(config["timeControl"]["startTime"]/lb.dt)
     endTimeLattice = config["timeControl"]["endTime"]/lb.dt
     printInterval = int(config["outputControl"]["log"]["interval"]/lb.dt)
-    exportInterval = int(config["outputControl"]["vtk"]["interval"]/lb.dt) 
+    exportInterval = int(config["outputControl"]["vtk"]["interval"]/lb.dt)
+    print(exportInterval,printInterval)
     exportPath = config["outputControl"]["vtk"]["path"]
     if not exportPath:
         exportPath = "output"
@@ -174,7 +184,7 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
     preTime = time.time()
     latticeUpdateBetweenLog = lb.nx*lb.ny*lb.nz*printInterval
     while lb.tLattice<=endTimeLattice:
-        if lb.tLattice%printInterval==0:
+        if lb.tLattice % printInterval==0:
             calTime = time.time()-preTime
             preTime = time.time()
             if calTime ==0:
@@ -183,7 +193,7 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
                 MLUPS = latticeUpdateBetweenLog/calTime/1e6
             print(f"Execution time:{calTime:.2f} s , Collapsed time:{(time.time()-startTime):.2f} s, MLUPS = {MLUPS:.2f}")
             print(lb.log_info())
-        if lb.tLattice%exportInterval==0:
+        if lb.tLattice % exportInterval==0:
             lb.export_VTK()
         # if lb.tLattice%snapshotInterval==0:
         #     lb.export_snapshot(config)
