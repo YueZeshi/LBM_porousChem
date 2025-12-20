@@ -1,7 +1,7 @@
 basic:
-  name      : poiseuille
+  name      : thermal_diffusion
   author    : Sylvain
-  date      : 2025-12-15
+  date      : 2025-12-19
   dimension : 2
   arch      : cpu
   type      : configuration 
@@ -9,13 +9,13 @@ basic:
 module : 
   flow : true
   chemistry : false
-  temperature : false
+  temperature : true
   porous_media : false
   radiation : false
 
 
 spaceControl:
-  geometry : [5.0,5.0]
+  geometry : [0.2,0.1]
   DX : 1e-3
 
 
@@ -27,30 +27,29 @@ timeControl:
 flowProperties:
   viscosity : 0.01
 
-chemicalProperties:
-  source : cantera
 
 boundaryCondition:
   left:
     flow:
-      type: inlet
-      velocity : [0.01,0,0]
-      rho : 1
+      type: wall
   right:
     flow:
-      type: outlet
-      rho: 1
+      type: wall
   down:
     flow:
       type: wall
   up:
     flow:
-      type : wall
+      type : inlet
+      velocity : [0.01,0.0,0.0]
   
 initialCondition:
   flow:
     rho : 1
     velocity : [0,0,0]
+  solid:
+    zone : ALL
+    porosity : 0.5
   
 
 outputControl:
@@ -64,4 +63,4 @@ outputControl:
     LOD : 1
   snapshot:
     interval : 100
-    path : snapshot.yaml
+    path : snapshot

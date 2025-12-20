@@ -392,10 +392,11 @@ class LBM2D_OUTPUT(LBM2D_BASE):
             p +=f"Min temperature: {self.get_min_T():.7f} K"
         return p
     def export_snapshot(self,config):
+
         pass
 
     def export_VTK(self): # 导出为vtk 到指定文件夹中
-        filename = os.path.join(self.path,self.name+"_"+str(self.tLattice))
+        filename = os.path.join(self.exportPath,self.name+"_"+str(self.tLattice))
         gridToVTK(
                 filename,
                 self.x,

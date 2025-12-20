@@ -67,7 +67,9 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.set_v_BCs_value([[0.01,0,0],[0,0,0],[0,0,0],[0,0,0]])
     lb2d.set_rho_BCs_value([1]*4)
     lb2d.set_flow_BC_value(0,5)
-    
+    # 温度场 边界条件
+    # 温度场 热扩散系数
+    # 温度场热容 
     lb2d.set_TF_BCs([BC.fixedValue]*4)
     lb2d.set_TF_BCs([BC.fixedValue,BC.zeroGradient,BC.fixedValue,BC.fixedValue])
     lb2d.set_TF_BCs_value([T_exp]*4)

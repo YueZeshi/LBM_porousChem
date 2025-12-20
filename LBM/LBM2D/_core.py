@@ -89,7 +89,10 @@ class LBM2D_BASE:
         if self.CHEMISTRY:
             for specie in self.species:
                 specie.default_init()
+                
         self.PVD = PVDWriter(name=self.name)
+        self.exportPath = "vtk"
+        self.snapshotPath = "snapshot.yaml"
     # 内置函数
     def __repr__(self):
         return self.__str__()

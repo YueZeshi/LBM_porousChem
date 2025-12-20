@@ -79,10 +79,10 @@ class Reaction:
         self.coefProduct = ti.field(float,shape=(len(self.LBM.species)))
         self.coefReactant = ti.field(float,shape=(len(self.LBM.species)))
         self.coefRate = ti.field(float,shape=(len(self.LBM.species)))
+
         self.reactionResult = ti.Vector.field(len(self.LBM.species),dtype=float,shape=self.LBM.rho.shape) # specie concentration and enthalpy change
         self.dH = ti.field(float,shape=self.LBM.rho.shape)
         self.parse_formula(formula)
-        print(A,b,Ea)
     def parse_formula(self,formula:str):
         reactant,product = formula.split("=>")
         reactant = [specie.strip() for specie in reactant.split('+')]
@@ -141,6 +141,7 @@ class Reaction:
     @ti.func
     def reaction(self,i):  # mole修正还没有写好
         kr = self.Arrehnius(i)
+        dS = ti.Vector([0.0]*self.specieNum)
         # # 计算化学反应速率
         # for j in ti.static(range(len(self.LBM.species))):
         #     if self.coefReactant[j]>0 : # 该物质参与反应
@@ -170,7 +171,7 @@ class Reaction:
         # if ti.static(self.LBM.TEMPERATURE):
         #     dh += -kr*self.deltaH*self.LBM.dt # 注意保证kr deltaH的单位匹配。是质量都是质量，是摩尔数都是摩尔数。
         #     self.dH[i]=dh
-
+        return dS
 @ti.data_oriented
 class Reactions:
     def __init__(self,lbm):
@@ -193,14 +194,15 @@ class Reactions:
 
     @ti.func
     def update_dS(self,i): # 计算所有化学反应带来的物质源项和能量源项
-        for j in ti.static(range(self.specieNum)):
+        for j in ti.static(range(self.specieNum)): 
             self.dS[i][j] = 0
-        self.dH[i] = 0.0
-        for r in ti.static(self.reactions):
-            r.reaction(i)
-            for j in ti.static(range(self.specieNum)):
-                self.dS[i][j] += r.reactionResult[i][j]
-            self.dH[i] += r.dH[i]
+        self.dH[i] = 0.0 # Set to 0
+        for r in ti.static(self.reactions): # reaction update
+            self.dS[i]+=r.reaction(i)
+            # r.reaction(i)
+            # for j in ti.static(range(self.specieNum)):
+            #     self.dS[i][j] += r.reactionResult[i][j]
+            # self.dH[i] += r.dH[i]
         for j in ti.static(range(self.specieNum)):
             self.LBM.species[j].dS[i] = self.dS[i][j]
         # for specie in ti.static(list(self.LBM.species)):
@@ -208,6 +210,6 @@ class Reactions:
             # j += 1
         if ti.static(self.LBM.TEMPERATURE):
             if self.LBM.solid[i] > 0:
-                self.LBM.TS.dS[i] += self.dH[i]/self.LBM.TS.capacity_v(i)
+                self.LBM.TS.dS[i] += self.dS[i][self.specieNum]/self.LBM.TS.capacity_v(i)
             else:
-                self.LBM.TF.dS[i] += self.dH[i]/self.LBM.TF.capacity_v(i)
+                self.LBM.TF.dS[i] += self.dS[i][self.specieNum]/self.LBM.TF.capacity_v(i)

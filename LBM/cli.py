@@ -19,7 +19,7 @@ def run(config,clear):
                     print(f"Conserve {dir} folder.")
     elif os.path.exists(config):
         yaml = YAML()
-        with open(config,'r') as f:
+        with open(config,'r',encoding="utf8") as f:
             data = yaml.load(f)
             if data["basic"]["dimension"] == 2:
                 from LBM.app import application_2D

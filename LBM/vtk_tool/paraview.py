@@ -3,7 +3,7 @@ import os
 class PVDWriter:
     def __init__(self,path="output",name="default_name"):
         self.file_infos = []
-        self.path = path
+        self.exportPath = path
         self.name = name
         self.version = 0.1
         self.byte_order = "LittleEndian"
@@ -55,5 +55,5 @@ class PVDWriter:
         xml_string = pretty_xml.decode("utf-8")
     
     # 写入文件
-        with open(os.path.join(self.path,self.name+".pvd"),"w",encoding="utf8") as f:
+        with open(os.path.join(self.exportPath,self.name+".pvd"),"w",encoding="utf8") as f:
             f.write(xml_string)

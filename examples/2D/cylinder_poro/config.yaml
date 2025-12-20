@@ -1,13 +1,17 @@
 basic:
-  name      : cylinder
+  name      : cylinder_poro
   author    : Sylvain
-  date      : 2025-12-15
+  date      : 2025-12-19
   dimension : 2
   arch      : cpu
   type      : configuration 
 
 module : 
   flow : true
+  chemistry : false
+  temperature : false
+  porous_media : true
+  radiation : false
 
 
 spaceControl:
@@ -39,8 +43,14 @@ geometry:
 initialCondition:
   solid:
     solid1:
-      zone : ALL
-      type : concrete
+      zone : [zone1] # 区域 可不加[] 
+      type : porous # 类型 porous/concrete
+      porosity : 0.6 # 孔隙率 type==porous时访问
+      model : Darcy # ergun/darcy/darcyforchheimer
+      darcy : 2.5e10 # 达西系数 type==porous model==darcy/darcyforchheimer时访问
+      forchheimer : 0.0 # Forchheimer系数 type==porous model==darcy/darcyforchheimer时访问
+      
+
   flow:
     rho : 1
     velocity : [0,0,0]

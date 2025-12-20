@@ -29,17 +29,18 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
         print(f"ARCH {ARCH} not valid.")
         ARCH = "cpu"
     print(f"Running 2D LBM on {ARCH}...")
+
     x = config["spaceControl"]["geometry"][0]
     y = config["spaceControl"]["geometry"][1]
     dt = config["timeControl"]["DT"]
     dx = config["spaceControl"]["DX"]
-    isThermal = config["module"]["temperature"]
-    isPoro = config["module"]["porous_media"]
-    isChemical = config["module"]["chemistry"]
-    isRadiation = config["module"]["radiation"]
-    name = config["basic"]["name"]
+    isThermal = config["module"].get("temperature")
+    isPoro = config["module"].get("porous_media")
+    isChemical = config["module"].get("chemistry")
+    isRadiation = config["module"].get("radiation")
+    name = config["basic"].get("name")
     # initial setting
-    lb = LBM2DSolver(x,y,dx,dt,name,isThermal,isPoro,isChemical,isRadiation)
+    lb = LBM2DSolver(x,y,dx,dt,name,isThermal,isChemical,isPoro,isRadiation)
     
     lb.source_term_model = SOURCE_TERM.MICRO
     lb.force_term_model = FORCE_TERM.GUO
@@ -54,8 +55,6 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
         # load chemical mechanism
         cantera_file = config["chemicalProperties"]["canteraFile"]
         lb.load_cantera(cantera_file)
-
-   
 
     # boundary condition
     boundaryName = ["left","right","down","up"]
@@ -89,7 +88,7 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
             elif bc["type"]=="wall":
                 lb.set_BC(i,BC_FLOW.wall)
 
-    # load all geometry information in geo_dict dictionary name:(surface, border)
+    # load all geometry information in geo_dict dictionary name:(surface array, border array)
     geo_dict = {}
     geo_infos = config.get("geometry")
     if geo_infos is not None:
@@ -112,56 +111,42 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
     ## solid phase
     solidIC = initialCondition.get("solid")
     if solidIC:
-        if isPoro:
-            pass
-        else:
-            if solidIC["zone"]=="ALL":
-                s = np.zeros((lb.nx,lb.ny,lb.nz))
-                for geo_name,geo_data in geo_dict.items():
-                    s += geo_data[0]
-                s = (s>0)*1
-                lb.init_field(lb.solid,s)
-        ## 
-    # if config["TYPE"]=="config":
-    #     # set initial field
-        # solid_np = np.zeros((nx,ny,1))
-        # for region in config["SOLID"].values():
-        #     m2d = Mesh2D(nx,ny,1)
-        #     if region["shape"]=="cylinder":
-        #         center = np.array(region["center"])/dx
-        #         height = region["height"]/dx
-        #         radius = region["radius"]/dx
-        #         up = np.array(region["up"])
-        #         if region["type"]=="filled":
-        #             m2d.CreateMesh3D_Cylinder_Integer(center,up,radius,height)
-        #             V = m2d.V.to_numpy()
-        #             if region["mode"]=="overlay":
-        #                 solid_np = V
-        #             elif region["mode"]=="addition":
-        #                 solid_np += V
-        #         elif region["type"]=="porous":
-        #             m3d.CreateMesh3D_Cylinder_Decimal(center,region["up"],radius,height)
-        #             V = m3d.V.to_numpy()
-        #             if region["mode"]=="overlay":
-        #                 solid_np = V
-        #             elif region["mode"]=="addition":
-        #                 solid_np += V
-        # lb.init_field(lb.solid,solid_np)
-    #     lb.init_field3(lb.v,config["FLOW"]["initialCondition"][0],config["FLOW"]["initialCondition"][1],config["FLOW"]["initialCondition"][2])
-    # elif config["TYPE"]=="snapshot":
-    #     # set all fields
-    #     lb.init_field(lb.v,np.array(config["FLOW"]["v"]))
-    #     lb.init_field(lb.f,np.array(config["FLOW"]["f"]))
-    #     lb.init_field(lb.solid,np.array(config["SOLID"]))
-    #     if isThermal:
-    #         pass
-    #     if isChemical:
-    #         pass
-    #     if isRadiation:
-    #         pass
-    # # print(lb.solid)
-
-
+        for solid in solidIC.values():
+            if isPoro:
+                eps = solid["porosity"]
+                if solid["zone"]=="ALL":
+                    s = np.zeros((lb.nx,lb.ny,lb.nz))
+                    for geo_name,geo_data in geo_dict.items():
+                        s += geo_data[0]
+                    s = (1-eps)*s
+                    lb.init_field(lb.solid,s)
+                elif type(solid["zone"]) is ruamel.yaml.comments.CommentedSeq: # []
+                    s = np.zeros((lb.nx,lb.ny,lb.nz))
+                    for zoneName in solid["zone"]:
+                        s += geo_dict[zoneName][0]
+                    s = (1-eps)*s
+                    lb.init_field(lb.solid,s)
+                elif type(solid["zone"]) is str:
+                    s = geo_dict[solid["zone"]][0]
+                    s = (1-eps)*s
+                    lb.init_field(lb.solid,s)
+            else:
+                if solid["zone"]=="ALL":
+                    s = np.zeros((lb.nx,lb.ny,lb.nz))
+                    for geo_name,geo_data in geo_dict.items():
+                        s += geo_data[0]
+                    s = (s>0)*1
+                    lb.init_field(lb.solid,s)
+                elif type(solid["zone"]) is ruamel.yaml.comments.CommentedSeq: # []
+                    s = np.zeros((lb.nx,lb.ny,lb.nz))
+                    for zoneName in solid["zone"]:
+                        s += geo_dict[zoneName][0]
+                    s = (s>0)*1
+                    lb.init_field(lb.solid,s)
+                elif type(solid["zone"]) is str:
+                    s = geo_dict[solid["zone"]][0]
+                    s = (s>0)*1
+                    lb.init_field(lb.solid,s)
 
     lb.init_simulation()
     # time control of simulation 
@@ -169,7 +154,6 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
     endTimeLattice = config["timeControl"]["endTime"]/lb.dt
     printInterval = int(config["outputControl"]["log"]["interval"]/lb.dt)
     exportInterval = int(config["outputControl"]["vtk"]["interval"]/lb.dt)
-    print(exportInterval,printInterval)
     exportPath = config["outputControl"]["vtk"]["path"]
     if not exportPath:
         exportPath = "output"
@@ -177,10 +161,12 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
     if config["outputControl"]["vtk"]["clear"]:
         import shutil
         shutil.rmtree(exportPath,ignore_errors=True)
-    lb.path = exportPath
-    lb.PVD.path = exportPath
+    lb.exportPath = exportPath
+    lb.PVD.exportPath = exportPath
     os.makedirs(exportPath,exist_ok=True)
     snapshotInterval = int(config["outputControl"]["snapshot"]["interval"]/lb.dt)
+    snapshotPath = config["outputControl"]["snapshot"]["path"]
+    lb.snapshotPath = snapshotPath
     preTime = time.time()
     latticeUpdateBetweenLog = lb.nx*lb.ny*lb.nz*printInterval
     while lb.tLattice<=endTimeLattice:
@@ -195,8 +181,8 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
             print(lb.log_info())
         if lb.tLattice % exportInterval==0:
             lb.export_VTK()
-        # if lb.tLattice%snapshotInterval==0:
-        #     lb.export_snapshot(config)
+        if lb.tLattice%snapshotInterval==0:
+            lb.export_snapshot(config)
         lb.step()
 def application_3D(config):
     # Implementation for 3D application
