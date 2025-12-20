@@ -144,6 +144,7 @@ def main(DX,DT,T_exp,variant="default"):
     # setVariables()
     ## 初始化场 
     lb2d.init_field(lb2d.rho,1)
+    lb2d.init_field3(lb2d.v,0.01,0.0,0.0)
     m2d  = Mesh2D(lb2d.nx,lb2d.ny)
     m2d.CreateMesh2DCircle(float(lb2d.nx)/2,float(lb2d.ny)/2,R/DX)
     s,l = m2d.export_numpy()
