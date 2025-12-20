@@ -6,33 +6,56 @@ class ScalarField:
     '''
     标量场 D2Q5
     '''
-    def __init__(self,name,nx,ny,nz,lb2d,FIX = False):
+    def __init__(self,name,lb2d,FIX = False):
         self.name = name
-        self.nx,self.ny,self.nz = nx,ny,nz
+        self.nx,self.ny,self.nz = lb2d.nx,lb2d.ny,lb2d.nz
         self.LBM = lb2d
         self.FIX = FIX
-        self.S = ti.field(float,shape = (nx,ny,nz))
-        self.dS = ti.field(float,shape = (nx,ny,nz))
-        if not self.FIX:
-            self.g = ti.Vector.field(5,float,shape=(nx,ny,nz))
-            self.G = ti.Vector.field(5,float,shape=(nx,ny,nz))
+        self.S = ti.field(float,shape = (self.nx,self.ny,self.nz))
+        self.dS = ti.field(float,shape = (self.nx,self.ny,self.nz))
+        self.v_ref = 0.0
+        self.v_scale = 1.0
+        if ti.static(not self.FIX):
+            self.g = ti.Vector.field(5,float,shape=(self.nx,self.ny,self.nz))
+            self.G = ti.Vector.field(5,float,shape=(self.nx,self.ny,self.nz))
             self.BC = [BC.periodic]*4
             self.flux_BC =ti.field(float,shape = (4))
             self.s_BC = ti.field(float,shape = (4))
             for i in range(4):
                 self.flux_BC[i]=0.0
                 self.s_BC[i]=0.0
+    def get_physical_value(self,v):
+        v_phys = v*self.v_scale + self.v_ref
+        return v_phys
+
+    def get_normalized_value(self,v_phys):
+        v = (v_phys - self.v_ref)/self.v_scale
+        return v
+    
+    @ti.func
+    def normalized_value(self,v_phys):
+        v = (v_phys - self.v_ref)/self.v_scale
+        return v
+    @ti.func
+    def physical_value(self,v):
+        v_phys = v*self.v_scale + self.v_ref
+        return v_phys
+
     @ti.kernel
     def default_init(self):
         for i in range(4):
-            self.flux_BC[i]=0.0
-            self.s_BC[i]=0.0
+            if ti.static(not self.FIX):
+                self.flux_BC[i]=0.0
+                self.s_BC[i]=0.0
         for i in ti.grouped(self.S):
             self.S[i]=0.0
-            if not self.FIX:
+            if ti.static(not self.FIX):
                 for k in ti.static(range(5)):
                     self.g[i][k]=0.0
-                    self.G[i][k]=0.0        
+                    self.G[i][k]=0.0 
+    @ti.func
+    def tau(self,i):
+        return 3*self.coefDiff(i)+.5      
     @ti.func
     def coefDiff(self,i):
         return 0.1
@@ -42,15 +65,16 @@ class ScalarField:
     def set_BCs(self,BCs):
         self.BC = BCs
     def set_s_BC_value(self,index,s):
-        self.s_BC[index]=s
+        self.s_BC[index]=self.get_normalized_value(s)
+        print(self.s_BC[index],s)
     def set_s_BCs_value(self,s):
         for i in range(4):
-            self.s_BC[i]=s[i]
+            self.set_s_BC_value(i,s[i])
     def set_s_BC_flux(self,index,f):
         self.flux_BC[index]=f
     def set_s_BCs_flux(self,f):
         for i in range(4):
-            self.flux_BC[i]=f[i]
+            self.set_s_BC_flux(i,f[i])
     @ti.func
     def geq5(self,k,S,x,y,z):
         return 0

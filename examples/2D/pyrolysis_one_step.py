@@ -65,7 +65,8 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.set_specie_BCs_value("N2",[1]*4)
 
     # # 添加化学反应
-    lb2d.add_reaction("total reaction",[("wood(S)",1)],[("tar",0.4),("char(S)",0.6)],(2500,0,67500,300,0))
+    # lb2d.add_reaction(f"wood(S) => 0.4 tar + 0.6 char(S)",(2500,0,67500,300,0),"total reaction")
+    
 
     # # 设置物种物性
     # ## 扩散
@@ -161,41 +162,41 @@ def main(DX,DT,T_exp,variant="default"):
     # cal_allWood() # 计算总木材质量
     total_iteration =   1000
     export_interval = 10
-    measure_interval= 10
-    print_interval = 10
-    if DEBUG:
-        total_iteration = 0.01
-        export_interval = 0.01
-        print_interval = 0.01
-        print("debug")
+    measure_interval= 1
+    print_interval = 1
+    # if DEBUG:
+    #     total_iteration = 0.01
+    #     export_interval = 0.01
+    #     print_interval = 0.01
+    #     print("debug")
 
-    for iter in range(int(total_iteration/DT)+1):
-        if iter==1:
-            print("init, complie and execute once time:",time.time()-time_init)
-        if (iter%int(print_interval/DT)==0):
-            time_pre = time_now
-            time_now = time.time()
-            diff_time = int(time_now-time_pre)
-            elap_time = int(time_now-time_init)
-            m_diff, s_diff = divmod(diff_time, 60)
-            h_diff, m_diff = divmod(m_diff, 60)
-            m_elap, s_elap = divmod(elap_time, 60)
-            h_elap, m_elap = divmod(m_elap, 60)
-            max_v = lb2d.get_max_v()
-            min_T = lb2d.get_min_T()
-            print(name,flush=True)
-            print('----------Time between two outputs is %dh %dm %ds; elapsed time is %dh %dm %ds----------------------' %(h_diff, m_diff, s_diff,h_elap,m_elap,s_elap))
-            print('The %dth iteration, Max Force = %f,  Min Temperature = %f\n\n ' %(iter, max_v,  min_T))            
-        if (iter%int(export_interval/DT)==0):
+    # for iter in range(int(total_iteration/DT)+1):
+    #     if iter==1:
+    #         print("init, complie and execute once time:",time.time()-time_init)
+    #     if (iter%int(print_interval/DT)==0):
+    #         time_pre = time_now
+    #         time_now = time.time()
+    #         diff_time = int(time_now-time_pre)
+    #         elap_time = int(time_now-time_init)
+    #         m_diff, s_diff = divmod(diff_time, 60)
+    #         h_diff, m_diff = divmod(m_diff, 60)
+    #         m_elap, s_elap = divmod(elap_time, 60)
+    #         h_elap, m_elap = divmod(m_elap, 60)
+    #         max_v = lb2d.get_max_v()
+    #         min_T = lb2d.get_min_T()
+    #         print(name,flush=True)
+    #         print('----------Time between two outputs is %dh %dm %ds; elapsed time is %dh %dm %ds----------------------' %(h_diff, m_diff, s_diff,h_elap,m_elap,s_elap))
+    #         print('The %dth iteration, Max Force = %f,  Min Temperature = %f\n\n ' %(iter, max_v,  min_T))            
+    #     if (iter%int(export_interval/DT)==0):
         
-            if DEBUG:
-                lb2d.export_VTK(f"debug_{name}_{variant}_{DX}",iter)
-                # lb2d.export_variable(f"simulation_{name}_{int(variant)}_{nx}_{int(T_exp)}",iter)
-            else:
-                lb2d.export_VTK(f"simulation_{name}_{variant}_{DX}",iter)
-        if (iter%int(measure_interval/DT)==0):
-                lb2d.export_variable(f"simulation_{name}_{variant}_{DX}",iter)
-        lb2d.step()
+    #         if DEBUG:
+    #             lb2d.export_VTK(f"debug_{name}_{variant}_{DX}",iter)
+    #             # lb2d.export_variable(f"simulation_{name}_{int(variant)}_{nx}_{int(T_exp)}",iter)
+    #         else:
+    #             lb2d.export_VTK(f"simulation_{name}_{variant}_{DX}",iter)
+    #     if (iter%int(measure_interval/DT)==0):
+    #             lb2d.export_variable(f"simulation_{name}_{variant}_{DX}",iter)
+    #     lb2d.step()
 
 
     profiler.print_kernel_profiler_info()

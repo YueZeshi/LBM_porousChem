@@ -14,9 +14,11 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
             self.v[i] = ti.Vector([0,0,0])
             self.rho[i] = 1.0
     def print_information(self):
-        print("\n \nBasic information of the LBM simulation:")
+        print("\n------------------------------------------")
+        print("Basic information of the LBM simulation:")
         print(self.name,f": Size: {self.nx} x {self.ny} x {self.nz}, dx: {self.dx}, dt: {self.dt}")
         print("It contains :")
+        print(" -flow field")
         if self.PORO:
             print(" -porous medium")
         if self.TEMPERATURE:
@@ -25,10 +27,7 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
             print(" -radiation")
         if ti.static(self.CHEMISTRY):
             print(" -chemical reaction")
-            print("The species concerned: ",end="")
-            for specie in ti.static(list(self.specieName)):
-                print(specie,end=" ")
-            print("")
+
         print("Boundary condition model:",end=" ")
         print(BC_MODEL(self.boundary_condition_model).name)
         print("The boundary conditions of the flow field are set to :")
@@ -36,21 +35,30 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
         for i in ti.static(range(4)):
             # print(self.bc[i])
             if ti.static(self.bc[i]==BC_FLOW.periodic):
-                print(sideName[i]+": PERIODIC")
+                print("    "+sideName[i]+": PERIODIC")
             if ti.static(self.bc[i]==BC_FLOW.wall):
-                print(sideName[i]+": WALL")
+                print("    "+sideName[i]+": WALL")
             if ti.static(self.bc[i]==BC_FLOW.inlet):
-                print(sideName[i]+": INLET")
+                print("    "+sideName[i]+": INLET")
             if ti.static(self.bc[i]==BC_FLOW.outlet):
-                print(sideName[i]+": OUTLET")
+                print("    "+sideName[i]+": OUTLET")
             if ti.static(self.bc[i]==BC_FLOW.symmetric):
-                print(sideName[i]+": SYMMETRIC")
+                print("    "+sideName[i]+": SYMMETRIC")
+            if ti.static(self.bc[i]==BC_FLOW.inlet_flow):
+                print("    "+sideName[i]+": INLET FLOW")
+        if ti.static(self.CHEMISTRY):
+            print("The species involved are:")
+            for specie in self.species:
+                print(specie)
+            print(self.reactions)
+        print("------------------------------------------\n")
     def init_simulation(self):
         self.init_python()
         self.print_information()
         self.init_taichi()
     def init_python(self):
         if ti.static(self.CHEMISTRY):
+            print(self.CHEMISTRY)
             self.reactions.dS = ti.Vector.field(len(self.species),dtype = float,shape=self.rho.shape)
             self.reactions.specieNum = len(self.species)
     @ti.kernel
@@ -99,4 +107,17 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
                     self.TF.G[i][s] = self.TF.g[i][s]
                     self.TS.g[i][s] = self.TS.geq5(s,self.TS.S[i],i[0],i[1],i[2])
                     self.TS.G[i][s] = self.TS.g[i][s]
-        
+        self.init_boundary()
+    @ti.func
+    def init_boundary(self): # 固定流量边界需要特殊初始化
+        if ti.static(self.bc[0]==BC_FLOW.inlet_flow):
+            v0 = self.flow_BC[0]/self.ny/self.nz
+            for j,k in ti.ndrange(self.ny,self.nz):
+                self.v_bc_profile[0][0,j,k] = ti.Vector([v0,0,0])
+                self.v[0,j,k] = ti.Vector([v0,0,0])
+                self.v[1,j,k] = ti.Vector([v0,0,0])
+            print("inlet flow v0:",v0)
+        if ti.static(self.bc[0]==BC_FLOW.inlet):
+            for j,k in ti.ndrange(self.ny,self.nz):
+                self.v_bc_profile[0][0,j,k] = self.v_BC[0]
+

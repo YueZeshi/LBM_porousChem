@@ -119,10 +119,12 @@ class LBM3D_INPUT(LBM3D_BASE):
             self.init_field(self.TS.real_radiation,param)
     ## 浓度场 (物种密度)
     def set_specie(self,specie,FIX = False):
-        self.species[specie] = Specie(specie,self.nx,self.ny,self.nz,self,FIX)
+        self.species.append(Specie(specie,self.nx,self.ny,self.nz,self,FIX))
+        self.specieName.append(specie)
+
     def set_specie_mole(self,specie,isFix = False,molemass = 1.0):
-        self.species[specie] = Specie(specie,self.nx,self.ny,self.nz,self,Mmass = molemass,FIX=isFix)
-        
+        self.species.append(Specie(specie,self.nx,self.ny,self.nz,self,Mmass = molemass,FIX=isFix))
+        self.specieName.append(specie)
     def set_species(self,species,FIX=None):# 登记所有物质
         if FIX == None:
             FIX = [False]*len(species)
@@ -140,7 +142,7 @@ class LBM3D_INPUT(LBM3D_BASE):
             self.set_specie_mole(name,FIX[i],molemass[i])
             i += 1
     def init_specie(self,name,param):
-        self.init_field(self.species[name].S,param)
+        self.init_field(self.species[self.specieName.index(name)].S,param)
     def set_specie_diff(self,name,diff,unit="lattice"):
         if unit=="SI":
             diff *=self.dt/self.dx**2
@@ -149,7 +151,7 @@ class LBM3D_INPUT(LBM3D_BASE):
             return diff
         self.set_specie_diff_func(name,new_diff)
     def set_specie_diff_func(self,name,func):
-        self.species[name].coefDiff = func.__get__(self.species[name],ScalarField)
+        self.species[self.specieName.index(name)].coefDiff = func.__get__(self.species[self.specieName.index(name)],ScalarField)
     def set_specie_capacity(self,name:str,cm:float): # 质量热容
         @ti.func
         def new_cm(self,i):
@@ -159,7 +161,7 @@ class LBM3D_INPUT(LBM3D_BASE):
         '''
         定义质量热容
         '''
-        self.species[name].capacity_m = func.__get__(self.species[name],ScalarField)
+        self.species[self.specieName.index(name)].capacity_m = func.__get__(self.species[self.specieName.index(name)],ScalarField)
 
     def set_specie_conductivity(self,name,lamb): # 传热系数
         @ti.func
@@ -167,11 +169,11 @@ class LBM3D_INPUT(LBM3D_BASE):
             return lamb
         self.set_specie_conductivity_func(name,new_lamb)
     def set_specie_conductivity_func(self,name,func):
-        self.species[name].conductivity = func.__get__(self.species[name],ScalarField)
+        self.species[self.specieName.index(name)].conductivity = func.__get__(self.species[self.specieName.index(name)],ScalarField)
     
     # 定义化学反应
     def add_reaction(self,name,reactant,product, param,unit=SPECIE_UNIT.MASS):
-        self.reactions[name]=(Reaction(name,reactant,product,param,self,unit=unit))
+        self.reactions.add_reaction(Reaction(name,reactant,product,param,self,unit=unit))
     
     # 设置边界条件
     def set_BC(self,i,bc):
@@ -225,9 +227,9 @@ class LBM3D_INPUT(LBM3D_BASE):
         self.TF.set_s_BCs_value(Ts)
     
     def set_specie_BC(self,specie,i,BC):
-        self.species[specie].set_BC(i,BC)
+        self.species[self.specieName.index(specie)].set_BC(i,BC)
     def set_specie_BCs(self,specie,BCs):
-        self.species[specie].set_BCs(BCs)
+        self.species[self.specieName.index(specie)].set_BCs(BCs)
     def set_species_BC(self,i,BC):
         for specie in self.species:
             specie.set_BCs(i,BC)
@@ -235,13 +237,13 @@ class LBM3D_INPUT(LBM3D_BASE):
         for specie in self.species:
             specie.set_BCs(BCs)
     def set_specie_BC_value(self,specie,i,S):
-        self.species[specie].set_s_BC_value(i,S)
+        self.species[self.specieName.index(specie)].set_s_BC_value(i,S)
     def set_specie_BCs_value(self,specie,Ss):
-        self.species[specie].set_s_BCs_value(Ss)
+        self.species[self.specieName.index(specie)].set_s_BCs_value(Ss)
     def set_specie_BC_flux(self,specie, i,f):
-        self.species[specie].set_s_BC_flux(i,f)
+        self.species[self.specieName.index(specie)].set_s_BC_flux(i,f)
     def set_specie_BCs_flux(self,specie, fs):
-        self.species[specie].set_s_BCs_flux(fs)
+        self.species[self.specieName.index(specie)].set_s_BCs_flux(fs)
     @classmethod
     def CreateLBM3D(cls,case_file):
         with open(case_file,"r") as f:
@@ -260,7 +262,7 @@ class LBM3D_INPUT(LBM3D_BASE):
         isRadiation = config["BASIC"]["RADIATION"]
         name = config["BASIC"]["name"]
         # initial setting
-        LBM = LBM3D.LBM3DSolver(x,y,z,dx,dt,name,isThermal,isPoro,isChemical,isRadiation)
+        LBM = LBM.LBM3DSolver(x,y,z,dx,dt,name,isThermal,isPoro,isChemical,isRadiation)
         # viscosity
         if config["FLOW"]["viscosity"]["function"]=="uniform":
             LBM.set_viscosity(config["FLOW"]["viscosity"]["value"])
@@ -405,7 +407,7 @@ class LBM3D_OUTPUT(LBM3D_BASE):
         with open(path,"w") as f:
             json.dump(lbm_info,f,indent=4)
    
-    def export_VTK(self, name, n): # 导出为vtk 到指定文件夹中
+    def export_VTK(self, name,n): # 导出为vtk 到指定文件夹中
         path = os.path.join("result",name)
         os.makedirs(path,exist_ok=True)
         gridToVTK(
@@ -428,19 +430,19 @@ class LBM3D_OUTPUT(LBM3D_BASE):
                 }
         # if self.PORO:
         #     data["SOLID_INIT"]=self.rho1.to_numpy(),
-        # if self.TEMPERATURE:
-        #     data["Tf"]  = self.TF.S.to_numpy()
-        #     data["Ts"]  = self.TS.S.to_numpy()
-        # if self.RADIATION:
-        #     data["Radiation_surface"] = self.TS.radiation_surface.to_numpy()
-        #     if self.TS.radiation_model == RADIATION_MODEL.REAL_RADIATION:
-        #         data["Real Radiation"] = self.TS.real_radiation.to_numpy()
-        # if self.CHEMISTRY:
-        #     for specie in self.species.values():
-        #         if specie.FIX and not specie.name.endswith("(S)"):
-        #             data[specie.name+"(S)"]=specie.S.to_numpy()
-        #         else:
-        #             data[specie.name]=specie.S.to_numpy()
+        if self.TEMPERATURE:
+            data["Tf"]  = self.TF.S.to_numpy()
+            data["Ts"]  = self.TS.S.to_numpy()
+        if self.RADIATION:
+            data["Radiation_surface"] = self.TS.radiation_surface.to_numpy()
+            if self.TS.radiation_model == RADIATION_MODEL.REAL_RADIATION:
+                data["Real Radiation"] = self.TS.real_radiation.to_numpy()
+        if self.CHEMISTRY:
+            for specie in self.species:
+                if specie.FIX and not specie.name.endswith("(S)"):
+                    data[specie.name+"(S)"]=specie.S.to_numpy()
+                else:
+                    data[specie.name]=specie.S.to_numpy()
         return data    
 
     def export_variable(self, name,iter):
@@ -461,8 +463,8 @@ class LBM3D_OUTPUT(LBM3D_BASE):
     @ti.func
     def check(self):
         s0 = [0,int(self.ny/2),int(self.nz/2)]
-        s1 = [1,int(self.ny/2),int(self.nz/2)]
-        print(self.v[s1],self.F[s1])
+        s1 = [50,int(self.ny/2),int(self.nz/2)]
+        print(self.TF.S[s1])
         # rad = 0.0
         # rad_surface = 0.0
         # for i in ti.grouped(self.rho):

@@ -9,11 +9,10 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
     evolution part of LBM
     The realisation of Boundary condition is written in _boundary.py because of its complexity
     """
-    def step(self):
-        self.step_kernel()
+    def step(self): # run one step
         self.updateBC(self.t)
-        self.t+=self.dt
-        
+        self.step_kernel()
+        self.tLattice += 1
     @ti.kernel
     def step_kernel(self):
         self.collision_source_streaming() # f->F
@@ -36,22 +35,22 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                     if ti.static(k<5):
                         if ti.static(self.TEMPERATURE): # 流体温度更新 有固体更新固体温度
                             # 有气体
-                            g = self.TF.g[i][k]-1/(3*self.TF.coefDiff(i)+0.5)*(self.TF.g[i][k]-self.TF.geq5(k,self.TF.S[i],i[0],i[1],i[2]))
+                            g = self.TF.g[i][k]-1/self.TF.tau(i)*(self.TF.g[i][k]-self.TF.geq5(k,self.TF.S[i],i[0],i[1],i[2]))
                             self.TF.g[i][k] = g
                             if self.solid[i] > 0.0: # 有固体
-                                g = self.TS.g[i][k]-1/(3*self.TS.coefDiff(i)+0.5)*(self.TS.g[i][k]-self.TS.geq5(k,self.TS.S[i],i[0],i[1],i[2]))
+                                g = self.TS.g[i][k]-1/self.TS.tau(i)*(self.TS.g[i][k]-self.TS.geq5(k,self.TS.S[i],i[0],i[1],i[2]))
                                 self.TS.g[i][k] = g
                         if ti.static(self.CHEMISTRY):      
                             for specie in ti.static(list(self.species)):
                                 if ti.static(not specie.FIX): # 气体物质更新
-                                    g = specie.g[i][k]-1/(3*specie.coefDiff(i)+0.5)*(specie.g[i][k]-specie.geq5(k,specie.S[i],i[0],i[1],i[2]))
+                                    g = specie.g[i][k]-1/specie.tau(i)*(specie.g[i][k]-specie.geq5(k,specie.S[i],i[0],i[1],i[2]))
                                     specie.g[i][k] = g 
 
                     # source term f # 将预先计算好的源项施加到各个分布函数分量当中 (化学反应 体积热源（辐射）)
                     ## force term for fluid flow: volume force like gravity, darcy drag force
                     if ti.static(self.force_term_model==FORCE_TERM.GUO): # GUO 力模型
                         self.f[i][k] +=self.forceTermGuo(k,i)
-                    ## source term microscopic of scalar field
+                    ## microscopic source term of scalar field
                     if ti.static(self.TEMPERATURE):
                         if ti.static(k<5):
                             self.TF.g[i][k] += self.TF.geq5(k,self.TF.dS[i],i[0],i[1],i[2])
@@ -101,7 +100,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                     # collision
                     if ti.static(k<5):
                         if ti.static(self.TEMPERATURE):
-                            g = self.TS.g[i][k]-1/(3*self.TS.coefDiff(i)+0.5)*(self.TS.g[i][k]-self.TS.geq5(k,self.TS.S[i],i[0],i[1],i[2]))
+                            g = self.TS.g[i][k]-1/self.TS.tau(i)*(self.TS.g[i][k]-self.TS.geq5(k,self.TS.S[i],i[0],i[1],i[2]))
                             self.TS.g[i][k] =g
                     # source term
                     # streaming
@@ -115,62 +114,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                             if ti.static(self.TEMPERATURE):
                                 self.TS.G[i][self.LR[k]] = self.TS.g[i][k]
 
-            #             if ti.static(self.CHEMISTRY):            
-            #                 for specie in ti.static(list(self.species)):
-            #                     if ti.static(not specie.FIX):
-            #                         g =specie.g[i][k]-1/(3*specie.coefDiff(i)+0.5)*(specie.g[i][k]-specie.geq5(k,specie.S[i],i[0],i[1],i[2]))
-            #                         specie.g[i][k] =g 
-            #                 # source term
-            # if ti.static(self.source_term_model==SOURCE_TERM.MICRO):
-            #     if self.solid[i]>1e-6: # 有固体的区域
-            #         if ti.static(self.TEMPERATURE):
-            #             q = 100.0*self.heat_trasnfer_surface[i]*(self.TF.S[i]-self.TS.S[i]) # from f to s
-            #             for k in ti.ndrange(5):
-            #                 self.TS.g[i][k] += self.TS.geq5(k,q/self.TS.capacity_v(i),i[0],i[1],i[2])
-            #                 self.TF.g[i][k] += self.TF.geq5(k,-q/self.TF.capacity_v(i),i[0],i[1],i[2])            
-            #     if ti.static(self.RADIATION): # radiation
-            #         dT =self.dt*self.radiation(i)/self.TS.capacity_v(i) # 计算温度变化 # s*{rad}/(Jm-3K-1)=K; {rad}=Wm-3
-            #         for k in ti.ndrange(5):
-            #             self.TS.g[i][k] += self.TS.geq5(k,dT,i[0],i[1],i[2]) # 辐射吸热 # 直接添加到格子中央可能会带来问题
-            #     if ti.static(self.CHEMISTRY):
-            #         for r in ti.static(list(self.reactions)):
-            #             r.reaction(i) # update species and internal energy
-            # # streaming f->F
-            # if (self.solid[i]<1):# 流体更新
-            #     for s in ti.static(range(9)):
-            #         ip = self.periodic_index(i+self.e9[s]) # 更新之后的位置索引，默认边界视为周期边界
-            #         if (self.solid[ip]!=1): # 如果更新之后的位置是液体    
-            #             self.F[ip][s] = self.f[i][s] # 直接更新F
-            #             if ti.static(s<5):
-            #                 if ti.static(self.TEMPERATURE):
-            #                     self.TF.G[ip][s] = self.TF.g[i][s]
-            #                 if ti.static(self.CHEMISTRY):
-            #                     for specie in ti.static(list(self.species)):
-            #                         if ti.static(not specie.FIX):
-            #                             specie.G[ip][s] = specie.g[i][s]
-            #         else:
-            #             self.F[i][self.LR[s]] = self.f[i][s] # 如果不是 反弹 流固表面处理
-            #             if ti.static(s<5):
-            #                 if ti.static(self.TEMPERATURE):
-            #                     self.TF.G[i][self.LR[s]] = self.TF.g[i][s]
-            #                 if ti.static(self.CHEMISTRY):
-            #                     for specie in ti.static(list(self.species)):
-            #                         if ti.static(not specie.FIX):
-            #                             specie.G[i][self.LR[s]] = specie.g[i][s]
-            # if (self.solid[i] > 0):# 固体更新
-            #     for s in ti.static(range(5)):
-            #         ip = self.periodic_index(i+self.e9[s]) # 更新之后的位置索引，默认边界视为周期边界
-            #         if (self.solid[ip] >0): # 如果更新之后的位置有固体  
-            #             if ti.static(self.TEMPERATURE):
-            #                 self.TS.G[ip][s] = self.TS.g[i][s]
-            #         else: # 更新之后无固体 迁移步骤中认为是绝热壁 热交换在源项中
-            #             if ti.static(self.TEMPERATURE):
-            #                 self.TS.G[i][self.LR[s]] = self.TS.g[i][s]
    
-    def updateBC(self,t):
-        for func in self.UpdateBCfunc:
-            func(self,t)
-
     @ti.func
     def macro(self):# F F->f 计算宏观量 F为正确值
         for i in ti.grouped(self.rho):
@@ -241,24 +185,22 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         self.solid[i] = self.rhos[i]/self.rho1[i] # 更新孔隙结构
                 # 宏观恢复温度场 并计算源项
                 if ti.static(self.TEMPERATURE):
-                    self.TF.S[i] = 0.0
-                    self.TS.S[i] = 0.0
+                    Tf = 0.0
+                    Ts = 0.0
                     for s in ti.static(range(5)):
                         self.TF.g[i][s] = self.TF.G[i][s] # 更新G
                         self.TS.g[i][s] = self.TS.G[i][s] # 更新G
-                        self.TF.S[i] += self.TF.G[i][s] # 计算温度
-                        self.TS.S[i] += self.TS.G[i][s]
+                        Tf += self.TF.G[i][s] # 计算温度
+                        Ts += self.TS.G[i][s]
+                    self.TF.S[i] = Tf
+                    self.TS.S[i] = Ts
                     if self.solid[i] > 0: # 有固体
-                        dH = self.TS.exchangeCoef[i]*self.TS.exchangeSurface[i]*(self.TF.S[i]-self.TS.S[i])*self.dt
-                        self.TS.dS[i] += dH/self.TS.capacity_v(i)
-                        self.TF.dS[i] += -dH/self.TF.capacity_v(i)
-                        # print(dH,self.TS.S[i],self.TF.S[i])
+                        dH = self.TS.exchangeCoef[i]*self.TS.exchangeSurface[i]*(self.TF.physical_value(Tf)-self.TS.physical_value(Ts))*self.dt
+                        self.TS.dS[i] += dH/self.TS.capacity_v(i)/self.TS.v_scale
+                        self.TF.dS[i] += -dH/self.TF.capacity_v(i)/self.TF.v_scale
                     if ti.static(self.RADIATION):
-                        self.TS.dS[i] += self.TS.radiation(i)*self.dt/self.TS.capacity_v(i)
+                        self.TS.dS[i] += self.TS.radiation(i)*self.dt/self.TS.capacity_v(i)/self.TS.v_scale
 
-                            
-                    
-    
     # 使用函数
     @ti.func
     def periodic_index(self,i): # 按照周期边界条件获取索引，避免边界条件判断多余处理

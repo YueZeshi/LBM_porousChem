@@ -30,26 +30,26 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
             if (self.solid[i] < 1):
                 for k in ti.static(range(19)):
                     eps = 1-self.solid[i]
-                    f =self.f[i][k]-1/self.tau(i)*(self.f[i][k]-self.feq19(k,self.rho[i],self.v[i],eps))
+                    f =self.f[i][k]-1/self.tau(i)*(self.f[i][k]-self.feq19(k,i[0],i[1],i[2]))
                     self.f[i][k] =f
-                    if ti.static(k<5):
+                    if ti.static(k<7):
                         if ti.static(self.TEMPERATURE): # 流体温度更新 有固体更新固体温度
                             # 有气体
-                            g = self.TF.g[i][k]-1/(3*self.TF.coefDiff(i)+0.5)*(self.TF.g[i][k]-self.TF.geq7(k,self.TF.S[i],i[0],i[1],i[2]))
+                            g = self.TF.g[i][k]-1/self.TF.tau(i)*(self.TF.g[i][k]-self.TF.geq7(k,self.TF.S[i],i[0],i[1],i[2]))
                             self.TF.g[i][k] = g
                             if self.solid[i] > 0.0: # 有固体
-                                g = self.TS.g[i][k]-1/(3*self.TS.coefDiff(i)+0.5)*(self.TS.g[i][k]-self.TS.geq7(k,self.TS.S[i],i[0],i[1],i[2]))
+                                g = self.TS.g[i][k]-1/self.TS.tau(i)*(self.TS.g[i][k]-self.TS.geq7(k,self.TS.S[i],i[0],i[1],i[2]))
                                 self.TS.g[i][k] = g
                         if ti.static(self.CHEMISTRY):      
                             for specie in ti.static(list(self.species)):
                                 if ti.static(not specie.FIX): # 气体物质更新
-                                    g = specie.g[i][k]-1/(3*specie.coefDiff(i)+0.5)*(specie.g[i][k]-specie.geq7(k,specie.S[i],i[0],i[1],i[2]))
+                                    g = specie.g[i][k]-1/specie.tau(i)*(specie.g[i][k]-specie.geq7(k,specie.S[i],i[0],i[1],i[2]))
                                     specie.g[i][k] = g 
 
                     # source term f # 将预先计算好的源项施加到各个分布函数分量当中 (化学反应 体积热源（辐射）)
                     ## force term for fluid flow: volume force like gravity, darcy drag force
                     if ti.static(self.force_term_model==FORCE_TERM.GUO): # GUO 力模型
-                        self.f[i][k] +=self.forceTermGuo(k,i)
+                        self.f[i][k] += self.forceTermGuo(k,i)
                     ## source term microscopic of scalar field
                     if ti.static(self.TEMPERATURE):
                         if ti.static(k<7):
@@ -100,7 +100,7 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                     # collision
                     if ti.static(k<7):
                         if ti.static(self.TEMPERATURE):
-                            g = self.TS.g[i][k]-1/(3*self.TS.coefDiff(i)+0.7)*(self.TS.g[i][k]-self.TS.geq7(k,self.TS.S[i],i[0],i[1],i[2]))
+                            g = self.TS.g[i][k]-1/self.TS.tau(i)*(self.TS.g[i][k]-self.TS.geq7(k,self.TS.S[i],i[0],i[1],i[2]))
                             self.TS.g[i][k] =g
                     # source term
                     # streaming
@@ -164,7 +164,7 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                             specie.S[i] = 0.0
                             for s in ti.static(range(7)):
                                 specie.g[i][s] = specie.G[i][s] # 更新G
-                                specie.S[i] = specie.G[i][s]
+                                specie.S[i] += specie.G[i][s]
                             if specie.S[i]<0:
                                 specie.S[i]=0
                             Yall += specie.S[i]
@@ -212,16 +212,17 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
     
         return iout
     @ti.func
-    def feq19(self, k,rho, u,eps = 1.0): #计算平衡分布函数 
-        eu = self.e19[k].dot(u)
+    def feq19(self, s,i,j,k): #计算平衡分布函数 
+        rho = self.rho[i,j,k]
+        u = self.v[i,j,k]
+        eps = 1-self.solid[i,j,k]
+        eu = self.e19[s].dot(u)
         uv = u.dot(u)
-        feqout = self.w19[k]*rho*(1.0+3.0*eu+4.5*eu*eu/(eps+1e-12)-1.5*uv/(eps+1e-12))
-        return feqout
-    @ti.func
-    def feq7(self, k,rho_local, u,eps = 1.0): #计算平衡分布函数 考虑多孔介质
-        eu = self.e7[k].dot(u)
-        uv = u.dot(u)
-        feqout = self.w7[k]*rho_local*(1.0+3.0*eu)
+        feqout = 1.0
+        if self.EOS==FLUID_STATE_EQUATION.INCOMPRESSIBLE:
+            feqout = self.w19[s]*(rho+3.0*eu+4.5*eu*eu/(eps+1e-12)-1.5*uv/(eps+1e-12))        
+        if self.EOS==FLUID_STATE_EQUATION.IDEAL_GAS:
+            feqout = self.w19[s]*rho*(1.0+3.0*eu+4.5*eu*eu/(eps+1e-12)-1.5*uv/(eps+1e-12))
         return feqout
     
     @ti.func
@@ -235,7 +236,7 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
         return nu
     @ti.func
     def tau(self,i):
-        return 3*self.viscosity(i)/self.rho[i]+0.5
+        return 3*self.kinetic_viscosity(i)+0.5
     @ti.func
     def perm(self,eps): # 多孔介质 渗透率
         p = eps**3/(1.000001-eps)**2*1**2
@@ -260,9 +261,11 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                     beta = 1.75/ti.sqrt(150*eps*perm)
                     F += (-self.viscosity(i)/perm*eps-beta*ti.math.length(self.v[i]))*self.v[i]
                 elif ti.static(self.poro_model==PORO_MODEL.DARCY):
-                    F +=  -self.viscosity(i)*self.coefDarcy[i]*self.rho[i]*self.v[i]
+                    eps = 1.0-self.solid[i]
+                    F +=  -eps*self.viscosity(i)*self.coefDarcy[i]*self.v[i]
                 elif ti.static(self.poro_model==PORO_MODEL.DARCYFORCHHEIMER):
-                    F += (-self.viscosity(i)*self.coefDarcy[i]-self.coefForchheimer[i]*ti.math.length(self.v[i]))*self.rho[i]*self.v[i]
+                    eps = 1.0-self.solid[i]
+                    F += (-eps*self.viscosity(i)*self.coefDarcy[i]-eps*self.coefForchheimer[i]*ti.math.length(self.v[i]))*self.v[i]
         return F
     @ti.func
     def forceTermGuo(self,s,i): # 将力转化为分布函数源项 Guo Zhao 实际上是动量变化量
@@ -273,8 +276,8 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
         eps = 1.0-self.solid[i]
         term = 0.0
         if ti.static(self.EOS==FLUID_STATE_EQUATION.INCOMPRESSIBLE):
-            term = (1.0-1.0/2.0/tau)*self.w19[s]*(3.0*(self.e19[s]-u/eps).dot(F)\
-              +9.0*self.e19[s].dot(u)*self.e19[s].dot(F)/eps)
+            term = (1.0-1.0/2.0/tau)*self.w19[s]*(3.0*(self.e19[s]-u/(eps+1e-12)).dot(F)\
+              +9.0*self.e19[s].dot(u)*self.e19[s].dot(F)/(eps+1e-12))
         elif ti.static(self.EOS==FLUID_STATE_EQUATION.IDEAL_GAS):
             term = (1.0-1.0/2.0/tau)*rho*self.w19[s]*(3.0*(self.e19[s]-u/(eps+1e-12)).dot(F)\
               +9.0*self.e19[s].dot(u)*self.e19[s].dot(F)/(eps+1e-12))

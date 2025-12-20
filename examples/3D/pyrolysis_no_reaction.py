@@ -32,7 +32,7 @@ def main(DX,DT,T_exp,variant="default"):
     T_init = 303
 
     print("executing ",__name__)
-    name = "pyrolysis_Park"
+    name = "pyrolysis_no_reaction_3D"
     # 初始化taichi
     ## arch=ti.cpu 启用cpu计算；arch=ti.gpu启用gpu运算 (cuda>vulkan)
     default_fp  = ti.f32
@@ -41,14 +41,13 @@ def main(DX,DT,T_exp,variant="default"):
     else:
         ti.init(arch=ti.cpu, kernel_profiler=True, print_ir=False,default_fp=default_fp)
     # 初始化lbm模型
-    lb3D = LBM3DSolver(X,Y,Z,dx=DX,dt=DT,isPoro=True,isChemical=False,isThermal=False,isRadiation=False)
+    lb3D = LBM3DSolver(X,Y,Z,dx=DX,dt=DT,isPoro=True,isChemical=False,isThermal=True,isRadiation=True)
     # 基础设置
     lb3D.source_term_model = SOURCE_TERM.MICRO
     lb3D.force_term_model = FORCE_TERM.GUO
-    lb3D.EOS = FLUID_STATE_EQUATION.IDEAL_GAS
     lb3D.set_viscosity(0.1)
-    lb3D.set_poro_Darcy(2.5e10,unit="SI")
-    # lb3D.set_radiation(RADIATION_MODEL.SURFACE_UNIFORM,T_exp)
+    lb3D.set_poro_Darcy(2.5e11,unit="SI")
+    lb3D.set_radiation(RADIATION_MODEL.SURFACE_UNIFORM,T_exp)
 
     # # 设置物质
     # ## 物种及其状态
@@ -59,11 +58,12 @@ def main(DX,DT,T_exp,variant="default"):
     lb3D.set_BCs([BC_FLOW.inlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall,BC_FLOW.wall,BC_FLOW.wall])
     lb3D.set_v_BCs_value([[0.01,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]])
     lb3D.set_rho_BCs_value([1]*6)
-    # lb3D.set_TF_BCs([BC.fixedValue]*6)
-    # lb3D.set_TF_BCs([BC.fixedValue,BC.zeroGradient,BC.fixedValue,BC.fixedValue,BC.fixedValue,BC.fixedValue])
-    # lb3D.set_TF_BCs_value([T_exp]*6)
-    # lb3D.set_TS_BCs([BC.fixedValue,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient])
-    # lb3D.set_TS_BCs_value([T_init]*6)
+    lb3D.set_TF_BCs([BC.fixedValue]*6)
+    lb3D.set_TF_BCs([BC.fixedValue,BC.zeroGradient,BC.fixedValue,BC.fixedValue,BC.fixedValue,BC.fixedValue])
+    lb3D.set_TF_BCs_value([T_exp]*6)
+    lb3D.set_TS_BCs([BC.fixedValue,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient,BC.zeroGradient])
+    lb3D.set_TS_BCs_value([T_init]*6)
+    lb3D.TF.default_coefDiff = 0.002
     # lb3D.set_species_BCs([BC_S.FIXVALUE,BC_S.OPEN,BC_S.WALL,BC_S.WALL])
     # lb3D.set_specie_BCs_value("N2",[1]*6)
 
@@ -146,26 +146,26 @@ def main(DX,DT,T_exp,variant="default"):
     ## 初始化场 
     lb3D.init_field(lb3D.rho,1)
     m3D  = Mesh3D(lb3D.nx,lb3D.ny,lb3D.nz)
-    # m3D.CreateMesh3DCircle(float(lb3D.nx)/2,float(lb3D.ny)/2,R/DX)
-    s,l = m3D.export_numpy()
-    lb3D.init_field(lb3D.solid,s*0.4)
-    # lb3D.init_field(lb3D.TF.S,T_init)
-    # lb3D.init_field(lb3D.TS.S,T_init)
-    # lb3D.init_field(lb3D.TS.exchangeSurface,100)
-    # lb3D.init_field(lb3D.TS.exchangeCoef,10)
+    m3D.CreateMesh3D_Sphere_Decimal(float(lb3D.nx)/2,float(lb3D.ny)/2,float(lb3D.nz)/2,R/DX)
+    v,s = m3D.export_numpy()
+    lb3D.init_field(lb3D.solid,v*0.4)
+    lb3D.init_field(lb3D.TF.S,T_init)
+    lb3D.init_field(lb3D.TS.S,T_init)
+    lb3D.init_field(lb3D.TS.exchangeSurface,100)
+    lb3D.init_field(lb3D.TS.exchangeCoef,10)
     # lb3D.init_specie("N2",1)
     # lb3D.init_specie("wood(S)",biomass_file)
-    # lb3D.init_field(lb3D.TS.radiation_surface, l*0.6)
+    lb3D.init_field(lb3D.TS.radiation_surface, s*0.6)
     # 初始化lbm
     lb3D.init_simulation()
+    print(lb3D.TF.BC)
     lb3D.print_information()
-    print(lb3D.boundary_condition_model)
-    # lb3D.check_python()
+    lb3D.check_python()
     # cal_allWood() # 计算总木材质量
-    total_iteration =   1
-    export_interval = 0.01
+    total_iteration =   10000
+    export_interval = 100
     measure_interval= 10
-    print_interval = 0.01
+    print_interval = 10
     if DEBUG:
         total_iteration = 2
         export_interval = 1
@@ -204,7 +204,7 @@ def main(DX,DT,T_exp,variant="default"):
     profiler.print_kernel_profiler_info()
     # profiler.print_memory_profiler_info()
 if __name__=="__main__":
-    os.environ["ARCH"]="GPU"
+    # os.environ["ARCH"]="GPU"
     DX = float(sys.argv[1])
     DT = float(sys.argv[2])
     T_exp = float(sys.argv[3])

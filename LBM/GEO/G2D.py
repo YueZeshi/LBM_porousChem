@@ -8,12 +8,15 @@ TYPE_V2 = ti.types.vector(2,float)
 TYPE_V3 = ti.types.vector(3,float)
 @ti.data_oriented
 class Mesh2D:
-    def __init__(self,nx,ny):
-        self.nx = nx
-        self.ny = ny
-        self.S = ti.field(float,shape=(nx,ny,1))
-        self.L = ti.field(float,shape=(nx,ny,1))
-        self.d = ti.field(float,shape=(nx+1,ny+1,1))
+    def __init__(self,x,y,dx):
+        self.x = x
+        self.y = y
+        self.dx = dx
+        self.nx = int(x/dx)
+        self.ny = int(y/dx)
+        self.S = ti.field(float,shape=(self.nx,self.ny,1))
+        self.L = ti.field(float,shape=(self.nx,self.ny,1))
+        self.d = ti.field(float,shape=(self.nx+1,self.ny+1,1))
 
     def export_numpy(self):
         return self.S.to_numpy(),self.L.to_numpy()
@@ -22,10 +25,12 @@ class Mesh2D:
         if shape.lower()=="circle":
             self.CreateMesh2DCircle(params[0][0],params[0][1],params[1]) 
         if shape.lower()=="rectangular":
-            self.CreateMesh2DRectangle(ti.Vector(params[0]),ti.Vector(params[1]))
+            self.CreateMesh2DRectangle(params[0][0],params[0][1],params[1][0],params[1][1])
 
     @ti.kernel
-    def CreateMesh2DRectangle(self,vertex1:TYPE_V3,vertex2:TYPE_V3):# type: ignore
+    def CreateMesh2DRectangle(self,p11:float,p12:float,p21:float,p22:float):# type: ignore
+        vertex1 = ti.Vector([p11/self.dx,p12/self.dx,0.0])
+        vertex2 = ti.Vector([p21/self.dx,p22/self.dx,0.0])
         for i,j in ti.ndrange(self.nx+1,self.ny+1): # 计算并存储各个格子顶点的距离值
             point = ti.Vector([i,j,0])
             self.d[i,j,0] = self.rectangle(point,vertex1,vertex2)
@@ -36,9 +41,11 @@ class Mesh2D:
         
     @ti.kernel
     def CreateMesh2DCircle(self, center_x:float,center_y:float, radius:float): # type: ignore
+        center = ti.Vector([center_x/self.dx,center_y/self.dx,0])
+        r = radius/self.dx
         for i,j in ti.ndrange(self.nx+1,self.ny+1): # 计算并存储各个格子顶点的距离值
             point = ti.Vector([i,j,0])
-            self.d[i,j,0] = self.circle(point,ti.Vector([center_x,center_y,0]),radius)
+            self.d[i,j,0] = self.circle(point,center,r)
         for i in ti.grouped(self.S):
             s,l = self.calculate_s_l(self.d[i],self.d[i+ti.Vector([1,0,0])],self.d[i+ti.Vector([0,1,0])],self.d[i+ti.Vector([1,1,0])])
             self.S[i] = s
@@ -50,8 +57,8 @@ class Mesh2D:
         return v.norm()-radius
     @ti.func 
     def rectangle(self,point,v1,v2):
-        dh = abs(point[0]-(v1[0]+v2[0]/2))-abs(v2[0]-v1[0])/2
-        dv = abs(point[1]-(v1[1]+v2[1]/2))-abs(v2[1]-v1[1])/2
+        dh = abs(point[0]-(v1[0]+v2[0])/2)-abs(v2[0]-v1[0])/2
+        dv = abs(point[1]-(v1[1]+v2[1])/2)-abs(v2[1]-v1[1])/2
         return max(dh,dv)
     @ti.func
     def calculate_s_l(self,d1,d2,d3,d4): # f16时有问题 调用了inverse函数 除法有问题

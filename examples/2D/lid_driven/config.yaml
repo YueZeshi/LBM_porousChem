@@ -1,0 +1,63 @@
+basic:
+  name      : lid_driven
+  author    : Sylvain
+  date      : 2025-12-15
+  dimension : 2
+  arch      : cpu
+  type      : configuration 
+
+module : 
+  flow : true
+  chemistry : false
+  temperature : false
+  porous_media : false
+  radiation : false
+
+
+spaceControl:
+  geometry : [0.2,0.1]
+  DX : 1e-3
+
+
+timeControl:
+  startTime : 0
+  endTime : 1000
+  DT : 1e-3
+
+flowProperties:
+  viscosity : 0.01
+
+
+boundaryCondition:
+  left:
+    flow:
+      type: wall
+  right:
+    flow:
+      type: wall
+  down:
+    flow:
+      type: wall
+  up:
+    flow:
+      type : inlet
+      velocity : [0.01,0.0,0.0]
+  
+initialCondition:
+  flow:
+    rho : 1
+    velocity : [0,0,0]
+  
+
+outputControl:
+  vtk:
+    interval : 10
+    path : vtk
+    LOD : 1
+    clear : true
+  log:
+    interval : 10
+    LOD : 1
+  snapshot:
+    interval : 100
+    path : snapshot

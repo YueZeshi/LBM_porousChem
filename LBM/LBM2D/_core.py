@@ -5,6 +5,7 @@ from ..util.flag import *
 from ._thermal import TemperatureFluid,TemperatureSolid
 from ._chemical import Specie,Reaction,Reactions
 from ._info import INFO
+from ..vtk_tool.paraview import PVDWriter
 @ti.data_oriented
 class LBM2D_BASE:
     def __init__(self, X, Y ,dx = 0.001,dt = 0.001,name="LBM",isThermal = False,isChemical = False,isPoro = False,isRadiation = False):
@@ -13,7 +14,7 @@ class LBM2D_BASE:
         # 模型参数
         self.X = X
         self.Y = Y
-        self.t = 0
+        self.tLattice : int = 0
         self.dx,self.dt = dx,dt #格子尺度 步进时间
         self.nx=int(self.X/self.dx)
         self.ny=int(self.Y/self.dx)
@@ -48,6 +49,15 @@ class LBM2D_BASE:
         self.bc_rho = [BC.periodic]*4
         self.v_BC = ti.Vector.field(3,float,shape = (4))
         self.rho_BC = ti.field(float,shape = (4))
+        self.flow_BC = ti.field(float,shape = (4))
+        self.v_bc_profile = [ti.Vector.field(3,float,shape = (1,self.ny,self.nz)),
+                             ti.Vector.field(3,float,shape = (1,self.ny,self.nz)),
+                             ti.Vector.field(3,float,shape = (self.nx,1,self.nz)),
+                             ti.Vector.field(3,float,shape = (self.nx,1,self.nz)),]
+        self.rho_bc_profile = [ti.field(float,shape = (1,self.ny,self.nz)),
+                               ti.field(float,shape = (1,self.ny,self.nz)),
+                               ti.field(float,shape = (self.nx,1,self.nz)),
+                               ti.field(float,shape = (self.nx,1,self.nz)),] 
         self.sideName = ["left","right","bottom","top"]
         self.UpdateBCfunc = [] # 可变边界条件
         self.GetVariableFunc = [] # 获取观测量的函数
@@ -58,12 +68,12 @@ class LBM2D_BASE:
         self.PORO = isPoro
         self.RADIATION = isRadiation and isThermal
         if self.TEMPERATURE:
-            self.TF = TemperatureFluid("Temperature of Fluid",self.nx,self.ny,self.nz,self)
-            self.TS = TemperatureSolid("Temperature of Solid",self.nx,self.ny,self.nz,self,isRadiation = self.RADIATION)
+            self.TF = TemperatureFluid("Temperature of Fluid",self)
+            self.TS = TemperatureSolid("Temperature of Solid",self,isRadiation = self.RADIATION)
             self.min_T = ti.field(float,shape=())
         if self.CHEMISTRY:
             self.specieName = []
-            self.species:list[str,Specie] = []
+            self.species:list[Specie] = []
             self.reactions = Reactions(self) 
         if self.PORO:        
             self.poro_model = PORO_MODEL.SPHERICAL # 使用的多孔介质模型 如球孔介质模型 Darcy Darcy-Forhheimer
@@ -79,6 +89,10 @@ class LBM2D_BASE:
         if self.CHEMISTRY:
             for specie in self.species:
                 specie.default_init()
+                
+        self.PVD = PVDWriter(name=self.name)
+        self.exportPath = "vtk"
+        self.snapshotPath = "snapshot.yaml"
     # 内置函数
     def __repr__(self):
         return self.__str__()
@@ -89,16 +103,15 @@ class LBM2D_BASE:
     @ti.func
     def feq9(self,s,i,j,k):
         pass
-    @ti.kernel
-    def Boundary_condition(self):
-        pass
-    @ti.kernel
+    @ti.func
     def Boundary_condition_NEBB(self):
         pass
         
-    @ti.kernel
+    @ti.func
     def Boundary_condition_NEE(self):
         pass
-    @ti.kernel 
+    @ti.func 
     def Boundary_condition_ES(self):
+        pass
+    def updateBC(self):
         pass

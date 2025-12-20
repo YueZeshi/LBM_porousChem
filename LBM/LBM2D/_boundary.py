@@ -1,4 +1,4 @@
-from re import escape
+
 import taichi as ti
 from ._core import LBM2D_BASE
 
@@ -19,7 +19,6 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
                     if ti.static(not specie.FIX):
                         specie.Boundary_condition_scalar_0(0,j,k)
             if ti.static(self.TEMPERATURE):
-                # print("boundary IE")
                 self.TF.Boundary_condition_scalar_0(0,j,k) # note: 后更新焓的边界条件，使用到的热容计算需要边界区域的物质浓度
                 self.TS.Boundary_condition_scalar_0(0,j,k)
             self.Boundary_condition_flow_NEE_1(self.nx-1,j,k)
@@ -37,7 +36,6 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
                     if ti.static(not specie.FIX):
                         specie.Boundary_condition_scalar_2(i,0,k)
             if ti.static(self.TEMPERATURE):
-                # print("boundary IE")
                 self.TF.Boundary_condition_scalar_2(i,0,k) # note: 后更新焓的边界条件，使用到的热容计算需要边界区域的物质浓度
                 self.TS.Boundary_condition_scalar_2(i,0,k)
             self.Boundary_condition_flow_NEE_3(i,self.ny-1,k)
@@ -46,41 +44,31 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
                     if ti.static(not specie.FIX):
                         specie.Boundary_condition_scalar_3(i,self.ny-1,k)
             if ti.static(self.TEMPERATURE):
-                # print("boundary IE")
                 self.TF.Boundary_condition_scalar_3(i,self.ny-1,k) # note: 后更新焓的边界条件，使用到的热容计算需要边界区域的物质浓度
                 self.TS.Boundary_condition_scalar_3(i,self.ny-1,k)
 
     @ti.func
     def Boundary_condition_flow_NEE_0(self,x,y,z):
         if ti.static(self.bc_v[0]==BC.fixedValue):
-            if ti.static(self.PORO):    
-                if self.solid[0,y,z]>0:
-                    self.v[0,y,z] = self.v_BC[0]#*(1-self.kinetic_viscosity(ti.Vector([0,y,z]))*self.coefDarcy[ti.Vector([0,y,z])]*self.dt/2.0)
-                else:
-                    self.v[0,y,z] = self.v_BC[0]
-            else:
-                self.v[0,y,z] = self.v_BC[0]    
+            self.v[0,y,z] = self.v_bc_profile[0][0,y,z]
         elif ti.static(self.bc_v[0]==BC.zeroGradient):
-            self.v[0,y,z] = self.v[1,y,z]
+            self.v[0,y,z] = self.v[1,y,z]#2*self.v[1,y,z]-self.v[2,y,z]
         if ti.static(self.bc_rho[0]==BC.fixedValue):
-            self.rho[0,y,z] = self.rho_BC[0]
+            self.rho[0,y,z] = self.rho_bc_profile[0][0,y,z]
         elif ti.static(self.bc_rho[0]==BC.zeroGradient):
-            self.rho[0,y,z] = 2*self.rho[1,y,z]-self.rho[2,y,z]
+            self.rho[0,y,z] = 2*self.rho[1,y,z]-self.rho[2,y,z]#self.rho[1,y,z]#2*self.rho[1,y,z]-self.rho[2,y,z]
         for s in ti.static(range(9)):
             self.f[0,y,z][s] = self.feq9(s,0,y,z)+(self.f[1,y,z][s]-self.feq9(s,1,y,z))
-        if ti.static(self.bc_v[0]==BC.fixedValue):
-            self.v[0,y,z] = self.v_BC[0]
     @ti.func
     def Boundary_condition_flow_NEE_1(self,x,y,z):
-        
         if ti.static(self.bc_v[1]==BC.fixedValue):
             self.v[self.nx-1,y,z] = self.v_BC[1]
         elif ti.static(self.bc_v[1]==BC.zeroGradient):
-            self.v[self.nx-1,y,z] = self.v[self.nx-2,y,z]
+            self.v[self.nx-1,y,z] = self.v[self.nx-2,y,z]#2*self.v[self.nx-2,y,z]-self.v[self.nx-3,y,z]
         if ti.static(self.bc_rho[1]==BC.fixedValue):
             self.rho[self.nx-1,y,z] = self.rho_BC[1]
         elif ti.static(self.bc_rho[1]==BC.zeroGradient):
-            self.rho[self.nx-1,y,z] = self.rho[self.nx-2,y,z]
+            self.rho[self.nx-1,y,z] = 2*self.rho[self.nx-2,y,z]-self.rho[self.nx-3,y,z]#self.rho[self.nx-2,y,z]#
         for s in ti.static(range(9)):
             self.f[self.nx-1,y,z][s] = self.feq9(s,self.nx-1,y,z)+(self.f[self.nx-2,y,z][s]-self.feq9(s,self.nx-2,y,z))
     @ti.func
@@ -88,11 +76,11 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
         if ti.static(self.bc_v[2]==BC.fixedValue):
             self.v[x,0,z] = self.v_BC[2]
         elif ti.static(self.bc_v[2]==BC.zeroGradient):
-            self.v[x,0,z] = self.v[x,1,z]
+            self.v[x,0,z] = self.v[x,1,z]#2*self.v[x,1,z]-self.v[x,2,z]
         if ti.static(self.bc_rho[2]==BC.fixedValue):
             self.rho[x,0,z] = self.rho_BC[2]
         elif ti.static(self.bc_rho[2]==BC.zeroGradient):
-            self.rho[x,0,z] = self.rho[x,1,z]
+            self.rho[x,0,z] = self.rho[x,1,z]#2*self.rho[x,1,z]-self.rho[x,2,z]
         for s in ti.static(range(9)):
             self.f[x,0,z][s] = self.feq9(s,x,0,z)+(self.f[x,1,z][s]-self.feq9(s,x,1,z))
     @ti.func
@@ -100,11 +88,11 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
         if ti.static(self.bc_v[3]==BC.fixedValue):
             self.v[x,self.ny-1,z] = self.v_BC[3]
         elif ti.static(self.bc_v[3]==BC.zeroGradient):
-            self.v[x,self.ny-1,z] = self.v[x,self.ny-2,z]
+            self.v[x,self.ny-1,z] = self.v[x,self.ny-2,z]#2*self.v[x,self.ny-2,z]-self.v[x,self.ny-3,z]
         if ti.static(self.bc_rho[3]==BC.fixedValue):
             self.rho[x,self.ny-1,z] = self.rho_BC[3]
         elif ti.static(self.bc_rho[3]==BC.zeroGradient):
-            self.rho[x,self.ny-1,z] = self.rho[x,self.ny-2,z]
+            self.rho[x,self.ny-1,z] = self.rho[x,self.ny-2,z]#2*self.rho[x,self.ny-2,z]-self.rho[x,self.ny-3,z]
         for s in ti.static(range(9)):
             self.f[x,self.ny-1,z][s] = self.feq9(s,x,self.ny-1,z)+(self.f[x,self.ny-2,z][s]-self.feq9(s,x,self.ny-2,z))
     """NEBB"""
@@ -118,7 +106,6 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
                     if ti.static(not specie.FIX):
                         specie.Boundary_condition_scalar_0(0,j,k)
             if ti.static(self.TEMPERATURE):
-                # print("boundary IE")
                 self.TF.Boundary_condition_scalar_0(0,j,k) # note: 后更新焓的边界条件，使用到的热容计算需要边界区域的物质浓度
                 self.TS.Boundary_condition_scalar_0(0,j,k)
             self.Boundary_condition_flow_NEBB_1(self.nx-1,j,k)
@@ -322,3 +309,28 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
             self.rho[x,self.ny-1,z] = self.rho[x,self.ny-2,z]
         for s in ti.static(range(9)):
             self.f[x,self.ny-1,z][s] = self.feq9(s,x,self.ny-1,z)
+
+    def updateBC(self,t):
+        # internal update
+        self.updateBC_kernel()
+        # external update
+        for func in self.UpdateBCfunc:
+            func(self,t)
+    @ti.kernel
+    def updateBC_kernel(self):
+        if ti.static(self.bc[0]==BC_FLOW.inlet_flow):
+            flow0 = 0.0
+            for j,k in ti.ndrange(self.ny,self.nz):
+                flow0 += self.rho[0,j,k]*self.v[0,j,k][0]
+            coef = self.flow_BC[0]/flow0
+            a = .1
+            for j,k in ti.ndrange(self.ny,self.nz):
+                self.v_bc_profile[0][0,j,k] = (a*coef+1-a)*self.v[1,j,k]
+                self.rho_bc_profile[0][0,j,k] = self.rho[1,j,k]
+            
+        # if ti.static(self.bc[0]==BC_FLOW.inlet_flow):
+        # for j,k in ti.ndrange(self.ny,self.nz):
+        # if ti.static(self.bc[0]==BC_FLOW.inlet_flow):
+        # for i,k in ti.ndrange(self.nx,self.nz):
+        # if ti.static(self.bc[0]==BC_FLOW.inlet_flow):
+        # for i,k in ti.ndrange(self.nx,self.nz):

@@ -1,8 +1,9 @@
+from ._core import LBM3D_BASE
 from ..util.flag import *
 import taichi as ti
 
 @ti.data_oriented
-class LBM3D_INITIALIZATION:
+class LBM3D_INITIALIZATION(LBM3D_BASE):
     # 初始化
     @ti.kernel
     def default_init(self): # 创建时初始化
@@ -65,8 +66,10 @@ class LBM3D_INITIALIZATION:
             self.w19[7] = 1.0/36.0; self.w19[8] = 1.0/36.0; self.w19[9] = 1.0/36.0; self.w19[10] = 1.0/36.0
             self.w19[11] = 1.0/36.0; self.w19[12] = 1.0/36.0; self.w19[13] = 1.0/36.0; self.w19[14] = 1.0/36.0
             self.w19[15] = 1.0/36.0; self.w19[16] = 1.0/36.0; self.w19[17] = 1.0/36.0; self.w19[18] = 1.0/36.0
+
             self.e7[0] = ti.Vector([0,0,0])
             self.e7[1] = ti.Vector([1,0,0]); self.e7[2] = ti.Vector([-1,0,0]); self.e7[3] = ti.Vector([0,1,0]); self.e7[4] = ti.Vector([0,-1,0]);self.e7[5] = ti.Vector([0,0,1]); self.e7[6] = ti.Vector([0,0,-1])
+            
             self.w7[0] = 1.0/4.0
             self.w7[1] = 1.0/8.0; self.w7[2] = 1.0/8.0; self.w7[3] = 1.0/8.0; self.w7[4] = 1.0/8.0; self.w7[5] = 1.0/8.0; self.w7[6] = 1.0/8.0
             
@@ -85,7 +88,7 @@ class LBM3D_INITIALIZATION:
                     if self.rho1[i]==0:
                         self.rho1[i]=1.0
             for s in ti.static(range(19)):
-                self.f[i][s] = self.feq19(s,self.rho[i],self.v[i],eps)
+                self.f[i][s] = self.feq19(s,i[0],i[1],i[2])
                 self.F[i][s] = self.f[i][s]
             # if ti.static(self.TEMPERATURE):
             #     self.IE.uS[i] = self.IE.S[i]*self.v[i]

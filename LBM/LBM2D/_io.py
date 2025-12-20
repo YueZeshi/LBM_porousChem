@@ -4,9 +4,12 @@ import os
 from pyevtk.hl import gridToVTK
 import pickle
 import json
+
+from ruamel.yaml import YAML
 from ._core import LBM2D_BASE
 from LBM.GEO.G2D import Mesh2D
 from ..util.flag import *
+from ..util import constant
 from ._scalarField import ScalarField
 from ._chemical import Specie,Reaction
 from ._thermal import TemperatureFluid,TemperatureSolid
@@ -17,8 +20,10 @@ class LBM2D_INPUT(LBM2D_BASE):
     #----------
     # 初始化场
     # 设置场初值
+    def set_vtk_path(self,path):
+        self.path = path
+        self.PVD.path = path
     def init_field(self,field,param):
-        
         if(type(param) in [float,int]):
             data = param*np.ones(shape=(self.nx,self.ny,self.nz),dtype=np.float32) 
             field.from_numpy(data)
@@ -36,6 +41,8 @@ class LBM2D_INPUT(LBM2D_BASE):
         if(type(param1) is str):
             dat1 = np.loadtxt(param1)
             dat1 = np.reshape(dat1, (self.nx,self.ny,self.nz),order='F')
+        if(type(param1)==np.ndarray):
+            dat1 = param1
         if(type(param2) in [float,int]):
             dat2 = param2*np.ones(shape=(self.nx,self.ny,self.nz))   
         if(type(param2) is str):
@@ -49,18 +56,22 @@ class LBM2D_INPUT(LBM2D_BASE):
         if(type(param1) is str):
             dat1 = np.loadtxt(param1)
             dat1 = np.reshape(dat1, (self.nx,self.ny,self.nz),order='F')
-
+        if(type(param1)==np.ndarray):
+            dat1 = np.array(param1)
         if(type(param2) in [float,int]):
             dat2 = param2*np.ones(shape=(self.nx,self.ny,self.nz))   
         if(type(param2) is str):
             dat2 = np.loadtxt(param2)
             dat2 = np.reshape(dat2, (self.nx,self.ny,self.nz),order='F')
-
+        if(type(param2)==np.ndarray):
+            dat2 = np.array(param2)
         if(type(param3) in [float,int]):
             dat3 = param3*np.ones(shape=(self.nx,self.ny,self.nz))   
         if(type(param3) is str):
             dat3 = np.loadtxt(param3)
             dat3 = np.reshape(dat3, (self.nx,self.ny,self.nz),order='F')
+        if(type(param3)==np.ndarray):
+            dat3 = np.array(param3)
         dat1 = np.expand_dims(dat1,3)
         dat2 = np.expand_dims(dat2,3)
         dat3 = np.expand_dims(dat3,3)
@@ -121,12 +132,24 @@ class LBM2D_INPUT(LBM2D_BASE):
             self.init_field(self.TS.real_radiation,param)
     ## 浓度场 (物种密度)
     def set_specie(self,specie,FIX = False):
-        self.species.append(Specie(specie,self.nx,self.ny,self.nz,self,FIX))
+        self.species.append(Specie(specie,self,FIX))
         self.specieName.append(specie)
 
-    def set_specie_mole(self,specie,isFix = False,molemass = 1.0):
-        self.species.append(Specie(specie,self.nx,self.ny,self.nz,self,Mmass = molemass,FIX=isFix))
-        
+    def set_specie_mole(self,specie,Fix = False,molemass = 1.0):
+        self.species.append(Specie(specie,self,Mmass = molemass,FIX=Fix))
+        self.specieName.append(specie)
+    def set_specie_NASA7(self,specieName:str,TRange:list[float],coef:list):
+        specie = self.species[self.specieName.index(specieName)]
+        for i in range(len(TRange)):
+            specie.Trange[i] = TRange[i]
+        if len(coef)==1:
+            for i in range(7):
+                specie.NASAcoef1[i] = coef[0][i]
+                specie.NASAcoef2[i] = coef[0][i]
+        else:
+            for i in range(7):
+                specie.NASAcoef1[i] = coef[0][i]
+                specie.NASAcoef2[i] = coef[1][i]
     def set_species(self,species,FIX=None):# 登记所有物质
         if FIX == None:
             FIX = [False]*len(species)
@@ -155,30 +178,16 @@ class LBM2D_INPUT(LBM2D_BASE):
     def set_specie_diff_func(self,name,func):
         self.species[self.specieName.index(name)].coefDiff = func.__get__(self.species[self.specieName.index(name)],ScalarField)
     def set_specie_capacity(self,name:str,cm:float): # 质量热容
-        @ti.func
-        def new_cm(self,i):
-            return cm
-        self.set_specie_capacity_func(name,new_cm)
-    def set_specie_capacity_func(self,name,func):
-        '''
-        定义质量热容
-        '''
-        self.species[self.specieName.index(name)].capacity_m = func.__get__(self.species[self.specieName.index(name)],ScalarField)
+        self.set_specie_NASA7(name,[0,0,0],[[0,cm,0,0,0,0,0]]) # Jkg-1K-1 to kJkg-1K-1
 
     def set_specie_conductivity(self,name,lamb): # 传热系数
-        @ti.func
-        def new_lamb(self,i):
-            return lamb
-        self.set_specie_conductivity_func(name,new_lamb)
-    def set_specie_conductivity_func(self,name,func):
-        self.species[self.specieName.index(name)].conductivity = func.__get__(self.species[self.specieName.index(name)],ScalarField)
-    
+        self.species[self.specieName.index(name)].default_conductivity = lamb
     # 定义化学反应
-    def add_reaction(self,name,reactant,product, param,unit=SPECIE_UNIT.MASS):
-        self.reactions.add_reaction(Reaction(name,reactant,product,param,self,unit=unit))
+    def add_reaction(self,formula,A,Ea,b = 0,Tmin = 0,deltaH = 0,name="unnamed",unit=SPECIE_UNIT.MASS,fixDH = True):
+        self.reactions.add_reaction(Reaction(formula,A,Ea,b,Tmin,deltaH,self,name,unit,fixDH))
     
     # 设置边界条件
-    def set_BC(self,i,bc):
+    def set_BC(self,i,bc): # v and rho can't be fixed together - overconstrain
         self.bc[i]=bc
         if bc==BC_FLOW.inlet:
             self.set_v_BC(i,BC.fixedValue)
@@ -190,6 +199,9 @@ class LBM2D_INPUT(LBM2D_BASE):
             self.set_v_BC(i,BC.zeroGradient)
             self.set_rho_BC(i,BC.zeroGradient)
         if bc==BC_FLOW.wall:
+            self.set_v_BC(i,BC.fixedValue)
+            self.set_rho_BC(i,BC.zeroGradient)
+        if bc==BC_FLOW.inlet_flow:
             self.set_v_BC(i,BC.fixedValue)
             self.set_rho_BC(i,BC.zeroGradient)
     def set_BCs(self,BCs):
@@ -210,7 +222,13 @@ class LBM2D_INPUT(LBM2D_BASE):
         self.rho_BC[i]=r
     def set_rho_BCs_value(self,rhos):
         for i in range(4):        
-            self.set_rho_BC_value(i,rhos[i])
+            self.set_rho_BC_value(i,rhos[i])    
+    def set_flow_BC_value(self,i,v):
+        self.flow_BC[i]=v
+    def set_flow_BCs_value(self,vs,unit = "lattice"):
+        for i in range(4):
+            self.set_flow_BC_value(i,vs[i])
+
     def set_TS_BC(self,i,BC):
         self.TS.set_BC(i,BC)
     def set_TS_BCs(self,BCs):
@@ -246,10 +264,33 @@ class LBM2D_INPUT(LBM2D_BASE):
         self.species[self.specieName.index(name)].set_s_BC_flux(i,f)
     def set_specie_BCs_flux(self,name, fs):
         self.species[self.specieName.index(name)].set_s_BCs_flux(fs)
+    def load_cantera(self,file):
+        """
+        load_yaml 读取yaml机理文件 cantera格式
+        
+        :param file: file path
+        """
+        yaml = YAML()
+        with open(file,"r") as f:
+            data = yaml.load(f)
+            for specie_info in data["species"]:
+                name = specie_info["name"]
+                mmass = 0.0
+                for elem,number in specie_info["composition"].items():
+                    mmass+=number*constant.MOLEMASS[elem]
+                if name.endswith("(S)"):
+                    self.set_specie_mole(name,Fix = True,molemass=mmass)
+                else:
+                    self.set_specie_mole(name,Fix = False,molemass=mmass)
+                self.set_specie_NASA7(name,specie_info["thermo"]["temperature-ranges"],specie_info["thermo"]["data"])
+                
+            for reaction_info in data["reactions"]:
+                A = reaction_info["rate-constant"]["A"]
+                Ea = reaction_info["rate-constant"]["Ea"]
+                b = reaction_info["rate-constant"]["b"]
+                self.add_reaction(reaction_info["equation"],A,Ea,b,unit = SPECIE_UNIT.MOLE,fixDH = False)
     @classmethod
-    def CreateLBM3D(cls,case_file):
-        with open(case_file,"r") as f:
-            config = json.load(f)
+    def CreateLBM(cls,config):
         if config["BASIC"]["model"]!="2D":
             raise ValueError("Please specify mode type (2D/3D) in json file.")
         x = config["BASIC"]["X"]
@@ -334,7 +375,7 @@ class LBM2D_OUTPUT(LBM2D_BASE):
         if self.TEMPERATURE:
             self.min_T[None]= 1e10
             self.cal_min_T()
-            return self.min_T[None]
+            return self.TF.get_physical_value(self.min_T[None])
         else:
             return -1
     @ti.kernel
@@ -345,85 +386,28 @@ class LBM2D_OUTPUT(LBM2D_BASE):
     def cal_min_T(self):
         for I in ti.grouped(self.rho):
             ti.atomic_min(self.min_T[None], self.TF.S[I])
-    
-
-    def export_LBM(self,path):
-        lbm_info = {"TYPE":"snapshot"}
-        # config
-        ## BASIC
-        basic_info = {
-        "model":"2D",
-        "name":self.name,
-        "X":self.X,
-        "Y":self.Y,
-        "Z":self.Z,
-        "DX":self.dx,
-        "DT":self.dt,
-        "PORO":self.PORO,
-        "CHEMICAL":self.CHEMISTRY,
-        "THERMAL":self.TEMPERATURE,
-        "RADIATION":self.RADIATION
-        }
-        lbm_info["BASIC"]=basic_info
-        ## FLOW
-        flow_info = {}
-        flow_info["viscosity"] = {
-            "function":"uniform",
-            "value":1e-5
-            }
-        flow_BC = {}
-        for i in range(4):
-            flow_BC_side = {}
-            if self.bc[i]==BC_FLOW.periodic:
-                flow_BC_side["type"]="periodic"
-            elif self.bc[i]==BC_FLOW.inlet:
-                flow_BC_side["type"]="inlet"
-                flow_BC_side["velocity"] = list(self.v_BC[i])
-            elif self.bc[i]==BC_FLOW.outlet:
-                flow_BC_side["type"]="outlet"
-                flow_BC_side["rho"]= self.rho_BC[i]
-            elif self.bc[i]==BC_FLOW.wall:
-                flow_BC_side["type"]="wall"
-            elif self.bc[i]==BC_FLOW.symmetric:
-                flow_BC_side["type"]="symmetric"
-            flow_BC[self.sideName[i]]=flow_BC_side
-        flow_info["boundaryCondition"]=flow_BC
-        flow_info["f"]=self.f.to_numpy().tolist()
-        flow_info["v"] = self.v.to_numpy().tolist()
-        lbm_info["FLOW"] = flow_info
-        ## SOLID
-        solid = self.solid.to_numpy().tolist()
-        lbm_info["SOLID"]=solid
+    def log_info(self):
+        p = f"    t(LU)={self.tLattice} : Max velocity magnitude (LU) : {self.get_max_v():.7f}, "
         if self.TEMPERATURE:
-            ## TEMPERATURE FLUID
-            TF_info = {}
-            lbm_info["TEMPERATURE_FLUID"]=TF_info
-            ## TEMPERATURE SOLID
-            TS_info = {}
-            lbm_info["TEMPERATURE_SOLID"]=TS_info
-            ## RADIATION
-            if self.RADIATION:
-                radiation_info = {}
-                lbm_info["RADIATION"]=radiation_info
-        ## SPECIES
-        if self.CHEMICAL:
-            species_info = {}
-        with open(path,"w") as f:
-            json.dump(lbm_info,f,indent=4)
-   
-    def export_VTK(self, name, n): # 导出为vtk 到指定文件夹中
-        path = os.path.join("result",name)
-        os.makedirs(path,exist_ok=True)
+            p +=f"Min temperature: {self.get_min_T():.7f} K"
+        return p
+    def export_snapshot(self,config):
+
+        pass
+
+    def export_VTK(self): # 导出为vtk 到指定文件夹中
+        filename = os.path.join(self.exportPath,self.name+"_"+str(self.tLattice))
         gridToVTK(
-                os.path.join(path,name+"_"+str(n)),
+                filename,
                 self.x,
                 self.y,
                 self.z,
                 # cellData={"pressure": pressure},
                 pointData=self.get_data()
             )
+        self.PVD.addVTK(self.tLattice*self.dt,os.path.basename(filename)+".vtr")
+        self.PVD.writePVD()
     def get_data(self): # 获取所有数据（字典）
-        
         data = {    "solid":self.solid.to_numpy(),
                     "rho": self.rho.to_numpy(),
                     "velocity": (
@@ -436,8 +420,8 @@ class LBM2D_OUTPUT(LBM2D_BASE):
             # data["solid"]=self.solid.to_numpy()
             data["solid_init"]=self.rho1.to_numpy()
         if self.TEMPERATURE:
-            data["Tf"]  = self.TF.S.to_numpy()
-            data["Ts"]  = self.TS.S.to_numpy()
+            data["Tf"]  = self.TF.get_physical_value(self.TF.S.to_numpy())
+            data["Ts"]  = self.TS.get_physical_value(self.TS.S.to_numpy())
             if self.RADIATION:
                 data["Radiation_surface"] = self.TS.radiation_surface.to_numpy()
                 if self.TS.radiation_model == RADIATION_MODEL.REAL_RADIATION:
@@ -463,7 +447,6 @@ class LBM2D_OUTPUT(LBM2D_BASE):
             res[name]=value
         return res
     def check_python(self):
-        print(self.GetVariableFunc[0](self)[1],end = " ",flush=True)
         self.check_kernel()
     @ti.kernel
     def check_kernel(self):
@@ -471,7 +454,7 @@ class LBM2D_OUTPUT(LBM2D_BASE):
     @ti.func
     def check(self):
         s1 = [int(self.nx/2),int(self.ny/2),int(self.nz/2)]
-        # print(self.TS.S[s1],self.species[2].S[s1])
+        print(self.TF.S[s1], self.TF.physical_value(self.TF.S[s1]),self.TF.coefDiff(s1))
         # rad = 0.0
         # rad_surface = 0.0
         # for i in ti.grouped(self.rho):

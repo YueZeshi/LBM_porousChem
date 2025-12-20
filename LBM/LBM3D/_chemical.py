@@ -26,9 +26,10 @@ class Specie(ScalarField): # 物种质量分数场
     @ti.func
     def geq7(self,k,S,x,y,z):
         u = self.LBM.v[x,y,z]
-        eu = self.LBM.e5[k].dot(u)
+        eu = self.LBM.e7[k].dot(u)
+        uv = u.dot(u)
         geqout = 0.0
-        geqout += self.LBM.w5[k]*S*(1+3*eu)
+        geqout += self.LBM.w7[k]*S*(1+4.0*eu+8.0*eu*eu-2*uv)
         return geqout
 
 @ti.data_oriented
@@ -42,7 +43,7 @@ class Reaction:
         self.Ea = float(param[2])
         self.Tmin = float(param[3])
         self.deltaH = float(param[4])
-        self.LBM:LBM3D_BASE = lb3d
+        self.LBM= lb3d
         self.unit = unit
         self.coefProduct = ti.field(float,shape=(len(self.LBM.species)))
         self.coefReactant = ti.field(float,shape=(len(self.LBM.species)))

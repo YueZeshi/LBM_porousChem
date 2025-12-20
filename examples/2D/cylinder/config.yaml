@@ -1,0 +1,101 @@
+basic:
+  name      : cylinder
+  author    : Sylvain
+  date      : 2025-12-15
+  dimension : 2
+  arch      : cpu
+  type      : configuration 
+
+module : 
+  flow : true
+
+
+spaceControl:
+  geometry : [1,0.1]
+  DX : 1e-3
+
+
+timeControl:
+  startTime : 0
+  endTime : 1000
+  DT : 1e-3
+
+flowProperties:
+  viscosity : 0.002
+
+chemicalProperties:
+  source : cantera
+
+geometry:
+  zone1:
+    type : circle
+    center : [0.1,0.05]
+    radius : 0.01
+  # zone2:
+  #   type : rectangle
+  #   point1 : [0.04,0.02]
+  #   point2 : [0.06,0.08]
+
+initialCondition:
+  solid:
+    solid1:
+      zone : ALL
+      type : concrete
+  flow:
+    rho : 1
+    velocity : [0,0,0]
+  thermal:
+    T : 300
+  chemical:
+    N2 : 
+      zone : all
+      value : 1
+    wood(S):
+      zone : zone1
+      vaue : 400
+
+boundaryCondition:
+  left:
+    flow:
+      type: inlet
+      velocity : [0.01,0,0]
+    thermal:
+      type:
+    chemical:
+      type:
+  right:
+    flow:
+      type: outlet
+      rho: 1
+    thermal:
+      type:
+    chemical:
+      type:
+  down:
+    flow:
+      type: wall
+    thermal:
+      type:
+    chemical:
+      type:
+  up:
+    flow:
+      type : wall
+    thermal:
+      type:
+    chemical:
+      type:
+  
+
+outputControl:
+  vtk:
+    interval : 10
+    path : vtk
+    LOD : 1
+    clear : true
+  log:
+    interval : 10
+    LOD : 1
+  snapshot:
+    interval : 100
+    path : snapshot

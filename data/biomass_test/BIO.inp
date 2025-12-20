@@ -1,0 +1,60 @@
+ELEMENTS
+C H O N HE AR K
+END
+
+SPECIES
+
+O2
+C2H4
+C2H6
+CH4
+CO
+CO2
+H2
+C2H3CHO
+CH3COCH3
+CH2O
+C2H5CHO
+C2H5OH
+C5H8O4
+C6H10O5
+C6H5OCH3
+C6H5OH
+C6H6O3
+C24H28O4
+CH2OHCH2CHO
+CH2OHCHO
+CH3CHO
+CH3CO2H
+CH3OH
+CHOCHO
+CRESOL
+FURAN
+FURFURAL
+H2O
+HOCHO
+MLINO
+U2ME12
+VANILLIN
+END
+
+SOLID
+LIGC    LIGH    LIGO    
+TGL     TANN    MOIST   ASH
+CELLA   HCE1    HCE2    LIGCC   LIGOH   LIG     ITANN
+CHAR    COH2S   CO2S    COS     CH3OHS  CH4S    C2H4S
+C6H5OHS CH2OS   H2S     C2H6S		CHARO   COSTIFFS 
+END
+
+REACTIONS    
+
+LIGH=>LIGOH+0.5C2H5CHO+0.4C2H4+0.2CH2OHCHO+.1CO+.1C2H6                                                                                                                                   6.700E+12  0.000  37500.0
+LIGO=>LIGOH+CO2                                                                                                                                                                          3.300E+08  0.000  25500.0
+LIGC=>0.35LIGCC+0.1VANILLIN+0.1C6H5OCH3+0.27C2H4+H2O+0.17CH2OS+0.4COH2S+0.22CH2O+0.21CO+0.1CO2+0.36CH4S+5.85CHAR+.2C2H6S+0.1H2S                                                          1.000E+11  0.000  37200.0   
+LIGCC=>0.25VANILLIN+.15CRESOL+0.15C6H5OCH3+0.35CH2OHCHO+0.7H2O+0.45CH4+0.3C2H4+0.7H2+1.15CO+0.4COS+6.80CHAR+0.4C2H6                                                                      1.000E+04  0.000  24800.0    
+LIGOH=>.9LIG+H2O+.1CH4+0.6CH3OH+0.3CH3OHS+0.05CO2+0.65CO+.6COS+0.05HOCHO+0.45CH2OS+0.40COH2S+0.25CH4S+0.1C2H4S+0.15C2H6S+4.25CHAR+.025C24H28O4+.1C2H3CHO                                 1.500E+08  0.000  32000.0
+LIG=>VANILLIN+0.1C6H5OCH3+0.5C2H4+0.6CO+0.3CH3CHO+0.1CHAR                                                                                                                                4.000E+00  1.000  12000.0
+LIG=>0.6H2O+0.3CO+0.1CO2+.2CH4+.4CH2O+0.2COS+.4CH4S+0.5C2H4S+.4CH3OHS+1.25CH2OS+0.65COH2S+6.1CHAR+0.1H2S                                                                                 8.300E-02  1.000   8000.0
+LIG=>.6H2O+2.6CO+0.6CH4+.4CH2O+0.75C2H4+.4CH3OH+4.5CHAR+0.5C2H6                                                                                                                          1.500E+09  0.000  31500.0   
+
+END
