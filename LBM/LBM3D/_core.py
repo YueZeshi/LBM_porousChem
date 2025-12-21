@@ -4,6 +4,7 @@ from ..util.flag import *
 from ._thermal import TemperatureFluid,TemperatureSolid
 from ._chemical import Specie,Reaction,Reactions
 from ._info import INFO
+from ..vtk_tool.paraview import PVDWriter
 @ti.data_oriented
 class LBM3D_BASE:
     """
@@ -17,6 +18,7 @@ class LBM3D_BASE:
         self.X = X
         self.Y = Y
         self.Z = Z
+        self.tLattice : int = 0
         self.dx,self.dt = dx,dt #格子尺度 步进时间
         self.nx=int(self.X/self.dx)
         self.ny=int(self.Y/self.dx)
@@ -38,7 +40,8 @@ class LBM3D_BASE:
         self.z = np.linspace(0, self.Z, self.nz)
         self.ext_f = ti.Vector.field(3,float,shape=()) # 外部力
         
-        #X, Y, Z = np.meshgrid(self.x, self.y, self.z, indexing='ij')
+        self.meshX, self.meshY, self.meshZ = np.meshgrid(self.x, self.y, self.z, indexing='ij')
+
         # 声明物理场
         self.rho = ti.field(float, shape=(self.nx,self.ny,self.nz))
         self.v = ti.Vector.field(3,float, shape=(self.nx,self.ny,self.nz))
@@ -83,6 +86,10 @@ class LBM3D_BASE:
         if self.CHEMISTRY:
             for specie in self.species:
                 specie.default_init()
+                
+        self.PVD = PVDWriter(name=self.name)
+        self.exportPath = "vtk"
+        self.snapshotPath = "snapshot.yaml"
     # 内置函数
     def __repr__(self):
         return self.__str__()

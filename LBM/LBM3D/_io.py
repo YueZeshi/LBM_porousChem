@@ -4,9 +4,11 @@ import os
 from pyevtk.hl import gridToVTK
 import pickle
 import json
+from ruamel.yaml import YAML
 from ._core import LBM3D_BASE
 from LBM.GEO.G3D import Mesh3D
 from ..util.flag import *
+from ..util import constant
 from ._scalarField import ScalarField
 from ._chemical import Specie,Reaction
 from ._thermal import TemperatureFluid,TemperatureSolid
@@ -244,82 +246,64 @@ class LBM3D_INPUT(LBM3D_BASE):
         self.species[self.specieName.index(specie)].set_s_BC_flux(i,f)
     def set_specie_BCs_flux(self,specie, fs):
         self.species[self.specieName.index(specie)].set_s_BCs_flux(fs)
-    @classmethod
-    def CreateLBM3D(cls,case_file):
-        with open(case_file,"r") as f:
-            config = json.load(f)
-        x = config["BASIC"]["X"]
-        y = config["BASIC"]["Y"]
-        z = config["BASIC"]["Z"]
-        dt = config["BASIC"]["DT"]
-        dx = config["BASIC"]["DX"]
-        nx = int(x/dx)
-        ny = int(y/dx)
-        nz = int(z/dx)
-        isThermal = config["BASIC"]["TEMPERATURE"]
-        isPoro = config["BASIC"]["PORO"]
-        isChemical = config["BASIC"]["CHEMISTRY"]
-        isRadiation = config["BASIC"]["RADIATION"]
-        name = config["BASIC"]["name"]
-        # initial setting
-        LBM = LBM.LBM3DSolver(x,y,z,dx,dt,name,isThermal,isPoro,isChemical,isRadiation)
-        # viscosity
-        if config["FLOW"]["viscosity"]["function"]=="uniform":
-            LBM.set_viscosity(config["FLOW"]["viscosity"]["value"])
-        elif config["FLOW"]["viscosity"]["function"]=="linear":
-            pass
-        # boundary condition
-        for i in range(6):
-            bc =config["FLOW"]["boundaryCondition"][LBM.sideName[i]] 
-            if bc["type"]=="inlet":
-                v = bc["velocity"]
-                LBM.set_BC(i,BC_FLOW.inlet)
-                LBM.set_v_BC_value(i,v)
-            elif bc["type"]=="outlet":
-                rho = bc["rho"]
-                LBM.set_BC(i,BC_FLOW.outlet)
-                LBM.set_rho_BC_value(i,rho)
-            elif bc["type"]=="wall":
-                LBM.set_BC(i,BC_FLOW.wall)
-        if config["TYPE"]=="config":
-            # set initial field
-            solid_np = np.zeros((nx,ny,nz))
-            for region in config["SOLID"].values():
-                m3d = Mesh3D(nx,ny,nz)
-                if region["shape"]=="cylinder":
-                    center = np.array(region["center"])/dx
-                    height = region["height"]/dx
-                    radius = region["radius"]/dx
-                    up = np.array(region["up"])
-                    if region["type"]=="filled":
-                        m3d.CreateMesh3D_Cylinder_Integer(center,up,radius,height)
-                        V = m3d.V.to_numpy()
-                        if region["mode"]=="overlay":
-                            solid_np = V
-                        elif region["mode"]=="addition":
-                            solid_np += V
-                    elif region["type"]=="porous":
-                        m3d.CreateMesh3D_Cylinder_Decimal(center,region["up"],radius,height)
-                        V = m3d.V.to_numpy()
-                        if region["mode"]=="overlay":
-                            solid_np = V
-                        elif region["mode"]=="addition":
-                            solid_np += V
-            LBM.init_field(LBM.solid,solid_np)
-            LBM.init_field3(LBM.v,config["FLOW"]["initialCondition"][0],config["FLOW"]["initialCondition"][1],config["FLOW"]["initialCondition"][2])
-        elif config["TYPE"]=="snapshot":
-            # set all fields
-            LBM.init_field(LBM.v,np.array(config["FLOW"]["v"]))
-            LBM.init_field(LBM.f,np.array(config["FLOW"]["f"]))
-            LBM.init_field(LBM.solid,np.array(config["SOLID"]))
-            if isThermal:
-                pass
-            if isChemical:
-                pass
-            if isRadiation:
-                pass
-        # print(LBM.solid)
-        return LBM
+    
+    def voxel_stl(self,stl_path,scale = 1.0,translate = [0,0,0],rotate = [0,0,0]):
+        if not scale:
+            scale = 1.0
+        if not translate:
+            translate = [0,0,0]
+        if not rotate:
+            rotate = [0,0,0]
+        import pyvista as pv
+        from scipy.spatial.transform import Rotation
+        # 1. 加载STL
+        mesh = pv.read(stl_path)
+        mesh.scale(scale,inplace=True)
+        mesh.rotate_z(rotate[2],inplace = True)
+        mesh.rotate_y(rotate[1],inplace = True)
+        mesh.rotate_x(rotate[0],inplace = True)
+        # mesh.rotate(Rotation.from_euler('ZYX',rotate[::-1],degrees=True),inplace = True)
+        mesh.translate(translate,inplace = True)
+        # 2. 创建体素网格
+        voxels = pv.DataSetFilters.voxelize(mesh) # 先变换再体素化，体素化之后再变换会使得网格错位，规则网格无法正确采样
+        # voxels.scale(scale,inplace = True)
+        # ugrid = pv.UnstructuredGrid()
+        # ugrid.rotate_x()
+        # 3. 转换为规则网格
+        grid = pv.StructuredGrid(self.meshX,self.meshY,self.meshZ)
+        
+        # 4. 采样到规则网格
+        sampled = grid.sample(voxels)
+        
+        # 5. 提取标量数据为数组
+        voxel_array = sampled['vtkValidPointMask'].reshape(grid.dimensions, order='F')
+        return voxel_array,grid
+    def load_cantera(self,file):
+        """
+        load_yaml 读取yaml机理文件 cantera格式
+        
+        :param file: file path
+        """
+        yaml = YAML()
+        with open(file,"r") as f:
+            data = yaml.load(f)
+            for specie_info in data["species"]:
+                name = specie_info["name"]
+                mmass = 0.0
+                for elem,number in specie_info["composition"].items():
+                    mmass+=number*constant.MOLEMASS[elem]
+                if name.endswith("(S)"):
+                    self.set_specie_mole(name,Fix = True,molemass=mmass)
+                else:
+                    self.set_specie_mole(name,Fix = False,molemass=mmass)
+                self.set_specie_NASA7(name,specie_info["thermo"]["temperature-ranges"],specie_info["thermo"]["data"])
+                
+            for reaction_info in data["reactions"]:
+                A = reaction_info["rate-constant"]["A"]
+                Ea = reaction_info["rate-constant"]["Ea"]
+                b = reaction_info["rate-constant"]["b"]
+                self.add_reaction(reaction_info["equation"],A,Ea,b,unit = SPECIE_UNIT.MOLE,fixDH = False)
+    
 # 输出 可视化
 @ti.data_oriented
 class LBM3D_OUTPUT(LBM3D_BASE):
@@ -342,7 +326,13 @@ class LBM3D_OUTPUT(LBM3D_BASE):
     def cal_min_T(self):
         for I in ti.grouped(self.rho):
             ti.atomic_min(self.min_T[None], self.TF.S[I])
-    
+    def log_info(self):
+        p = f"    t(LU)={self.tLattice} : Max velocity magnitude (LU) : {self.get_max_v():.7f}, "
+        if self.TEMPERATURE:
+            p +=f"Min temperature: {self.get_min_T():.7f} K"
+        return p
+    def export_snapshot(self,config):
+        pass
 
     def export_LBM(self,path):
         lbm_info = {"TYPE":"snapshot"}
@@ -407,17 +397,18 @@ class LBM3D_OUTPUT(LBM3D_BASE):
         with open(path,"w") as f:
             json.dump(lbm_info,f,indent=4)
    
-    def export_VTK(self, name,n): # 导出为vtk 到指定文件夹中
-        path = os.path.join("result",name)
-        os.makedirs(path,exist_ok=True)
+    def export_VTK(self): # 导出为vtk 到指定文件夹中
+        filename = os.path.join(self.exportPath,self.name+"_"+str(self.tLattice))
         gridToVTK(
-                os.path.join(path,name+"_"+str(n)),
+                filename,
                 self.x,
                 self.y,
                 self.z,
                 # cellData={"pressure": pressure},
                 pointData=self.get_data()
             )
+        self.PVD.addVTK(self.tLattice*self.dt,os.path.basename(filename)+".vtr")
+        self.PVD.writePVD()
     def get_data(self): # 获取所有数据（字典）
         
         data = {    "solid":self.solid.to_numpy(),
