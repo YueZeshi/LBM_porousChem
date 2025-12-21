@@ -264,6 +264,38 @@ class LBM2D_INPUT(LBM2D_BASE):
         self.species[self.specieName.index(name)].set_s_BC_flux(i,f)
     def set_specie_BCs_flux(self,name, fs):
         self.species[self.specieName.index(name)].set_s_BCs_flux(fs)
+    def voxel_stl(self,stl_path,scale = 1.0,translate = [0,0,0],rotate = [0,0,0]):
+        if not scale:
+            scale = 1.0
+        if not translate:
+            translate = [0,0,0]
+        if not rotate:
+            rotate = [0,0,0]
+        import pyvista as pv
+        from scipy.spatial.transform import Rotation
+        # 1. 加载STL
+        mesh = pv.read(stl_path)
+        mesh.scale(scale,inplace=True)
+        mesh.rotate_z(rotate[2],inplace = True)
+        mesh.rotate_y(rotate[1],inplace = True)
+        mesh.rotate_x(rotate[0],inplace = True)
+        # mesh.rotate(Rotation.from_euler('ZYX',rotate[::-1],degrees=True),inplace = True)
+        mesh.translate(translate,inplace = True)
+        # 2. 创建体素网格
+        voxels = pv.DataSetFilters.voxelize(mesh) # 先变换再体素化，体素化之后再变换会使得网格错位，规则网格无法正确采样
+        # voxels.scale(scale,inplace = True)
+        # ugrid = pv.UnstructuredGrid()
+        # ugrid.rotate_x()
+        # 3. 转换为规则网格
+        grid = pv.StructuredGrid(self.meshX,self.meshY,self.meshZ)
+        
+        # 4. 采样到规则网格
+        sampled = grid.sample(voxels)
+        
+        # 5. 提取标量数据为数组
+        voxel_array = sampled['vtkValidPointMask'].reshape(grid.dimensions, order='F')
+        return voxel_array,grid
+    
     def load_cantera(self,file):
         """
         load_yaml 读取yaml机理文件 cantera格式
@@ -289,80 +321,7 @@ class LBM2D_INPUT(LBM2D_BASE):
                 Ea = reaction_info["rate-constant"]["Ea"]
                 b = reaction_info["rate-constant"]["b"]
                 self.add_reaction(reaction_info["equation"],A,Ea,b,unit = SPECIE_UNIT.MOLE,fixDH = False)
-    @classmethod
-    def CreateLBM(cls,config):
-        if config["BASIC"]["model"]!="2D":
-            raise ValueError("Please specify mode type (2D/3D) in json file.")
-        x = config["BASIC"]["X"]
-        y = config["BASIC"]["Y"]
-        dt = config["BASIC"]["DT"]
-        dx = config["BASIC"]["DX"]
-        nx = int(x/dx)
-        ny = int(y/dx)
-        isThermal = config["BASIC"]["THERMAL"]
-        isPoro = config["BASIC"]["PORO"]
-        isChemical = config["BASIC"]["CHEMICAL"]
-        isRadiation = config["BASIC"]["RADIATION"]
-        name = config["BASIC"]["name"]
-        # initial setting
-        LBM = cls(x,y,dx,dt,name,isThermal,isPoro,isChemical,isRadiation)
-        # viscosity
-        if config["FLOW"]["viscosity"]["function"]=="uniform":
-            LBM.set_viscosity(config["FLOW"]["viscosity"]["value"])
-        elif config["FLOW"]["viscosity"]["function"]=="linear":
-            pass
-        # boundary condition
-        for i in range(4):
-            bc =config["FLOW"]["boundaryCondition"][LBM.sideName[i]] 
-            if bc["type"]=="inlet":
-                v = bc["velocity"]
-                LBM.set_BC(i,BC_FLOW.inlet)
-                LBM.set_v_BC_value(i,v)
-            elif bc["type"]=="outlet":
-                rho = bc["rho"]
-                LBM.set_BC(i,BC_FLOW.outlet)
-                LBM.set_rho_BC_value(i,rho)
-            elif bc["type"]=="wall":
-                LBM.set_BC(i,BC_FLOW.wall)
-        if config["TYPE"]=="config":
-            # set initial field
-            # solid_np = np.zeros((nx,ny,1))
-            # for region in config["SOLID"].values():
-            #     m2d = Mesh2D(nx,ny,1)
-            #     if region["shape"]=="cylinder":
-            #         center = np.array(region["center"])/dx
-            #         height = region["height"]/dx
-            #         radius = region["radius"]/dx
-            #         up = np.array(region["up"])
-            #         if region["type"]=="filled":
-            #             m2d.CreateMesh3D_Cylinder_Integer(center,up,radius,height)
-            #             V = m2d.V.to_numpy()
-            #             if region["mode"]=="overlay":
-            #                 solid_np = V
-            #             elif region["mode"]=="addition":
-            #                 solid_np += V
-            #         elif region["type"]=="porous":
-            #             m3d.CreateMesh3D_Cylinder_Decimal(center,region["up"],radius,height)
-            #             V = m3d.V.to_numpy()
-            #             if region["mode"]=="overlay":
-            #                 solid_np = V
-            #             elif region["mode"]=="addition":
-            #                 solid_np += V
-            # LBM.init_field(LBM.solid,solid_np)
-            LBM.init_field3(LBM.v,config["FLOW"]["initialCondition"][0],config["FLOW"]["initialCondition"][1],config["FLOW"]["initialCondition"][2])
-        elif config["TYPE"]=="snapshot":
-            # set all fields
-            LBM.init_field(LBM.v,np.array(config["FLOW"]["v"]))
-            LBM.init_field(LBM.f,np.array(config["FLOW"]["f"]))
-            LBM.init_field(LBM.solid,np.array(config["SOLID"]))
-            if isThermal:
-                pass
-            if isChemical:
-                pass
-            if isRadiation:
-                pass
-        # print(LBM.solid)
-        return LBM
+    
     
 # 输出 可视化
 @ti.data_oriented

@@ -9,9 +9,9 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
     evolution part of LBM3D solver
     """
     def step(self):
-        self.step_kernel()
         self.updateBC(self.t)
-        self.t+=self.dt
+        self.step_kernel()
+        self.tLattice += 1
         
     @ti.kernel
     def step_kernel(self):
