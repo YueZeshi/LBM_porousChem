@@ -59,11 +59,20 @@ class LBM3D_BASE:
         self.UpdateBCfunc = [] # 可变边界条件
         self.GetVariableFunc = [] # 获取观测量的函数
         
+        self.TEMPERATURE = False
+        self.CHEMISTRY = False
+        self.PORO = False
+        self.RADIATION = False
         # 定义标量场
-        self.TEMPERATURE= isThermal
-        self.CHEMISTRY = isChemical
-        self.PORO = isPoro
-        self.RADIATION = isRadiation and isThermal
+        if isThermal:
+            self.TEMPERATURE= True
+        if isChemical:
+            self.CHEMISTRY = True
+        if isPoro:
+            self.PORO = True
+        if isRadiation and isThermal:
+            self.RADIATION = True
+
         if self.TEMPERATURE:
             self.TF:TemperatureFluid = TemperatureFluid("Temperature of Fluid",self.nx,self.ny,self.nz,self)
             self.TS:TemperatureSolid = TemperatureSolid("Temperature of Solid",self.nx,self.ny,self.nz,self,isRadiation = self.RADIATION)
