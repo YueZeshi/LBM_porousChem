@@ -201,6 +201,7 @@ def application_3D(config:ruamel.yaml.comments.CommentedMap):
     startTime = time.time()
     from LBM.LBM3D import LBM3DSolver
     ARCH = config["basic"].get("arch")
+    ti.reset()
     try:
         if ARCH=="gpu":
             ti.init(arch=ti.gpu)
@@ -217,6 +218,7 @@ def application_3D(config:ruamel.yaml.comments.CommentedMap):
         print(f"ARCH {ARCH} not valid.")
         ARCH = "cpu"
     print(f"Running 3D LBM on {ARCH}...")
+    # print(ti.cfg.cpu_max_num_threads,ti.cfg.default_cpu_block_dim,ti.cfg.default_gpu_block_dim)
 
     x = config["spaceControl"]["geometry"][0]
     y = config["spaceControl"]["geometry"][1]
@@ -401,4 +403,3 @@ def application_3D(config:ruamel.yaml.comments.CommentedMap):
             lb.export_snapshot(config)
         lb.step()
     print("LBM finished...")
-    
