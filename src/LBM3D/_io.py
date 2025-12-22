@@ -6,7 +6,6 @@ import pickle
 import json
 from ruamel.yaml import YAML
 from ._core import LBM3D_BASE
-from LBM.GEO.G3D import Mesh3D
 from ..util.flag import *
 from ..util import constant
 from ._scalarField import ScalarField

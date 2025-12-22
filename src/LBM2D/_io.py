@@ -7,7 +7,6 @@ import json
 
 from ruamel.yaml import YAML
 from ._core import LBM2D_BASE
-from LBM.GEO.G2D import Mesh2D
 from ..util.flag import *
 from ..util import constant
 from ._scalarField import ScalarField

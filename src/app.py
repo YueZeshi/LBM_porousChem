@@ -6,12 +6,12 @@ import taichi as ti
 import os
 import time
 import ruamel
-from util.flag import *
+from .util.flag import *
 
 def application_2D(config:ruamel.yaml.comments.CommentedMap):
     # Implementation for 2D application
     startTime = time.time()
-    from LBM2D import LBM2DSolver
+    from .LBM2D import LBM2DSolver
     ARCH = config["basic"].get("arch")
     ti.reset()
     try:
@@ -93,7 +93,7 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
     geo_dict = {}
     geo_infos = config.get("geometry")
     if geo_infos:
-        from GEO.G2D import Mesh2D
+        from .GEO.G2D import Mesh2D
         for geo_name in geo_infos:
             shape = geo_infos[geo_name]["type"]
             if shape == "circle":
@@ -208,7 +208,7 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
 def application_3D(config:ruamel.yaml.comments.CommentedMap):
     # Implementation for 3D application
     startTime = time.time()
-    from LBM3D import LBM3DSolver
+    from .LBM3D import LBM3DSolver
     ARCH = config["basic"].get("arch")
     ti.reset()
     try:
@@ -310,7 +310,7 @@ def application_3D(config:ruamel.yaml.comments.CommentedMap):
                 s,l = m2d.export_numpy()
                 geo_dict[geo_name] = (s,l)
             elif shape == "box":
-                from GEO.G3D import Mesh3D
+                from .GEO.G3D import Mesh3D
                 m2d = Mesh3D(x,y,dx)
                 point1 = geo_infos[geo_name]["point1"]
                 point2 = geo_infos[geo_name]["point2"]

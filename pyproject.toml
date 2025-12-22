@@ -32,7 +32,7 @@ dependencies = [
 ]
 
 [project.scripts]
-lbm = "scr.cli:run"
+lbm = "src.cli:run"
 paraLbm = "src.cli:paraview"
 ck2yaml = "src.cantera_tool.ck2yaml:main"
 cti2yaml = "src.cantera_tool.cti2yaml:main"
