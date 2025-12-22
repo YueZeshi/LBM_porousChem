@@ -45,12 +45,20 @@ class LBM3D_INITIALIZATION(LBM3D_BASE):
                 print(sideName[i]+": OUTLET")
             if ti.static(self.bc[i]==BC_FLOW.symmetric):
                 print(sideName[i]+": SYMMETRIC")
-
+    def init_simulation(self):
+        self.init_python()
+        self.print_information()
+        self.init_taichi()
+    def init_python(self):
+        if ti.static(self.CHEMISTRY):
+            print(self.CHEMISTRY)
+            self.reactions.dS = ti.Vector.field(len(self.species),dtype = float,shape=self.rho.shape)
+            self.reactions.specieNum = len(self.species)
     @ti.kernel
-    def init_simulation(self):# 用户设置完数值之后进行手动初始化
+    def init_taichi(self):# 用户设置完数值之后进行手动初始化
         self.static_init_kernel()
         self.init_kernel()
-        self.macro()
+        # self.macro()
     
     @ti.func
     def static_init_kernel(self): # 初始化静态变量

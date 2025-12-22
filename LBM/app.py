@@ -201,6 +201,7 @@ def application_3D(config:ruamel.yaml.comments.CommentedMap):
     startTime = time.time()
     from LBM.LBM3D import LBM3DSolver
     ARCH = config["basic"].get("arch")
+    ti.reset()
     try:
         if ARCH=="gpu":
             ti.init(arch=ti.gpu)
@@ -208,6 +209,8 @@ def application_3D(config:ruamel.yaml.comments.CommentedMap):
             ti.init(arch=ti.cpu)
         elif ARCH == "vulkan":
             ti.init(arch=ti.vulkan)
+        elif ARCH == "cuda":
+            ti.init(arch=ti.cuda)
         else:
             ti.init(arch=ti.cpu)
             print(f"ARCH {ARCH} not valid.")
@@ -385,6 +388,7 @@ def application_3D(config:ruamel.yaml.comments.CommentedMap):
     latticeUpdateBetweenLog = lb.nx*lb.ny*lb.nz*printInterval    
     print("Time control and path set.")
     print("LBM running...")
+    last_print_time = time.time()
     while lb.tLattice<=endTimeLattice:
         if lb.tLattice % printInterval==0:
             calTime = time.time()-preTime
@@ -393,12 +397,15 @@ def application_3D(config:ruamel.yaml.comments.CommentedMap):
                 MLUPS = 0
             else:
                 MLUPS = latticeUpdateBetweenLog/calTime/1e6
-            print(f"Execution time:{calTime:.2f} s , Collapsed time:{(time.time()-startTime):.2f} s, MLUPS = {MLUPS:.2f}")
+            print(f"\rExecution time:{calTime:.2f} s , Collapsed time:{(time.time()-startTime):.2f} s, MLUPS = {MLUPS:.2f}")
             print(lb.log_info())
         if lb.tLattice % exportInterval==0:
             lb.export_VTK()
         if lb.tLattice%snapshotInterval==0:
             lb.export_snapshot(config)
+        if time.time()-last_print_time>10:
+            last_print_time = time.time()
+            print(f"\r{lb.tLattice}",end="",flush=True)
         lb.step()
-    print("LBM finished...")
+    print("LBM finished.")
     
