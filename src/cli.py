@@ -2,6 +2,7 @@ import click
 import os
 from ruamel.yaml import YAML
 import shutil
+import config
 #
 @click.command()
 @click.option('--config','-c',default ='config.yaml',help = 'the configuration of simulation case')
@@ -22,10 +23,10 @@ def run(config,clear):
         with open(config,'r',encoding="utf8") as f:
             data = yaml.load(f)
             if data["basic"]["dimension"] == 2:
-                from LBM.app import application_2D
+                from app import application_2D
                 application_2D(data)
             if data["basic"]["dimension"] == 3:
-                from LBM.app import application_3D
+                from app import application_3D
                 application_3D(data)
             if data["basic"]["dimension"] not in [2,3]:
                 raise ValueError("The dimention value in the configuration file is invalid. Please set it to 2 or 3 depending on your case.")
@@ -33,7 +34,7 @@ def run(config,clear):
         raise ValueError("The configuration file not exist. Please specify the input configuration file name or create the default file : config.yaml.")
 
 
-paraview_path = r"D:\Softwares\ParaView\bin\paraview.exe" # the paraview path
+paraview_path = config.paraview_path
 @click.command()
 @click.option('--data','-d',default = None ,help="The data folder")
 def paraview(data):

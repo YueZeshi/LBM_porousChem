@@ -1,6 +1,5 @@
 # generated file
 result/
-docs/
 *.vtr
 *.pvd
 # Byte-compiled / optimized / DLL files

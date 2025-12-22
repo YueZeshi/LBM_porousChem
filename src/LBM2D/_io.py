@@ -293,7 +293,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         sampled = grid.sample(voxels)
         
         # 5. 提取标量数据为数组
-        voxel_array = sampled['vtkValidPointMask'].reshape(grid.dimensions, order='F')
+        voxel_array = np.array(sampled['vtkValidPointMask'].reshape(grid.dimensions, order='F'),dtype = float)
         return voxel_array,grid
     
     def load_cantera(self,file):

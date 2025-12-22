@@ -9,7 +9,7 @@ description = "LBM using Taichi for biomass pyrolysis simulation"
 authors = [
     {name = "ZeshiYUE", email = "609190542@qq.com"},
 ]
-readme = "README.md"
+readme = "README.rst"
 requires-python = "==3.12.*"
 license = { text = "MIT" }
 dependencies = [
@@ -28,21 +28,22 @@ dependencies = [
     "rtree>=1.4.1",
     "pyvista>=0.46.4",
     "scipy>=1.16.3",
+    "sphinx>=9.0.4",
 ]
 
 [project.scripts]
-lbm = "LBM.cli:run"
-paraLbm = "LBM.cli:paraview"
-ck2yaml = "LBM.cantera_tool.ck2yaml:main"
-cti2yaml = "LBM.cantera_tool.cti2yaml:main"
-cmtl2yaml = "LBM.cantera_tool.cmtl2yaml:main"
+lbm = "scr.cli:run"
+paraLbm = "src.cli:paraview"
+ck2yaml = "src.cantera_tool.ck2yaml:main"
+cti2yaml = "src.cantera_tool.cti2yaml:main"
+cmtl2yaml = "src.cantera_tool.cmtl2yaml:main"
 
 
 # [project.urls]
 # Homepage = "https://github.com/lettucecfd/lettuce"
 
 [tool.setuptools.packages.find]
-include = ["LBM*"]
+include = ["src*"]
 
 [tool.uv]
 # 使用国内镜像

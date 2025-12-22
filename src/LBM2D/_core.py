@@ -14,6 +14,7 @@ class LBM2D_BASE:
         # 模型参数
         self.X = X
         self.Y = Y
+        self.Z = 1
         self.tLattice : int = 0
         self.dx,self.dt = dx,dt #格子尺度 步进时间
         self.nx=int(self.X/self.dx)

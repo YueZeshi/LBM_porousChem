@@ -1,10 +1,10 @@
 basic:
   name      : cylinder
   author    : Sylvain
-  date      : 2025-12-21
+  date      : 2025-12-22
   dimension : 2
   arch      : cpu
-  type      : configuration 
+  type      : configuration # configuration / snapshot
 
 module : 
   flow : true
@@ -12,13 +12,13 @@ module :
 
 spaceControl:
   geometry : [1,0.1]
-  DX : 1e-3
+  DX : 1e-4
 
 
 timeControl:
   startTime : 0
-  endTime : 1000
-  DT : 1e-3
+  endTime : 10000
+  DT : 1e-4
 
 flowProperties:
   viscosity : 0.002
@@ -27,16 +27,17 @@ chemicalProperties:
   source : cantera
 
 geometry:
-  zone1:
-    type : circle
-    center : [0.1,0.05]
-    radius : 0.01
+  # zone1:
+  #   type : circle
+  #   center : [0.1,0.05]
+  #   radius : 0.01
   zone2:
     type : stl
     path : stl/cylinder_test.stl
     scale : 0.1
-    translate : [80,50,0]
+    translate : [0.1,0.05,0]
     rotate : [0,90,0]
+
 initialCondition:
   solid:
     solid1:
@@ -90,12 +91,12 @@ boundaryCondition:
 
 outputControl:
   vtk:
-    interval : 1
+    interval : 10
     path : vtk
     LOD : 1
     clear : false
   log:
-    interval : 10
+    interval : 0.1
     LOD : 1
   snapshot:
     interval : 100

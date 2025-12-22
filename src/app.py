@@ -1,17 +1,19 @@
 import numpy as np
+import logging
 import ruamel.yaml
 import ruamel.yaml.comments
 import taichi as ti
 import os
 import time
 import ruamel
-from LBM.util.flag import *
+from util.flag import *
 
 def application_2D(config:ruamel.yaml.comments.CommentedMap):
     # Implementation for 2D application
     startTime = time.time()
-    from LBM.LBM2D import LBM2DSolver
+    from LBM2D import LBM2DSolver
     ARCH = config["basic"].get("arch")
+    ti.reset()
     try:
         if ARCH=="gpu":
             ti.init(arch=ti.gpu)
@@ -40,7 +42,7 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
     name = config["basic"].get("name")
     # initial setting
     lb = LBM2DSolver(x,y,dx,dt,name,isThermal,isChemical,isPoro,isRadiation)
-    
+    print()
     lb.source_term_model = SOURCE_TERM.MICRO
     lb.force_term_model = FORCE_TERM.GUO
     
@@ -91,7 +93,7 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
     geo_dict = {}
     geo_infos = config.get("geometry")
     if geo_infos:
-        from LBM.GEO.G2D import Mesh2D
+        from GEO.G2D import Mesh2D
         for geo_name in geo_infos:
             shape = geo_infos[geo_name]["type"]
             if shape == "circle":
@@ -116,6 +118,8 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
                 scale = geo_infos[geo_name].get("scale")
                 mesh,grid = lb.voxel_stl(path,scale,trans,rot)
                 geo_dict[geo_name] = (mesh,mesh)
+            else:
+                print(f"{shape} not valid.")
 
 
     # set initial condition including setting soid phase
@@ -147,17 +151,17 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
                     s = np.zeros((lb.nx,lb.ny,lb.nz))
                     for geo_name,geo_data in geo_dict.items():
                         s += geo_data[0]
-                    s = (s>0)*1
+                    s = (s>0)*np.float32(1.0)
                     lb.init_field(lb.solid,s)
                 elif type(solid["zone"]) is ruamel.yaml.comments.CommentedSeq: # []
                     s = np.zeros((lb.nx,lb.ny,lb.nz))
                     for zoneName in solid["zone"]:
                         s += geo_dict[zoneName][0]
-                    s = (s>0)*1
+                    s = (s>0)*np.float32(1.0)
                     lb.init_field(lb.solid,s)
                 elif type(solid["zone"]) is str:
                     s = geo_dict[solid["zone"]][0]
-                    s = (s>0)*1
+                    s = (s>0)*np.float32(1.0)
                     lb.init_field(lb.solid,s)
 
     lb.init_simulation()
@@ -180,6 +184,7 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
     snapshotPath = config["outputControl"]["snapshot"]["path"]
     lb.snapshotPath = snapshotPath
     preTime = time.time()
+    last_print_time = time.time()
     latticeUpdateBetweenLog = lb.nx*lb.ny*lb.nz*printInterval
     while lb.tLattice<=endTimeLattice:
         if lb.tLattice % printInterval==0:
@@ -189,19 +194,22 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
                 MLUPS = 0
             else:
                 MLUPS = latticeUpdateBetweenLog/calTime/1e6
-            print(f"Execution time:{calTime:.2f} s , Collapsed time:{(time.time()-startTime):.2f} s, MLUPS = {MLUPS:.2f}")
+            print(f"\rExecution time:{calTime:.2f} s , Collapsed time:{(time.time()-startTime):.2f} s, MLUPS = {MLUPS:.2f}")
             print(lb.log_info())
         if lb.tLattice % exportInterval==0:
             lb.export_VTK()
         if lb.tLattice%snapshotInterval==0:
             lb.export_snapshot(config)
+        if time.time()-last_print_time>10:
+            last_print_time = time.time()
+            print(f"\r{lb.tLattice}",end="",flush=True)
         lb.step()
+    
 def application_3D(config:ruamel.yaml.comments.CommentedMap):
     # Implementation for 3D application
     startTime = time.time()
-    from LBM.LBM3D import LBM3DSolver
+    from LBM3D import LBM3DSolver
     ARCH = config["basic"].get("arch")
-    ti.reset()
     ti.reset()
     try:
         if ARCH=="gpu":
@@ -293,20 +301,20 @@ def application_3D(config:ruamel.yaml.comments.CommentedMap):
     if geo_infos:
         for geo_name in geo_infos:
             shape = geo_infos[geo_name]["type"]
-            if shape == "circle":        
-                from LBM.GEO.G3D import Mesh3D
+            if shape == "sphere":        
+                from GEO.G3D import Mesh3D
                 m2d = Mesh3D(x,y,dx)
                 center = geo_infos[geo_name]["center"]
                 radius = geo_infos[geo_name]["radius"]
-                m2d.CreateMesh2DCircle(center[0],center[1],radius)
+                # m2d.CreateMesh2DCircle(center[0],center[1],radius)
                 s,l = m2d.export_numpy()
                 geo_dict[geo_name] = (s,l)
-            elif shape == "rectangle":
-                from LBM.GEO.G3D import Mesh3D
+            elif shape == "box":
+                from GEO.G3D import Mesh3D
                 m2d = Mesh3D(x,y,dx)
                 point1 = geo_infos[geo_name]["point1"]
                 point2 = geo_infos[geo_name]["point2"]
-                m2d.CreateMesh2DRectangle(point1[0],point1[1],point2[0],point2[1])
+                # m2d.CreateMesh2DRectangle(point1[0],point1[1],point2[0],point2[1])
                 s,l = m2d.export_numpy()
                 geo_dict[geo_name] = (s,l)
             elif shape == "stl":
