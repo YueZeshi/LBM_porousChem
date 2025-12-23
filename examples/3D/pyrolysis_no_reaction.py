@@ -7,9 +7,9 @@ import os
 import numpy as np
 import sys
 # 指定求解器
-from src.LBM3D import LBM3DSolver
-from src.GEO.G3D import Mesh3D
-from src.util.flag import *
+from LBM.LBM3D import LBM3DSolver
+from LBM.GEO.G3D import Mesh3D
+from LBM.util.flag import *
 def main(DX,DT,T_exp,variant="default"):
     # 获取环境变量是否启用debug模式
     # debug模式计算较少的步数 用于检验算例是否快速发散
