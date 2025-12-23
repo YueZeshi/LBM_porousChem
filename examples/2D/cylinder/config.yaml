@@ -3,7 +3,7 @@ basic:
   author    : Sylvain
   date      : 2025-12-22
   dimension : 2
-  arch      : cpu
+  arch      : vulkan
   type      : configuration # configuration / snapshot
 
 module : 
