@@ -2,7 +2,6 @@ import taichi as ti
 import numpy as np
 import os
 from pyevtk.hl import gridToVTK
-import pickle
 import json
 from ruamel.yaml import YAML
 from ._core import LBM3D_BASE
@@ -10,7 +9,6 @@ from ..util.flag import *
 from ..util import constant
 from ._scalarField import ScalarField
 from ._chemical import Specie,Reaction
-from ._thermal import TemperatureFluid,TemperatureSolid
 @ti.data_oriented
 class LBM3D_INPUT(LBM3D_BASE):
     #----------
