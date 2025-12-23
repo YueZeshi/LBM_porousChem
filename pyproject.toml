@@ -32,18 +32,19 @@ dependencies = [
 ]
 
 [project.scripts]
-lbm = "src.cli:run"
-paraLbm = "src.cli:paraview"
-ck2yaml = "src.cantera_tool.ck2yaml:main"
-cti2yaml = "src.cantera_tool.cti2yaml:main"
-cmtl2yaml = "src.cantera_tool.cmtl2yaml:main"
+lbm = "LBM.cli:run"
+paraLbm = "LBM.cli:paraview"
+ck2yaml = "LBM.cantera_tool.ck2yaml:main"
+cti2yaml = "LBM.cantera_tool.cti2yaml:main"
+cmtl2yaml = "LBM.cantera_tool.cmtl2yaml:main"
 
 
 # [project.urls]
 # Homepage = "https://github.com/lettucecfd/lettuce"
 
 [tool.setuptools.packages.find]
-include = ["src*"]
+where = ["src"]  # 在 src 目录中查找
+include = ["LBM*"]  # 只包含 LBM 包
 
 [tool.uv]
 # 使用国内镜像
