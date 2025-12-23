@@ -3,7 +3,7 @@ basic:
   author    : Sylvain
   date      : 2025-12-22
   dimension : 2
-  arch      : vulkan
+  arch      : cpu
   type      : configuration # configuration / snapshot
 
 module : 
@@ -91,12 +91,12 @@ boundaryCondition:
 
 outputControl:
   vtk:
-    interval : 10
+    interval : 100
     path : vtk
     LOD : 1
     clear : false
   log:
-    interval : 1
+    interval : 10
     LOD : 1
   snapshot:
     interval : 100
