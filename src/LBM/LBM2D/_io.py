@@ -271,7 +271,6 @@ class LBM2D_INPUT(LBM2D_BASE):
         if not rotate:
             rotate = [0,0,0]
         import pyvista as pv
-        from scipy.spatial.transform import Rotation
         # 1. 加载STL
         mesh = pv.read(stl_path)
         mesh.scale(scale,inplace=True)
@@ -282,19 +281,49 @@ class LBM2D_INPUT(LBM2D_BASE):
         mesh.translate(translate,inplace = True)
         # 2. 创建体素网格
         voxels = pv.DataSetFilters.voxelize(mesh) # 先变换再体素化，体素化之后再变换会使得网格错位，规则网格无法正确采样
-        # voxels.scale(scale,inplace = True)
-        # ugrid = pv.UnstructuredGrid()
-        # ugrid.rotate_x()
         # 3. 转换为规则网格
-        grid = pv.StructuredGrid(self.meshX,self.meshY,self.meshZ)
-        
+        padded_x_min = -self.dx
+        padded_x_max = self.X+self.dx
+        padded_y_min = -self.dx
+        padded_y_max = self.Y+self.dx
+        padded_x = np.linspace(padded_x_min,padded_x_max,self.nx+2)
+        padded_y = np.linspace(padded_y_min,padded_y_max,self.ny+2)
+        X,Y,Z = np.meshgrid(padded_x,padded_y,[0],indexing='ij')
+        grid = pv.StructuredGrid(X,Y,Z)
         # 4. 采样到规则网格
         sampled = grid.sample(voxels)
         
         # 5. 提取标量数据为数组
         voxel_array = np.array(sampled['vtkValidPointMask'].reshape(grid.dimensions, order='F'),dtype = float)
-        return voxel_array,grid
-    
+        voxelField = ti.field(float,shape = voxel_array.shape)
+        surfaceField = ti.field(float,shape = voxel_array.shape)
+        voxelField.from_numpy(voxel_array)
+        @ti.kernel
+        def extract_surface_only():
+            for i in ti.grouped(voxelField):
+                if voxelField[i]==0 or i[0]<1 or i[0]>self.nx or i[1]<1 or i[1]>self.ny: 
+                    surfaceField[i] = 0 
+                else:
+                    num_solid_neighbor = 0
+                    for j in ti.static(range(4)):
+                        if voxelField[i+self.e5[j+1]] > 0.0:
+                            num_solid_neighbor += 1
+                    
+                    if num_solid_neighbor==4:
+                        surfaceField[i] = 0
+                    elif num_solid_neighbor == 3:
+                        surfaceField[i] = 1.0
+                    elif num_solid_neighbor == 2:
+                        surfaceField[i] = 1.414
+                    elif num_solid_neighbor == 1:
+                        surfaceField[i] = 2.0
+                    elif num_solid_neighbor == 0:
+                        surfaceField[i] = 4.0
+
+        extract_surface_only()
+        surface_array = surfaceField.to_numpy()
+        print(surface_array.sum())
+        return voxel_array[1:-1,1:-1],surface_array[1:-1,1:-1]
     def load_cantera(self,file):
         """
         load_yaml 读取yaml机理文件 cantera格式

@@ -27,21 +27,42 @@ timeControl:
 flowProperties:
   viscosity : 0.01
 
+thermalProperties:
+  gas:
+    thermalDiffusivity : 
+      type : fixedValue # calculated
+      value : 1e-5
+    thermalCapacity : 
+      type : fixedValue # NASA7
+      value : 1000
+  # solid:
+  #   type : fixThermalDiffusitivity # fixed thermal diff; fixed thermal conductivity;
 
 boundaryCondition:
   left:
     flow:
-      type: wall
+      type: inlet
+      velocity : [0.01,0,0]
+    temperatureGas:
+      type: fixedValue
+      value : 300
   right:
     flow:
-      type: wall
+      type: outlet
+    temperatureGas :
+      type : zeroGradient
   down:
     flow:
       type: wall
+    temperatureGas :
+      type : fixedValue
+      value : 300
   up:
     flow:
-      type : inlet
-      velocity : [0.01,0.0,0.0]
+      type : wall
+    temperatureGas :
+      type : fixedValue
+      value : 300
   
 initialCondition:
   flow:

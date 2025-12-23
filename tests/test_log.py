@@ -1,13 +1,12 @@
 import logging
-
+import sys
 # 获取日志器（推荐用法）
-logger = logging.getLogger(__name__)  # 通常用模块名
+# logger = logging.getLogger(__name__)  # 通常用模块名
 # 或指定名称
 logger = logging.getLogger('my_app')
-
 # 设置级别
-logger.setLevel(logging.CRITICAL)
-
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler(sys.stdout))
 # 输出日志
 logger.debug('开始处理数据')
 logger.info('用户登录成功')

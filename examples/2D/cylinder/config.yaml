@@ -33,10 +33,10 @@ geometry:
   #   radius : 0.01
   zone2:
     type : stl
-    path : stl/cylinder_test.stl
-    scale : 0.1
+    path : stl/cylinder_test2.stl
+    scale : 1
     translate : [0.1,0.05,0]
-    rotate : [0,90,0]
+    rotate : [0,0,0]
 
 initialCondition:
   solid:
@@ -91,12 +91,12 @@ boundaryCondition:
 
 outputControl:
   vtk:
-    interval : 100
+    interval : 1
     path : vtk
     LOD : 1
     clear : false
   log:
-    interval : 10
+    interval : 1
     LOD : 1
   snapshot:
     interval : 100

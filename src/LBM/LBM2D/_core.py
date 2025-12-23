@@ -84,6 +84,7 @@ class LBM2D_BASE:
             self.rho1 = ti.field(float,shape=(self.nx,self.ny,self.nz))
         # default init all fields
         self.default_init()
+        self.static_init_kernel()
         if self.TEMPERATURE:
             self.TS.default_init()
             self.TF.default_init()
@@ -101,6 +102,12 @@ class LBM2D_BASE:
         print(self)
     def __str__(self):
         return INFO
+    
+    def default_init():
+        pass
+    @ti.kernel
+    def static_init_kernel(self): # 初始化静态变量
+        pass
     @ti.func
     def feq9(self,s,i,j,k):
         pass

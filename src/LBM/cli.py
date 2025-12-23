@@ -6,8 +6,9 @@ from . import config
 #
 @click.command()
 @click.option('--config','-c',default ='config.yaml',help = 'the configuration of simulation case')
+@click.option('--verbose','-v',default=1,help = "log level 0:warning;1:info;2:debug")
 @click.option('--clear',is_flag=True,help = 'clear past result folder')
-def run(config,clear):
+def run(config,verbose,clear):
     if clear:
         dirs = os.listdir()
         for dir in dirs:
@@ -24,10 +25,10 @@ def run(config,clear):
             data = yaml.load(f)
             if data["basic"]["dimension"] == 2:
                 from .app import application_2D
-                application_2D(data)
+                application_2D(data,verbose)
             if data["basic"]["dimension"] == 3:
                 from .app import application_3D
-                application_3D(data)
+                application_3D(data,verbose)
             if data["basic"]["dimension"] not in [2,3]:
                 raise ValueError("The dimention value in the configuration file is invalid. Please set it to 2 or 3 depending on your case.")
     else:

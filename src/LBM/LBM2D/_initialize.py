@@ -13,73 +13,67 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
             self.solid[i] = 0.0
             self.v[i] = ti.Vector([0,0,0])
             self.rho[i] = 1.0
-    def print_information(self):
-        print("\n------------------------------------------")
-        print("Basic information of the LBM simulation:")
-        print(self.name,f": Size: {self.nx} x {self.ny} x {self.nz}, dx: {self.dx}, dt: {self.dt}")
-        print("It contains :")
-        print(" -flow field")
+    def description(self):
+        des = "\n------------------------------------------\n"
+        des += "Basic information of the LBM simulation:\n"
+        des += " name : " + self.name+f"\n Size : {self.nx} x {self.ny} x {self.nz}\n dx : {self.dx}\n dt : {self.dt}\n"
+        des += "Modules activated :\n"
+        des += " -flow field\n"
         if self.PORO:
-            print(" -porous medium")
+            des+=" -porous medium\n"
         if self.TEMPERATURE:
-            print(" -thermal transfer")
+            des+=" -thermal transfer\n"
         if self.RADIATION:
-            print(" -radiation")
+            des+=" -radiation\n"
         if ti.static(self.CHEMISTRY):
-            print(" -chemical reaction")
+            des+=" -chemical reaction\n"
 
-        print("Boundary condition model:",end=" ")
-        print(BC_MODEL(self.boundary_condition_model).name)
-        print("The boundary conditions of the flow field are set to :")
+        des+="Boundary condition model : "+ BC_MODEL(self.boundary_condition_model).name+"\n"
+        des+="The boundary conditions of the flow field are set to :\n"
         sideName = ti.static(["left","right","bottom","top"])
         for i in ti.static(range(4)):
-            # print(self.bc[i])
+            # des+=self.bc[i])
             if ti.static(self.bc[i]==BC_FLOW.periodic):
-                print("    "+sideName[i]+": PERIODIC")
+                des+="    "+sideName[i]+": PERIODIC\n"
             if ti.static(self.bc[i]==BC_FLOW.wall):
-                print("    "+sideName[i]+": WALL")
+                des+="    "+sideName[i]+": WALL\n"
             if ti.static(self.bc[i]==BC_FLOW.inlet):
-                print("    "+sideName[i]+": INLET")
+                des+="    "+sideName[i]+": INLET\n"
             if ti.static(self.bc[i]==BC_FLOW.outlet):
-                print("    "+sideName[i]+": OUTLET")
+                des+="    "+sideName[i]+": OUTLET\n"
             if ti.static(self.bc[i]==BC_FLOW.symmetric):
-                print("    "+sideName[i]+": SYMMETRIC")
+                des+="    "+sideName[i]+": SYMMETRIC\n"
             if ti.static(self.bc[i]==BC_FLOW.inlet_flow):
-                print("    "+sideName[i]+": INLET FLOW")
+                des+="    "+sideName[i]+": INLET FLOW\n"
         if ti.static(self.CHEMISTRY):
-            print("The species involved are:")
+            des+="The species involved are: "
             for specie in self.species:
-                print(specie)
-            print(self.reactions)
-        print("------------------------------------------\n")
+                des += specie.__str__()+" "
+            des += "\n"+self.reactions.__str__()
+        des += "------------------------------------------\n\n"
+        return des
     def init_simulation(self):
         self.init_python()
-        self.print_information()
-        self.init_taichi()
+        self.init_kernel()
     def init_python(self):
         if ti.static(self.CHEMISTRY):
             print(self.CHEMISTRY)
             self.reactions.dS = ti.Vector.field(len(self.species),dtype = float,shape=self.rho.shape)
             self.reactions.specieNum = len(self.species)
     @ti.kernel
-    def init_taichi(self):# 用户设置完数值之后进行手动初始化
-        self.static_init_kernel()
-        self.init_kernel()
-        # self.macro()
-    @ti.func
     def static_init_kernel(self): # 初始化静态变量
-            self.e9[0] = ti.Vector([0,0,0])
-            self.e9[1] = ti.Vector([1,0,0]); self.e9[2] = ti.Vector([0,1,0]); self.e9[3] = ti.Vector([-1,0,0]); self.e9[4] = ti.Vector([0,-1,0])
-            self.e9[5] = ti.Vector([1,1,0]); self.e9[6] = ti.Vector([-1,1,0]); self.e9[7] = ti.Vector([-1,-1,0]); self.e9[8] = ti.Vector([1,-1,0])
-            self.w9[0] = 4.0/9.0
-            self.w9[1] = 1.0/9.0; self.w9[2] = 1.0/9.0; self.w9[3] = 1.0/9.0; self.w9[4] = 1.0/9.0
-            self.w9[5] = 1.0/36.0; self.w9[6] = 1.0/36.0; self.w9[7] = 1.0/36.0; self.w9[8] = 1.0/36.0
-            self.e5[0] = ti.Vector([0,0,0])
-            self.e5[1] = ti.Vector([1,0,0]); self.e5[2] = ti.Vector([0,1,0]); self.e5[3] = ti.Vector([-1,0,0]); self.e5[4] = ti.Vector([0,-1,0])
-            self.w5[0] = 1.0/3.0
-            self.w5[1] = 1.0/6.0; self.w5[2] = 1.0/6.0; self.w5[3] = 1.0/6.0; self.w5[4] = 1.0/6.0
+        self.e9[0] = ti.Vector([0,0,0])
+        self.e9[1] = ti.Vector([1,0,0]); self.e9[2] = ti.Vector([0,1,0]); self.e9[3] = ti.Vector([-1,0,0]); self.e9[4] = ti.Vector([0,-1,0])
+        self.e9[5] = ti.Vector([1,1,0]); self.e9[6] = ti.Vector([-1,1,0]); self.e9[7] = ti.Vector([-1,-1,0]); self.e9[8] = ti.Vector([1,-1,0])
+        self.w9[0] = 4.0/9.0
+        self.w9[1] = 1.0/9.0; self.w9[2] = 1.0/9.0; self.w9[3] = 1.0/9.0; self.w9[4] = 1.0/9.0
+        self.w9[5] = 1.0/36.0; self.w9[6] = 1.0/36.0; self.w9[7] = 1.0/36.0; self.w9[8] = 1.0/36.0
+        self.e5[0] = ti.Vector([0,0,0])
+        self.e5[1] = ti.Vector([1,0,0]); self.e5[2] = ti.Vector([0,1,0]); self.e5[3] = ti.Vector([-1,0,0]); self.e5[4] = ti.Vector([0,-1,0])
+        self.w5[0] = 1.0/3.0
+        self.w5[1] = 1.0/6.0; self.w5[2] = 1.0/6.0; self.w5[3] = 1.0/6.0; self.w5[4] = 1.0/6.0
        
-    @ti.func
+    @ti.kernel
     def init_kernel(self): # 初始化所有分布函数
         for i in ti.grouped(self.solid):
             eps = 1-self.solid[i]

@@ -6,9 +6,20 @@ import taichi as ti
 import os
 import time
 import ruamel
+import logging
+import sys
 from .util.flag import *
 
-def application_2D(config:ruamel.yaml.comments.CommentedMap):
+def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
+    verbose_level = {
+        0:logging.WARNING,
+        1:logging.INFO,
+        2:logging.DEBUG
+    }
+    logger = logging.getLogger("LBM 2D logger")
+    logger.addHandler(logging.StreamHandler(sys.stdout))
+    logger.setLevel(verbose_level[verbose])
+    debug = (verbose==2)
     # Implementation for 2D application
     startTime = time.time()
     from .LBM2D import LBM2DSolver
@@ -23,13 +34,13 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
             ti.init(arch=ti.vulkan)
         else:
             ti.init(arch=ti.cpu)
-            print(f"ARCH {ARCH} not valid.")
+            logger.warn(f"ARCH {ARCH} not valid. Use cpu by default.")
             ARCH = "cpu"
     except:
         ti.init(arch=ti.cpu)
-        print(f"ARCH {ARCH} not valid.")
+        logger.warn(f"ARCH {ARCH} not valid. Use cpu by default.")
         ARCH = "cpu"
-    print(f"Running 2D LBM on {ARCH}...")
+    logger.info(f"Running 2D LBM on {ARCH}...")
 
     x = config["spaceControl"]["geometry"][0]
     y = config["spaceControl"]["geometry"][1]
@@ -42,7 +53,7 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
     name = config["basic"].get("name")
     # initial setting
     lb = LBM2DSolver(x,y,dx,dt,name,isThermal,isChemical,isPoro,isRadiation)
-    print()
+    logger.info("LBM created")
     lb.source_term_model = SOURCE_TERM.MICRO
     lb.force_term_model = FORCE_TERM.GUO
     
@@ -54,10 +65,13 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
     # chemistry
     if isChemical:
         # load chemical mechanism
+        logger.info("Cantera loading...")
         cantera_file = config["chemicalProperties"]["canteraFile"]
         lb.load_cantera(cantera_file)
+        logger.info("Cantera loaded.")
 
     # boundary condition
+    logger.info("Boundary condition setting...")
     boundaryName = ["left","right","down","up"]
     for i in range(4):
         bc =config["boundaryCondition"][boundaryName[i]] 
@@ -88,11 +102,12 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
                 lb.set_rho_BC_value(i,rho)
             elif bc["type"]=="wall":
                 lb.set_BC(i,BC_FLOW.wall)
-
+    logger.info("Boundary condition set.")
     # load all geometry information in geo_dict dictionary name:(surface array, border array)
     geo_dict = {}
     geo_infos = config.get("geometry")
     if geo_infos:
+        logger.info("Geometry loading...")
         from .GEO.G2D import Mesh2D
         for geo_name in geo_infos:
             shape = geo_infos[geo_name]["type"]
@@ -113,17 +128,21 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
             elif shape == "stl":
                 # read stl
                 path = geo_infos[geo_name].get("path")
+                logger.info(f"Stl {path} loading...")
                 trans = geo_infos[geo_name].get("translate")
                 rot = geo_infos[geo_name].get("rotate")
                 scale = geo_infos[geo_name].get("scale")
-                mesh,grid = lb.voxel_stl(path,scale,trans,rot)
-                geo_dict[geo_name] = (mesh,mesh)
+                mesh,surface = lb.voxel_stl(path,scale,trans,rot)
+                geo_dict[geo_name] = (mesh,surface)
+                logger.info(f"Stl {path} loaded")
             else:
-                print(f"{shape} not valid.")
+                logger.warning(f"Geometry {shape} not valid.")
+        logger.info("Geometry loaded.")
 
 
     # set initial condition including setting soid phase
     initialCondition = config["initialCondition"]
+    logger.info("Initial condition setting...")
     ## solid phase
     solidIC = initialCondition.get("solid")
     if solidIC:
@@ -132,6 +151,7 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
                 eps = solid["porosity"]
                 if solid["zone"]=="ALL":
                     s = np.zeros((lb.nx,lb.ny,lb.nz))
+                    
                     for geo_name,geo_data in geo_dict.items():
                         s += geo_data[0]
                     s = (1-eps)*s
@@ -150,7 +170,7 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
                 if solid["zone"]=="ALL":
                     s = np.zeros((lb.nx,lb.ny,lb.nz))
                     for geo_name,geo_data in geo_dict.items():
-                        s += geo_data[0]
+                        s += geo_data[1]
                     s = (s>0)*np.float32(1.0)
                     lb.init_field(lb.solid,s)
                 elif type(solid["zone"]) is ruamel.yaml.comments.CommentedSeq: # []
@@ -163,9 +183,13 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
                     s = geo_dict[solid["zone"]][0]
                     s = (s>0)*np.float32(1.0)
                     lb.init_field(lb.solid,s)
-
+    logger.info("Initial condition set.")
+    logger.info("Simulation initializing...")
     lb.init_simulation()
+    logger.info("Simulation initialized.")
+    logger.info(lb.description())
     # time control of simulation 
+    logger.info("Time control and path setting...")
     lb.tLattice = int(config["timeControl"]["startTime"]/lb.dt)
     endTimeLattice = config["timeControl"]["endTime"]/lb.dt
     printInterval = int(config["outputControl"]["log"]["interval"]/lb.dt)
@@ -186,6 +210,15 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
     preTime = time.time()
     last_print_time = time.time()
     latticeUpdateBetweenLog = lb.nx*lb.ny*lb.nz*printInterval
+    debugCheckInterval = 10
+    if debug:
+        debugSetting = config.get("debugSetting")
+        if debugSetting:
+            debugCheckInterval = debugSetting.get("interval")
+            if not debugCheckInterval:
+                debugCheckInterval = 10
+    logger.info("Time control and path set.")
+    logger.info("Simulation running...")
     while lb.tLattice<=endTimeLattice:
         if lb.tLattice % printInterval==0:
             calTime = time.time()-preTime
@@ -194,16 +227,17 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap):
                 MLUPS = 0
             else:
                 MLUPS = latticeUpdateBetweenLog/calTime/1e6
-            print(f"\rExecution time:{calTime:.2f} s , Collapsed time:{(time.time()-startTime):.2f} s, MLUPS = {MLUPS:.2f}")
-            print(lb.log_info())
+            logger.info(f"Execution time:{calTime:.2f} s , Collapsed time:{(time.time()-startTime):.2f} s, MLUPS = {MLUPS:.2f}")
+            logger.info(lb.log_info())
         if lb.tLattice % exportInterval==0:
             lb.export_VTK()
         if lb.tLattice%snapshotInterval==0:
             lb.export_snapshot(config)
-        if time.time()-last_print_time>10:
+        if debug and time.time()-last_print_time>debugCheckInterval:
             last_print_time = time.time()
-            print(f"\r{lb.tLattice}",end="",flush=True)
+            logger.debug(f"{lb.tLattice}")
         lb.step()
+    logger.info("LBM finished.")
     
 def application_3D(config:ruamel.yaml.comments.CommentedMap):
     # Implementation for 3D application
