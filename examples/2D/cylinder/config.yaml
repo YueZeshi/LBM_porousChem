@@ -27,10 +27,10 @@ chemicalProperties:
   source : cantera
 
 geometry:
-  # zone1:
-  #   type : circle
-  #   center : [0.1,0.05]
-  #   radius : 0.01
+  zone1:
+    type : sphere
+    center : [0.1,0.05,0]
+    radius : 0.01
   zone2:
     type : stl
     path : stl/cylinder_test2.stl

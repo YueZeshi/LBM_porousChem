@@ -336,7 +336,7 @@ def application_3D(config:ruamel.yaml.comments.CommentedMap):
         for geo_name in geo_infos:
             shape = geo_infos[geo_name]["type"]
             if shape == "sphere":        
-                from GEO.G3D import Mesh3D
+                from .GEO.G3D import Mesh3D
                 m2d = Mesh3D(x,y,dx)
                 center = geo_infos[geo_name]["center"]
                 radius = geo_infos[geo_name]["radius"]
