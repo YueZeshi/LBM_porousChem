@@ -29,6 +29,7 @@ dependencies = [
     "pyvista>=0.46.4",
     "scipy>=1.16.3",
     "sphinx>=9.0.4",
+    "cadquery>=2.6.1",
 ]
 
 [project.scripts]

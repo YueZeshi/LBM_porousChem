@@ -268,7 +268,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         mesh and surface array
         """
         from ..GEO.STL import StlReader
-        stlReader = StlReader(self.X,self.Y,self.Z,self.dx,logger)
+        stlReader = StlReader(self.X,self.Y,self.Z,self.dx,2,logger)
         return stlReader.voxel_stl(stl_path,scale,translate,rotate)
         
     

@@ -1,1 +1,0 @@
-paraview_path = r"D:\Softwares\ParaView\bin\paraview.exe" # your paraview path

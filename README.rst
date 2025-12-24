@@ -1,20 +1,11 @@
 LBM for gas-solid porous thermal chemical process
 =================================================
-Author: Zeshi YUE
 
-Version : 1.0
+.. include :: AUTHORS.rst
 
-Date : Dec. 22 2025
 
 .. include :: docs/source/user-guide/introduction.rst
 .. include :: docs/source/installation.rst
-
-
-
-
-
-
-
 
 ------------
 Algorithm

@@ -244,37 +244,15 @@ class LBM3D_INPUT(LBM3D_BASE):
     def set_specie_BCs_flux(self,specie, fs):
         self.species[self.specieName.index(specie)].set_s_BCs_flux(fs)
     
-    def voxel_stl(self,stl_path,scale = 1.0,translate = [0,0,0],rotate = [0,0,0]):
-        if not scale:
-            scale = 1.0
-        if not translate:
-            translate = [0,0,0]
-        if not rotate:
-            rotate = [0,0,0]
-        import pyvista as pv
-        from scipy.spatial.transform import Rotation
-        # 1. 加载STL
-        mesh = pv.read(stl_path)
-        mesh.scale(scale,inplace=True)
-        mesh.rotate_z(rotate[2],inplace = True)
-        mesh.rotate_y(rotate[1],inplace = True)
-        mesh.rotate_x(rotate[0],inplace = True)
-        # mesh.rotate(Rotation.from_euler('ZYX',rotate[::-1],degrees=True),inplace = True)
-        mesh.translate(translate,inplace = True)
-        # 2. 创建体素网格
-        voxels = pv.DataSetFilters.voxelize(mesh) # 先变换再体素化，体素化之后再变换会使得网格错位，规则网格无法正确采样
-        # voxels.scale(scale,inplace = True)
-        # ugrid = pv.UnstructuredGrid()
-        # ugrid.rotate_x()
-        # 3. 转换为规则网格
-        grid = pv.StructuredGrid(self.meshX,self.meshY,self.meshZ)
+    def load_stl(self,stl_path,scale = 1.0,translate = [0,0,0],rotate = [0,0,0],logger=None):
+        """
+        mesh and surface array
+        """
+        from ..GEO.STL import StlReader
+        stlReader = StlReader(self.X,self.Y,self.Z,self.dx,3,logger)
+        return stlReader.voxel_stl(stl_path,scale,translate,rotate)
         
-        # 4. 采样到规则网格
-        sampled = grid.sample(voxels)
-        
-        # 5. 提取标量数据为数组
-        voxel_array = sampled['vtkValidPointMask'].reshape(grid.dimensions, order='F')
-        return voxel_array,grid
+    
     def load_cantera(self,file):
         """
         load_yaml 读取yaml机理文件 cantera格式

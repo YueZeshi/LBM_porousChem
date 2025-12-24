@@ -1,49 +1,47 @@
 basic:
-  name      : cylinder
+  name      : test
   author    : Sylvain
-  date      : 2025-12-22
-  dimension : 2
+  date      : 2025-12-21
+  dimension : 3
   arch      : cpu
-  type      : configuration # configuration / snapshot
+  type      : configuration 
 
 module : 
   flow : true
 
 
 spaceControl:
-  geometry : [1,0.1]
+  geometry : [0.5,0.1,0.1]
   DX : 1e-3
 
 
 timeControl:
   startTime : 0
-  endTime : 10000
+  endTime : 1000
   DT : 1e-3
 
 flowProperties:
-  viscosity : 0.002
+  viscosity : 0.1
 
-chemicalProperties:
-  source : cantera
 
 geometry:
   zone1:
     type : sphere
-    center : [0.1,0.05,0]
+    center : [0.1,0.05,0.05]
     radius : 0.01
   zone2 :
     type : cylinder
-    center : [0.2,0.05,0]
+    center : [0.2,0.05,0.05]
     radius : 0.02
     height : 0.01
     axis : [0,1,0]
   zone3 :
     type : box
-    center : [0.3,0.05,0]
+    center : [0.3,0.05,0.05]
     size : [0.02,0.01,0.01]
   zone4 : 
     type : cone
-    center : [0.4,0.05,0]
+    center : [0.4,0.05,0.05]
     height : 0.1
     radius : 0.02
     axis : [0,0.5,0.5]
@@ -51,7 +49,7 @@ geometry:
     type : stl
     path : stl/cylinder_test2.stl
     scale : 1
-    translate : [0.6,0.05,0]
+    translate : [0.3,0.05,0.05]
     rotate : [0,0,0]
 
 initialCondition:
@@ -59,61 +57,39 @@ initialCondition:
     solid1:
       zone : ALL
       type : concrete
-    # solid2:
-    #   zone : zone2
-    #   type : substract
   flow:
     rho : 1
     velocity : [0,0,0]
-  thermal:
-    T : 300
-  chemical:
-    N2 : 
-      zone : all
-      value : 1
-    wood(S):
-      zone : zone1
-      vaue : 400
 
 boundaryCondition:
   left:
     flow:
       type: inlet
       velocity : [0.01,0,0]
-    thermal:
-      type:
-    chemical:
-      type:
   right:
     flow:
       type: outlet
       rho: 1
-    thermal:
-      type:
-    chemical:
-      type:
   down:
     flow:
       type: wall
-    thermal:
-      type:
-    chemical:
-      type:
   up:
     flow:
       type : wall
-    thermal:
-      type:
-    chemical:
-      type:
-  
+  forward : 
+    flow:
+      type: wall
+  back : 
+    flow:
+      type: wall
+
 
 outputControl:
   vtk:
-    interval : 1
+    interval : 10
     path : vtk
     LOD : 1
-    clear : false
+    clear : true
   log:
     interval : 1
     LOD : 1

@@ -14,40 +14,48 @@ class LBM3D_INITIALIZATION(LBM3D_BASE):
             self.solid[i] = 0.0
             self.v[i] = ti.Vector([0,0,0])
             self.rho[i] = 1.0
-    @ti.kernel
-    def print_information(self):
-        print("\n \nBasic information of the LBM simulation:")
-        print(self.name,f": Size: {self.nx} x {self.ny} x {self.nz}, dx: {self.dx}, dt: {self.dt}")
-        print("It contains :")
+    def description(self):
+        des = "\n------------------------------------------\n"
+        des += "Basic information of the LBM simulation:\n"
+        des += " name : " + self.name+f"\n Size : {self.nx} x {self.ny} x {self.nz}\n dx : {self.dx}\n dt : {self.dt}\n"
+        des += "Modules activated :\n"
+        des += " -flow field\n"
         if self.PORO:
-            print(" -porous medium")
+            des+=" -porous medium\n"
         if self.TEMPERATURE:
-            print(" -thermal transfer")
+            des+=" -thermal transfer\n"
         if self.RADIATION:
-            print(" -radiation")
+            des+=" -radiation\n"
         if ti.static(self.CHEMISTRY):
-            print(" -chemical reaction")
-            print("The species concerned: ",end="")
-            for specie in ti.static(list(self.species.keys())):
-                print(specie,end=" ")
-            print("")
-        print("The boundary conditions of the flow field are set to :")
+            des+=" -chemical reaction\n"
+
+        des+="Boundary condition model : "+ BC_MODEL(self.boundary_condition_model).name+"\n"
+        des+="The boundary conditions of the flow field are set to :\n" 
         sideName = ti.static(["left","right","front","back","bottom","top"])
+
         for i in ti.static(range(6)):
-            # print(self.bc[i])
+            # des+=self.bc[i])
             if ti.static(self.bc[i]==BC_FLOW.periodic):
-                print(sideName[i]+": PERIODIC")
+                des+="    "+sideName[i]+": PERIODIC\n"
             if ti.static(self.bc[i]==BC_FLOW.wall):
-                print(sideName[i]+": WALL")
+                des+="    "+sideName[i]+": WALL\n"
             if ti.static(self.bc[i]==BC_FLOW.inlet):
-                print(sideName[i]+": INLET")
+                des+="    "+sideName[i]+": INLET\n"
             if ti.static(self.bc[i]==BC_FLOW.outlet):
-                print(sideName[i]+": OUTLET")
+                des+="    "+sideName[i]+": OUTLET\n"
             if ti.static(self.bc[i]==BC_FLOW.symmetric):
-                print(sideName[i]+": SYMMETRIC")
+                des+="    "+sideName[i]+": SYMMETRIC\n"
+            if ti.static(self.bc[i]==BC_FLOW.inlet_flow):
+                des+="    "+sideName[i]+": INLET FLOW\n"
+        if ti.static(self.CHEMISTRY):
+            des+="The species involved are: "
+            for specie in self.species:
+                des += specie.__str__()+" "
+            des += "\n"+self.reactions.__str__()
+        des += "------------------------------------------\n\n"
+        return des
     def init_simulation(self):
         self.init_python()
-        self.print_information()
         self.init_taichi()
     def init_python(self):
         if ti.static(self.CHEMISTRY):

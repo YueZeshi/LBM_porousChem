@@ -1,14 +1,13 @@
 
 import os
 import numpy as np
-import taichi as ti
 from ..util.path import root_path
 import logging
 
 class StlGenerator:
     def __init__(self,logger:logging.Logger):
         self.logger = logger
-        self.stl_repo = os.path.join(root_path(),"data/stl")
+        self.stl_repo = os.path.join(root_path(),"data","stl")
         if not os.path.exists(self.stl_repo):
             os.mkdir(self.stl_repo)
 
@@ -79,7 +78,7 @@ class StlGenerator:
         return path
 
 class StlReader:
-    def __init__(self,x,y,z,dx,logger:logging.Logger):
+    def __init__(self,x,y,z,dx,dimension,logger:logging.Logger):
         self.X = x
         self.Y = y
         self.Z = z
@@ -87,10 +86,11 @@ class StlReader:
         self.ny = int(y/dx)
         self.nz = int(z/dx)
         self.dx = dx
+        self.dimension = dimension
         self.logger = logger
         if not self.logger:
             self.logger = logging.Logger("default logger")
-        self.e4 = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0]]
+        self.e = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]
 
     def voxel_stl(self,stl_path,scale = 1.0,translate = [0,0,0],rotate = [0,0,0]):
         if scale is None:
@@ -117,9 +117,14 @@ class StlReader:
         padded_x_max = self.X+self.dx
         padded_y_min = -self.dx
         padded_y_max = self.Y+self.dx
+        padded_z_min = -self.dx
+        padded_z_max = self.Z+self.dx
+        
         padded_x = np.linspace(padded_x_min,padded_x_max,self.nx+2)
         padded_y = np.linspace(padded_y_min,padded_y_max,self.ny+2)
-        X,Y,Z = np.meshgrid(padded_x,padded_y,[0],indexing='ij')
+        padded_z = np.linspace(padded_z_min,padded_z_max,self.nz+2)
+        
+        X,Y,Z = np.meshgrid(padded_x,padded_y,padded_z,indexing='ij')
         grid = pv.StructuredGrid(X,Y,Z)
         # 4. 采样到规则网格
         sampled = grid.sample(voxels)
@@ -130,14 +135,14 @@ class StlReader:
         surfaceField = ti.field(float,shape = voxel_array.shape)
         voxelField.from_numpy(voxel_array)
         @ti.kernel
-        def extract_surface_only():
+        def extract_surface_2D():
             for i in ti.grouped(voxelField):
                 if voxelField[i]==0 or i[0]<1 or i[0]>self.nx or i[1]<1 or i[1]>self.ny: 
                     surfaceField[i] = 0 
                 else:
                     num_solid_neighbor = 0
                     for j in ti.static(range(4)):
-                        if voxelField[i+self.e4[j]] > 0.0:
+                        if voxelField[i+self.e[j]] > 0.0:
                             num_solid_neighbor += 1
                     if num_solid_neighbor==4:
                         surfaceField[i] = 0
@@ -149,9 +154,37 @@ class StlReader:
                         surfaceField[i] = 2.0
                     elif num_solid_neighbor == 0:
                         surfaceField[i] = 4.0
-
-        extract_surface_only()
+        @ti.kernel
+        def extract_surface_3D():
+            for i in ti.grouped(voxelField):
+                if voxelField[i]==0 or i[0]<1 or i[0]>self.nx or i[1]<1 or i[1]>self.ny or i[2]<1 or i[2]>self.nx: 
+                    surfaceField[i] = 0 
+                else:
+                    num_solid_neighbor = 0
+                    for j in ti.static(range(6)):
+                        if voxelField[i+self.e[j]] > 0.0:
+                            num_solid_neighbor += 1
+                    if num_solid_neighbor==6:
+                        surfaceField[i] = 0
+                    elif num_solid_neighbor == 5:
+                        surfaceField[i] = 1.0
+                    elif num_solid_neighbor == 4:
+                        surfaceField[i] = 1.414
+                    elif num_solid_neighbor == 3:
+                        surfaceField[i] = 2.0
+                    elif num_solid_neighbor == 2:
+                        surfaceField[i] = 3.0
+                    elif num_solid_neighbor == 1:
+                        surfaceField[i] = 4.0
+                    elif num_solid_neighbor == 0:
+                        surfaceField[i] = 6.0
+        if self.dimension==3:
+            extract_surface_3D()
+        elif self.dimension==2:
+            extract_surface_2D()
+        else:
+            self.logger.warning("Stl reader dimension error.")
         surface_array = surfaceField.to_numpy()
         self.logger.info(f"Stl {stl_path} loaded.")
-        return voxel_array[1:-1,1:-1],surface_array[1:-1,1:-1]
+        return voxel_array[1:-1,1:-1,1:-1],surface_array[1:-1,1:-1,1:-1]
     
