@@ -1,1 +1,1 @@
-"""top level package for GEO"""
+"""using cadquery to generate simole stl model"""

@@ -108,35 +108,60 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
     geo_infos = config.get("geometry")
     if geo_infos:
         logger.info("Geometry loading...")
-        from .GEO.G2D import Mesh2D
         for geo_name in geo_infos:
             shape = geo_infos[geo_name]["type"]
-            if shape == "circle":
-                m2d = Mesh2D(x,y,dx)
-                center = geo_infos[geo_name]["center"]
-                radius = geo_infos[geo_name]["radius"]
-                m2d.CreateMesh2DCircle(center[0],center[1],radius)
-                s,l = m2d.export_numpy()
-                geo_dict[geo_name] = (s,l)
-            elif shape == "rectangle":
-                m2d = Mesh2D(x,y,dx)
-                point1 = geo_infos[geo_name]["point1"]
-                point2 = geo_infos[geo_name]["point2"]
-                m2d.CreateMesh2DRectangle(point1[0],point1[1],point2[0],point2[1])
-                s,l = m2d.export_numpy()
-                geo_dict[geo_name] = (s,l)
+            path = ""
+            translate = [0,0,0]
+            rotate = [0,0,0]
+            scale = [1,1,1]
+            if shape == "sphere":
+                from .GEO.STL import StlGenerator
+                stl_generator = StlGenerator(logger)
+                path = stl_generator.create_sphere()
+                translate = geo_infos[geo_name].get("center",[0,0,0])
+                scale = geo_infos[geo_name].get("radius",[0.5,0.5,0.5])*2
+            elif shape == "cylinder":
+                from .GEO.STL import StlGenerator
+                stl_generator = StlGenerator(logger)
+                path = stl_generator.create_cylinder()
+                height = geo_infos[geo_name].get("height",1)
+                center = geo_infos[geo_name].get("center",[0,0,0])
+                radius = geo_infos[geo_name].get("radius",0.5)
+                axis = geo_infos[geo_name].get("axis",[0,0,1])
+                from .util.math import vectors_to_euler
+                rotate = vectors_to_euler([0,0,1],axis,degrees = True)
+                translate = center
+                scale = [2*radius,2*radius,height]
+            elif shape == "cone":
+                from .GEO.STL import StlGenerator
+                stl_generator = StlGenerator(logger)
+                path = stl_generator.create_cone()
+                center = geo_infos[geo_name].get("center",[0,0,0])
+                height = geo_infos[geo_name].get("height",1)
+                radius = geo_infos[geo_name].get("radius",0.5)
+                axis = geo_infos[geo_name].get("axis",[0,0,1])
+                from .util.math import vectors_to_euler
+                rotate = vectors_to_euler([0,0,1],axis,degrees = True)
+                translate = center
+                scale = [2*radius,2*radius,height]
+            elif shape == "box":
+                from .GEO.STL import StlGenerator
+                stl_generator = StlGenerator(logger)
+                path = stl_generator.create_box()
+                scale = geo_infos[geo_name].get("size",[1,1,1])
+                center = geo_infos[geo_name].get("center",[0,0,0])
+                translate = center
             elif shape == "stl":
                 # read stl
                 path = geo_infos[geo_name].get("path")
-                logger.info(f"Stl {path} loading...")
-                trans = geo_infos[geo_name].get("translate")
-                rot = geo_infos[geo_name].get("rotate")
+                translate = geo_infos[geo_name].get("translate")
+                rotate = geo_infos[geo_name].get("rotate")
                 scale = geo_infos[geo_name].get("scale")
-                mesh,surface = lb.voxel_stl(path,scale,trans,rot)
-                geo_dict[geo_name] = (mesh,surface)
-                logger.info(f"Stl {path} loaded")
             else:
                 logger.warning(f"Geometry {shape} not valid.")
+            mesh,surface = lb.load_stl(path,scale,translate,rotate,logger)
+            if np.shape(mesh)[0]!=0:
+                geo_dict[geo_name]=mesh,surface
         logger.info("Geometry loaded.")
 
 
@@ -146,18 +171,15 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
     ## solid phase
     solidIC = initialCondition.get("solid")
     if solidIC:
+        s = np.zeros((lb.nx,lb.ny,lb.nz))
         for solid in solidIC.values():
             if isPoro:
                 eps = solid["porosity"]
                 if solid["zone"]=="ALL":
-                    s = np.zeros((lb.nx,lb.ny,lb.nz))
-                    
                     for geo_name,geo_data in geo_dict.items():
                         s += geo_data[0]
                     s = (1-eps)*s
-                    lb.init_field(lb.solid,s)
                 elif type(solid["zone"]) is ruamel.yaml.comments.CommentedSeq: # []
-                    s = np.zeros((lb.nx,lb.ny,lb.nz))
                     for zoneName in solid["zone"]:
                         s += geo_dict[zoneName][0]
                     s = (1-eps)*s
@@ -165,24 +187,20 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
                 elif type(solid["zone"]) is str:
                     s = geo_dict[solid["zone"]][0]
                     s = (1-eps)*s
-                    lb.init_field(lb.solid,s)
             else:
                 if solid["zone"]=="ALL":
-                    s = np.zeros((lb.nx,lb.ny,lb.nz))
                     for geo_name,geo_data in geo_dict.items():
-                        s += geo_data[1]
+                        s += geo_data[0]
                     s = (s>0)*np.float32(1.0)
-                    lb.init_field(lb.solid,s)
                 elif type(solid["zone"]) is ruamel.yaml.comments.CommentedSeq: # []
-                    s = np.zeros((lb.nx,lb.ny,lb.nz))
                     for zoneName in solid["zone"]:
                         s += geo_dict[zoneName][0]
                     s = (s>0)*np.float32(1.0)
-                    lb.init_field(lb.solid,s)
                 elif type(solid["zone"]) is str:
                     s = geo_dict[solid["zone"]][0]
                     s = (s>0)*np.float32(1.0)
-                    lb.init_field(lb.solid,s)
+        lb.init_field(lb.solid,s)
+
     logger.info("Initial condition set.")
     logger.info("Simulation initializing...")
     lb.init_simulation()

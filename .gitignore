@@ -1,5 +1,6 @@
 # generated file
 result/
+data/stl/*.stl
 *.vtr
 *.pvd
 # Byte-compiled / optimized / DLL files
