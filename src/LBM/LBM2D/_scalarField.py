@@ -24,7 +24,7 @@ class ScalarField:
             for i in range(4):
                 self.flux_BC[i]=0.0
                 self.s_BC[i]=0.0
-    def get_physical_value(self,v):
+    def get_physical_value(self,v): # change unit and reference
         v_phys = v*self.v_scale + self.v_ref
         return v_phys
 

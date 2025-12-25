@@ -8,9 +8,10 @@ class Specie(ScalarField): # 物种质量分数场
     def __init__(self,name,lb3d,FIX = False,Mmass = 1.0):
         super().__init__(name,lb3d,FIX)
         self.molemass = Mmass
-        self.Trange = ti.field(float,shape=(3))
-        self.NASAcoef1 = ti.field(float,shape=(7))
-        self.NASAcoef2 = ti.field(float,shape=(7))
+        self.Trange = ti.Vector.field(3,float,shape=())
+        self.NASAcoef1 = ti.Vector.field(7,float,shape=())
+        self.NASAcoef2 = ti.Vector.field(7,float,shape=())
+        self.coefSutherland = ti.Vector.field(2,float,shape = ())
         self.default_init_NASA()
     def default_init_NASA(self):
         for i in range(3):
@@ -22,37 +23,41 @@ class Specie(ScalarField): # 物种质量分数场
         return f"Specie: {self.name}, Molar Mass: {self.molemass} kg/mol, FIX: {self.FIX}"
     def __repr__(self):
         return self.__str__()
+    
     @ti.func
-    def capacity_mole(self,T): 
+    def capacity_mole(self,T): # T in Kelvin
         c_R = 1
         if T < self.Trange[1]:
-            c_R = 1
+            c_R = (((self.NASAcoef1[4]*T+self.NASAcoef1[3])*T+self.NASAcoef1[2])*T+self.NASAcoef1[1])*T+self.NASAcoef1[0]
         else:
-            c_R = 2
+            c_R = (((self.NASAcoef2[4]*T+self.NASAcoef2[3])*T+self.NASAcoef2[2])*T+self.NASAcoef2[1])*T+self.NASAcoef2[0]
         return c_R*constant.R
     @ti.func
     def enthalpy_mole(self,T): 
         H_RT = 1.0
         if T < self.Trange[1]:
-            H_RT = 1
+            H_RT = ((((self.NASAcoef1[4]*T/5+self.NASAcoef1[3]/4)*T+self.NASAcoef1[2]/3)*T+self.NASAcoef1[1]/2)*T+self.NASAcoef1[0])*T+self.NASAcoef1[5]        
         else:
-            H_RT = 2
+            H_RT = ((((self.NASAcoef2[4]*T/5+self.NASAcoef2[3]/4)*T+self.NASAcoef2[2]/3)*T+self.NASAcoef2[1]/2)*T+self.NASAcoef2[0])*T+self.NASAcoef2[5]
         return H_RT*constant.R*T
-
+    @ti.func
+    def entropy_mole(self,T):
+        S_R = 1.0
+        if T < self.Trange[1]:
+            S_R = (((self.NASAcoef1[4]*T/4+self.NASAcoef1[3]/3)*T+self.NASAcoef1[2]/2)*T+self.NASAcoef1[1])*T+self.NASAcoef1[0]*ti.log(T)+self.NASAcoef1[6]        
+        else:
+            S_R = (((self.NASAcoef2[4]*T/4+self.NASAcoef2[3]/3)*T+self.NASAcoef2[2]/2)*T+self.NASAcoef2[1])*T+self.NASAcoef2[0]*ti.log(T)+self.NASAcoef2[6]  
+        return S_R*constant.R
     @ti.func
     def capacity_m(self,T):
         # cm = self.capacity_mole(T)/self.molemass
         cm = 1.0
         return cm
+    
     @ti.func
     def conductivity(self,i): #UDF
         return 0.2
     
-    def set_s_BC_Y(self,index,s):
-        self.Y_BC[index]=s
-    def set_s_BCs_Y(self,s):
-        for i in range(4):
-            self.Y_BC[i]=s[i]
     @ti.func
     def geq5(self,k,S,x,y,z):
         u = self.LBM.v[x,y,z]
