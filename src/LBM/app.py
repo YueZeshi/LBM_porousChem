@@ -1,3 +1,4 @@
+from re import L
 import numpy as np
 import logging
 import ruamel.yaml
@@ -23,7 +24,7 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
     # Implementation for 2D application
     startTime = time.time()
     from .LBM2D import LBM2DSolver
-    ARCH = config["basic"].get("arch")
+    ARCH = config["basic"].get("arch","cpu")
     ti.reset()
     try:
         if ARCH=="gpu":
@@ -32,6 +33,8 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
             ti.init(arch=ti.cpu)
         elif ARCH == "vulkan":
             ti.init(arch=ti.vulkan)
+        elif ARCH == "cuda":
+            ti.init(arch=ti.cuda)
         else:
             ti.init(arch=ti.cpu)
             logger.warning(f"ARCH {ARCH} not valid. Use cpu by default.")
@@ -58,17 +61,105 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
     lb.force_term_model = FORCE_TERM.GUO
     
     # viscosity
-    lb.set_viscosity(config["flowProperties"]["viscosity"])
+    flowProperties = config.get("flowProperties")
+    if flowProperties is not None:
+        viscosity = flowProperties.get("viscosity")
+        viscosityType = viscosity.get("type")
+        if viscosityType == "constant":
+            nu = viscosity.get("value")
+            lb.set_viscosity(nu)
+        elif viscosityType == "sutherland":
+            As = viscosity.get("As")
+            Ts = viscosity.get("Ts")
+            lb.set_viscosity_sutherland(As,Ts)
+        elif viscosityType == "mixture":
+            lb.set_viscosity_mixture()
     # thermal
-    if isThermal:
-        pass
+    thermalPropertiesFluid = config.get("thermalPropertiesFluid")
+    if isThermal and (thermalPropertiesFluid is not None):
+        conductivity = thermalPropertiesFluid.get("conductivity")
+        if conductivity is not None:
+            conductivityType = conductivity.get("type")
+            if conductivityType == "constant":
+                lamb = conductivity.get("value")
+                lb.set_fluid_conductivity(lamb)
+            elif conductivityType == "Prandtl":
+                Pr = conductivity.get("Pr")
+                lb.set_fluid_Prandtl(Pr)
+            elif conductivityType == "polynomial":
+                data = conductivity.get("data")
+                lb.set_fluid_conductivity_poly(data)
+            elif conductivityType == "mixture":
+                lb.set_fluid_conductivity_mixture()
+            else:
+                logger.warning(f"Conductivity type {conductivityType} of thermalPropertiesFluid not valid. The valid type : constant|Prandtl|polynomial|mixture")
+        capacity = thermalPropertiesFluid.get("capacity")   
+        if capacity is not None:
+            capacityType = capacity.get("type")
+            if capacityType == "constant":
+                value = capacity.get("value")
+                lb.set_fluid_capacity(value)
+            elif capacityType =="polynomial":
+                data = capacity.get("data")
+                lb.set_fluid_capacity_poly(data)
+            elif capacityType == "NASA7":
+                Trange = capacity.get("Trange")
+                data = capacity.get("data")
+                lb.set_fluid_capacity_NASA7(Trange,data)
+            elif capacityType == "mixture":
+                lb.set_fluid_capacity_mixture()
+            else:
+                logger.warning(f"Capacity type {capacityType} of thermalPropertiesFluid not valid. The valid type : constant|polynomial|NASA7|mixture")
+        
+    thermalPropertiesSolid = config.get("thermalPropertiesSolid")
+    if isThermal and (thermalPropertiesSolid is not None):
+        conductivity = thermalPropertiesSolid.get("conductivity")
+        if conductivity is not None:
+            conductivityType = conductivity.get("type")
+            if conductivityType == "constant":
+                lamb = conductivity.get("value")
+                lb.set_solid_conductivity(lamb)
+            elif conductivityType == "polynomial":
+                data = conductivity.get("data")
+                lb.set_solid_conductivity_poly(data)
+            elif conductivityType == "mixture":
+                lb.set_solid_conductivity_mixture()
+            else:
+                logger.warning(f"Conductivity type {conductivityType} of thermalPropertiesSolid not valid. The valid type : constant|polynomial|mixture")
+        capacity = thermalPropertiesSolid.get("capacity")   
+        if capacity is not None:
+            capacityType = capacity.get("type")
+            if capacityType == "constant":
+                value = capacity.get("value")
+                lb.set_solid_capacity(value)
+            elif capacityType =="polynomial":
+                data = capacity.get("data")
+                lb.set_solid_capacity_poly(data)
+            elif capacityType == "NASA7":
+                Trange = capacity.get("Trange")
+                data = capacity.get("data")
+                lb.set_solid_capacity_NASA7(Trange,data)
+            elif capacityType == "mixture":
+                lb.set_solid_capacity_mixture()
+            else:
+                logger.warning(f"Capacity type {capacityType} of thermalPropertiesSolid not valid. The valid type : constant|polynomial|NASA7|mixture")
+     
     # chemistry
-    if isChemical:
-        # load chemical mechanism
-        logger.info("Cantera loading...")
-        cantera_file = config["chemicalProperties"]["canteraFile"]
-        lb.load_cantera(cantera_file)
-        logger.info("Cantera loaded.")
+    chemicalProperties = config.get("chemicalProperties")
+    if isChemical and chemicalProperties is not None:
+        logger.info("Chemistry module loading...")
+        chemicalType = chemicalProperties.get("type")
+        if chemicalType == "cantera":
+            # load chemical mechanism
+            logger.info("Cantera loading...")
+            cantera_file = config["chemicalProperties"]["canteraFile"]
+            lb.load_cantera(cantera_file)
+            logger.info("Cantera loaded.")
+        elif chemicalType == "input":
+            pass
+        else:
+            logger.warning(f"Chemical type {chemicalType} of chemicalProperties not valid. The valid type : cantera|input")
+        logger.info("Chemistry module loading...")
 
     # boundary condition
     logger.info("Boundary condition setting...")
@@ -254,7 +345,12 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
             logger.debug(lb.tLattice)
         lb.step()
     logger.info("LBM finished.")
-    
+
+
+
+
+
+
 def application_3D(config:ruamel.yaml.comments.CommentedMap,verbose):
     verbose_level = {
         0:logging.WARNING,

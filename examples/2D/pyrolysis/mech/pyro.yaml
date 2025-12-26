@@ -1,0 +1,348 @@
+description: |-
+  no
+generator: none
+input-files: no
+cantera-version: no
+date: non-solid
+
+units: {length: cm, time: s, quantity: mol, activation-energy: cal/mol}
+
+phases:
+- name: gas
+  thermo: ideal-gas
+  elements: [C, H, O]
+  species: [WOOD(S),TAR,CHAR]
+  kinetics: gas
+  state: {T: 300.0, P: 1 atm}
+
+species:
+- name: WOOD(S)
+  composition: {C: 2, H: 4}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 1650.0, 3500.0]
+    data:
+    - [-0.0602932966, 0.0208133973, -1.34307871e-05, 4.60638323e-09, 
+        -6.5168752e-13, 5511.51677, 21.0642174]
+    - [4.6040275, 9.50595291e-03, -3.15129224e-06, 4.5305197e-10, 
+        -2.23949056e-14, 3972.2909, -3.77421075]
+- name: 
+  composition: {C: 2, H: 6}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 1800.0, 3500.0]
+    data:
+    - [-0.241778736, 0.025347571, -1.39645113e-05, 4.03257459e-09, 
+        -4.87754402e-13, -1.10391121e+04, 21.9572626]
+    - [4.07959174, 0.0157445255, -5.9619734e-06, 1.06867166e-09, 
+        -7.61012177e-14, -1.25948055e+04, -1.43089592]
+- name: CH4
+  composition: {C: 1, H: 4}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 700.0, 3500.0]
+    data:
+    - [5.23967275, -0.0146835084, 5.29732624e-05, -5.41668737e-08, 
+        1.96318536e-11, -1.02526308e+04, -4.9764949]
+    - [0.505346544, 0.0123697842, -4.99807893e-06, 1.04392755e-09, 
+        -8.628973e-14, -9589.82509, 16.1752768]
+- name: CO
+  composition: {C: 1, O: 1}
+  thermo:
+    model: NASA7
+    temperature-ranges: [200.0, 960.0, 3500.0]
+    data:
+    - [3.75723893, -2.14465251e-03, 5.42079022e-06, -4.17025975e-09, 
+        1.1190113e-12, -1.4357553e+04, 2.79976793]
+    - [2.7925538, 1.87486885e-03, -8.597119e-07, 1.91200058e-10, 
+        -1.6785527e-14, -1.41723335e+04, 7.41443564]
+- name: CO2
+  composition: {C: 1, O: 2}
+  thermo:
+    model: NASA7
+    temperature-ranges: [200.0, 1450.0, 3500.0]
+    data:
+    - [2.31684348, 9.22755029e-03, -7.7565408e-06, 3.28225351e-09, 
+        -5.48722465e-13, -4.83626067e+04, 10.0786234]
+    - [4.70876459, 2.62914723e-03, -9.30606601e-07, 1.43892961e-10, 
+        -7.62581847e-15, -4.90562638e+04, -2.34976404]
+- name: H2
+  composition: {H: 2}
+  thermo:
+    model: NASA7
+    temperature-ranges: [200.0, 700.0, 3500.0]
+    data:
+    - [2.64204435, 5.49529297e-03, -1.27163639e-05, 1.28749178e-08, 
+        -4.70027765e-12, -943.23661, -0.512230966]
+    - [3.78199882, -1.01873257e-03, 1.24226228e-06, -4.19011878e-10, 
+        4.75543765e-14, -1102.83024, -5.60525913]
+- name: C2H3CHO
+  composition: {C: 3, H: 4, O: 1}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 1600.0, 3500.0]
+    data:
+    - [0.818907999, 0.0322215133, -2.33838152e-05, 8.71821008e-09, 
+        -1.3053975e-12, -9681.68587, 23.6968524]
+    - [9.22597861, 0.0112038368, -3.67974341e-06, 5.08180186e-10, 
+        -2.25803312e-14, -1.23719485e+04, -20.8137573]
+- name: CH2O
+  composition: {C: 1, H: 2, O: 1}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 700.0, 3500.0]
+    data:
+    - [4.32621275, -7.01151723e-03, 3.15176932e-05, -3.3647861e-08, 
+        1.23454012e-11, -1.43270169e+04, 2.62028992]
+    - [1.33335656, 0.0100905181, -5.12952546e-06, 1.25425201e-09, 
+        -1.19639101e-13, -1.3908017e+04, 15.9916142]
+- name: C2H5CHO
+  composition: {C: 3, H: 6, O: 1}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 1710.0, 3500.0]
+    data:
+    - [-0.0986882936, 0.036747708, -2.39124011e-05, 8.11426733e-09, 
+        -1.12212433e-12, -2.36909719e+04, 25.3220281]
+    - [9.33264641, 0.0146861064, -4.56011895e-06, 5.69517954e-10, 
+        -1.90907915e-14, -2.69164884e+04, -25.2385586]
+- name: C6H5OCH3
+  composition: {C: 7, H: 8, O: 1}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 1380.0, 3500.0]
+    data:
+    - [-5.29461544, 0.0865938847, -7.24001214e-05, 3.07452344e-08, 
+        -5.22884092e-12, -1.02902158e+04, 49.5832509]
+    - [12.5085131, 0.0349906136, -1.63096094e-05, 3.6483687e-09, 
+        -3.19988435e-13, -1.52038793e+04, -42.0406469]
+- name: C24H28O4
+  composition: {C: 24, H: 28, O: 4}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 1080.0, 3500.0]
+    data:
+    - [3.08710559, 0.117567138, -9.71032581e-05, 4.35967718e-08, 
+        -8.45369329e-12, -5535.55382, 45.2764201]
+    - [12.9252082, 0.0811297206, -4.64957344e-05, 1.23575596e-08, 
+        -1.22239418e-12, -7660.58398, -2.94388861]
+- name: CH2OHCHO
+  composition: {C: 2, H: 4, O: 2}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 1800.0, 3500.0]
+    data:
+    - [1.56305394, 0.0254706094, -1.61434793e-05, 5.27857153e-09, 
+        -6.9906135e-13, -3.83494818e+04, 21.3476881]
+    - [8.91045191, 9.14305835e-03, -2.53718679e-06, 2.39203927e-10, 
+        8.50817753e-16, -4.09945451e+04, -18.4179625]
+- name: CH3CHO
+  composition: {C: 2, H: 4, O: 1}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 1800.0, 3500.0]
+    data:
+    - [0.975916365, 0.0223167884, -1.34667889e-05, 4.19883781e-09, 
+        -5.36397402e-13, -2.11735621e+04, 20.0785625]
+    - [6.22195717, 0.01065892, -3.75189849e-06, 6.00730261e-10, 
+        -3.66602428e-14, -2.30621368e+04, -8.31410467]
+- name: CH3OH
+  composition: {C: 1, H: 4, O: 1}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 1800.0, 3500.0]
+    data:
+    - [0.847330413, 0.0163086907, -8.48345015e-06, 2.29304373e-09, 
+        -2.59952076e-13, -2.50962544e+04, 19.59333]
+    - [2.71701641, 0.012153833, -5.02106867e-06, 1.01068022e-09, 
+        -8.1846033e-14, -2.57693414e+04, 9.47419935]
+- name: CRESOL
+  composition: {C: 7, H: 8, O: 1}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 1310.0, 3500.0]
+    data:
+    - [-4.41843935, 0.0843645604, -7.22335736e-05, 3.22565298e-08, 
+        -5.8373303e-12, -1.73470426e+04, 45.4334869]
+    - [12.2673689, 0.0334155277, -1.38949865e-05, 2.56768147e-09, 
+        -1.71519537e-13, -2.17187244e+04, -39.5715135]
+- name: H2O
+  composition: {H: 2, O: 1}
+  thermo:
+    model: NASA7
+    temperature-ranges: [200.0, 1420.0, 3500.0]
+    data:
+    - [4.06061172, -8.65807224e-04, 3.24409535e-06, -1.80243084e-09, 
+        3.32483304e-13, -3.02831314e+04, -0.296150501]
+    - [2.66777069, 3.05768864e-03, -9.0044253e-07, 1.4336159e-10, 
+        -1.0085786e-14, -2.98875645e+04, 6.91191161]
+- name: HOCHO
+  composition: {H: 2, C: 1, O: 2}
+  thermo:
+    model: NASA7
+    temperature-ranges: [200.0, 1800.0, 3500.0]
+    data:
+    - [1.85206267, 0.0127447104, -7.44476667e-06, 2.19581357e-09, 
+        -2.62426287e-13, -4.66124595e+04, 15.6434955]
+    - [3.79473623, 8.42765802e-03, -3.84722303e-06, 8.63389995e-10, 
+        -7.73674578e-14, -4.7311822e+04, 5.12934093]
+- name: VANILLIN
+  composition: {C: 8, H: 8, O: 3}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 1260.0, 3500.0]
+    data:
+    - [-4.86637432, 0.107210638, -9.42597935e-05, 4.25395951e-08, 
+        -7.82416013e-12, -4.72182901e+04, 58.1751538]
+    - [13.6544659, 0.0484143197, -2.42641766e-05, 5.50487717e-09, 
+        -4.76001813e-13, -5.18855419e+04, -35.4575775]
+- name: LIGC(S)
+  composition: {C: 15, H: 14, O: 4}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 4000.0]
+    data:
+    - [46.5972456, 0.0310648304, 0.0, 0.0, 0.0, -1.01283047e+05, 0.0]
+- name: LIGH(S)
+  composition: {C: 22, H: 28, O: 9}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 4000.0]
+    data:
+    - [78.7449483, 0.0524966322, 0.0, 0.0, 0.0, -2.2376754e+05, 0.0]
+- name: LIGO(S)
+  composition: {C: 20, H: 22, O: 10}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 4000.0]
+    data:
+    - [76.2062786, 0.0508041857, 0.0, 0.0, 0.0, -2.51431603e+05, 0.0]
+- name: LIGCC(S)
+  composition: {C: 15, H: 14, O: 4}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 4000.0]
+    data:
+    - [46.5972456, 0.0310648304, 0.0, 0.0, 0.0, -7.01136192e+04, 0.0]
+- name: LIGOH(S)
+  composition: {C: 19, H: 22, O: 8}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 4000.0]
+    data:
+    - [68.2662377, 0.0455108251, 0.0, 0.0, 0.0, -1.8615594e+05, 0.0]
+- name: LIG(S)
+  composition: {C: 11, H: 12, O: 4}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 4000.0]
+    data:
+    - [37.5654919, 0.0250436613, 0.0, 0.0, 0.0, -9.43494885e+04, 0.0]
+- name: CHAR(S)
+  composition: {C: 1}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 4000.0]
+    data:
+    - [-0.100801964, 4.99856387e-03, 0.0, 0.0, 0.0, -420.59372, 0.0]
+- name: COH2S(S)
+  composition: {C: 1, H: 2, O: 1}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 4000.0]
+    data:
+    - [5.41724802, 3.61149868e-03, 0.0, 0.0, 0.0, -4.29716079e+04, 0.0]
+- name: CO2S(S)
+  composition: {C: 1, O: 2}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 4000.0]
+    data:
+    - [7.94004089, 5.2933606e-03, 0.0, 0.0, 0.0, -3.99924651e+04, 0.0]
+- name: COS(S)
+  composition: {C: 1, O: 1}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 4000.0]
+    data:
+    - [5.05352418, 3.36901612e-03, 0.0, 0.0, 0.0, -1.01008627e+04, 0.0]
+- name: CH3OHS(S)
+  composition: {C: 1, H: 4, O: 1}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 4000.0]
+    data:
+    - [5.78097185, 3.85398124e-03, 0.0, 0.0, 0.0, -2.62398341e+04, 0.0]
+- name: CH4S(S)
+  composition: {C: 1, H: 4}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 4000.0]
+    data:
+    - [2.89445514, 1.92963676e-03, 0.0, 0.0, 0.0, -9105.04531, 0.0]
+- name: C2H4S(S)
+  composition: {C: 2, H: 4}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 4000.0]
+    data:
+    - [5.06146259, 3.3743084e-03, 0.0, 0.0, 0.0, 5044.56594, 0.0]
+- name: CH2OS(S)
+  composition: {C: 1, H: 2, O: 1}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 4000.0]
+    data:
+    - [5.41724802, 3.61149868e-03, 0.0, 0.0, 0.0, -2.46988983e+04, 0.0]
+- name: H2S(S)
+  composition: {H: 2}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 4000.0]
+    data:
+    - [0.363723839, 2.4248256e-04, 0.0, 0.0, 0.0, 783.252454, 0.0]
+- name: C2H6S(S)
+  composition: {C: 2, H: 6}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 4000.0]
+    data:
+    - [5.42518643, 3.61679096e-03, 0.0, 0.0, 0.0, -1.10383524e+04, 0.0]
+- name: COSTIFFS(S)
+  composition: {C: 1, O: 1}
+  thermo:
+    model: NASA7
+    temperature-ranges: [300.0, 4000.0]
+    data:
+    - [5.05352418, 3.36901612e-03, 0.0, 0.0, 0.0, -9461.20426, 0.0]
+
+reactions:
+- equation: LIGH(S) => LIGOH(S) + 0.5 C2H5CHO + 0.4 C2H4 + 0.2 
+    CH2OHCHO + 0.1 CO + 0.1 C2H6  # Reaction 1
+  rate-constant: {A: 6.7e+12, b: 0.0, Ea: 3.75e+04}
+- equation: LIGO(S) => LIGOH(S) + CO2  # Reaction 2
+  rate-constant: {A: 3.3e+08, b: 0.0, Ea: 2.55e+04}
+- equation: LIGC(S) => 0.35 LIGCC(S) + 0.1 VANILLIN + 0.1 C6H5OCH3 + 
+    0.27 C2H4 + H2O + 0.17 CH2OS(S) + 0.4 COH2S(S) + 0.22 CH2O + 0.21 
+    CO + 0.1 CO2 + 0.36 CH4S(S) + 5.85 CHAR(S) + 0.2 C2H6S(S) + 0.1 
+    H2S(S)  # Reaction 3
+  rate-constant: {A: 1.0e+11, b: 0.0, Ea: 3.72e+04}
+- equation: LIGCC(S) => 0.25 VANILLIN + 0.15 CRESOL + 0.15 C6H5OCH3 + 
+    0.35 CH2OHCHO + 0.7 H2O + 0.45 CH4 + 0.3 C2H4 + 0.7 H2 + 1.15 CO +
+    0.4 COS(S) + 6.8 CHAR(S) + 0.4 C2H6  # Reaction 4
+  rate-constant: {A: 1.0e+04, b: 0.0, Ea: 2.48e+04}
+- equation: LIGOH(S) => 0.9 LIG(S) + H2O + 0.1 CH4 + 0.6 CH3OH + 0.3 
+    CH3OHS(S) + 0.05 CO2 + 0.65 CO + 0.6 COS(S) + 0.05 HOCHO + 0.45 
+    CH2OS(S) + 0.4 COH2S(S) + 0.25 CH4S(S) + 0.1 C2H4S(S) + 0.15 
+    C2H6S(S) + 4.25 CHAR(S) + 0.025 C24H28O4 + 0.1 C2H3CHO  # Reaction 5
+  rate-constant: {A: 1.5e+08, b: 0.0, Ea: 3.2e+04}
+- equation: LIG(S) => VANILLIN + 0.1 C6H5OCH3 + 0.5 C2H4 + 0.6 CO + 
+    0.3 CH3CHO + 0.1 CHAR(S)  # Reaction 6
+  rate-constant: {A: 4.0, b: 1.0, Ea: 1.2e+04}
+- equation: LIG(S) => 0.6 H2O + 0.3 CO + 0.1 CO2 + 0.2 CH4 + 0.4 CH2O 
+    + 0.2 COS(S) + 0.4 CH4S(S) + 0.5 C2H4S(S) + 0.4 CH3OHS(S) + 1.25 
+    CH2OS(S) + 0.65 COH2S(S) + 6.1 CHAR(S) + 0.1 H2S(S)  # Reaction 7
+  rate-constant: {A: 0.083, b: 1.0, Ea: 8000.0}
+- equation: LIG(S) => 0.6 H2O + 2.6 CO + 0.6 CH4 + 0.4 CH2O + 0.75 
+    C2H4 + 0.4 CH3OH + 4.5 CHAR(S) + 0.5 C2H6  # Reaction 8
+  rate-constant: {A: 1.5e+09, b: 0.0, Ea: 3.15e+04}
