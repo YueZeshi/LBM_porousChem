@@ -1,4 +1,5 @@
 from re import L
+from colorama import init
 import numpy as np
 import logging
 import ruamel.yaml
@@ -67,7 +68,7 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
         viscosityType = viscosity.get("type")
         if viscosityType == "constant":
             nu = viscosity.get("value")
-            lb.set_viscosity(nu)
+            lb.set_viscosity(nu,unit = "SI")
         elif viscosityType == "sutherland":
             As = viscosity.get("As")
             Ts = viscosity.get("Ts")
@@ -182,18 +183,35 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
             lb.set_BC(i,BC_FLOW.wall)
         ## bc of temperature field
         if isThermal:
-            bc_thermal = bc["thermal"]
-            if bc_thermal["type"]=="inlet":
-                v = bc["velocity"]
-                lb.set_BC(i,BC_FLOW.inlet)
-                lb.set_v_BC_value(i,v)
-            elif bc["type"]=="outlet":
-                rho = bc["rho"]
-                lb.set_BC(i,BC_FLOW.outlet)
-                lb.set_rho_BC_value(i,rho)
-            elif bc["type"]=="wall":
-                lb.set_BC(i,BC_FLOW.wall)
+            bcThermalFluid = bc.get("thermalFluid")
+            if bcThermalFluid is not None:
+                bcType = bcThermalFluid.get("type")
+                if bcType=="fixedValue":
+                    value = bcThermalFluid.get("value",0)
+                    lb.set_TF_BC(i,BC.fixedValue)
+                    lb.set_TF_BC_value(i,value)
+                elif bcType=="zeroGradient":
+                    lb.set_TF_BC(i,BC.zeroGradient)
+                elif bcType=="periodic":
+                    lb.set_TF_BC(i,BC.periodic)
+                else:
+                    logger.warning(f"Boundary condition type {bcType} of thermalFluid not valid. The valid consitions : periodic|fixedValue|zeroGradient")
+            bcThermalSolid = bc.get("thermalSolid")
+            if bcThermalSolid is not None:
+                bcType = bcThermalSolid.get("type")
+                if bcType=="fixedValue":
+                    value = bcThermalSolid.get("value",0)
+                    lb.set_TS_BC(i,BC.fixedValue)
+                    lb.set_TS_BC_value(i,value)
+                elif bcType=="zeroGradient":
+                    lb.set_TS_BC(i,BC.zeroGradient)
+                elif bcType=="periodic":
+                    lb.set_TS_BC(i,BC.periodic)
+                else:
+                    logger.warning(f"Boundary condition type {bcType} of thermalSolid not valid. The valid consitions : periodic|fixedValue|zeroGradient")        
     logger.info("Boundary condition set.")
+
+
     # load all geometry information in geo_dict dictionary name:(surface array, border array)
     geo_dict = {}
     geo_infos = config.get("geometry")
@@ -259,39 +277,90 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
     # set initial condition including setting soid phase
     initialCondition = config["initialCondition"]
     logger.info("Initial condition setting...")
+    ## flow
+    flowIC = initialCondition.get("flow")
+    if flowIC is not None:
+        rho = flowIC.get("rho",1.0)
+        velocity = flowIC.get("velocity",[0,0,0])
+    ## thermal
+    thermalIC = initialCondition.get("thermal")
+    if isThermal and thermalIC is not None:
+        TF = thermalIC.get("TF")
+        TS = thermalIC.get("TS")
+        T = thermalIC.get("T",0)
+        if TF is not None:
+            lb.init_field(lb.TF.S,TF)
+        else:
+            lb.init_field(lb.TF.S,T)
+        if TS is not None:
+            lb.init_field(lb.TS.S,TS)
+        else:
+            lb.init_field(lb.TS.S,T)
+    ## chemical
+    chemicalIC = initialCondition.get("chemical")
+    if isChemical and chemicalIC is not None:
+        for specie in chemicalIC:
+            pass
+        
     ## solid phase
     solidIC = initialCondition.get("solid")
-    if solidIC:
-        s = np.zeros((lb.nx,lb.ny,lb.nz))
+    if solidIC is not None:
         for solid in solidIC.values():
-            if isPoro:
+            solidType = solid.get("type")
+            if isPoro and solidType=="poro":
                 eps = solid["porosity"]
-                if solid["zone"]=="ALL":
+                zone =solid.get("zone")
+                porousModel = solid.get("porosModel")
+                s = np.zeros((lb.nx,lb.ny,lb.nz))
+                if zone =="ALL":
                     for geo_name,geo_data in geo_dict.items():
                         s += geo_data[0]
                     s = (1-eps)*s
-                elif type(solid["zone"]) is ruamel.yaml.comments.CommentedSeq: # []
+                elif type(zone) is ruamel.yaml.comments.CommentedSeq: # []
                     for zoneName in solid["zone"]:
                         s += geo_dict[zoneName][0]
                     s = (1-eps)*s
-                    lb.init_field(lb.solid,s)
-                elif type(solid["zone"]) is str:
+                elif type(zone) is str:
                     s = geo_dict[solid["zone"]][0]
                     s = (1-eps)*s
-            else:
+                print(s.sum())
+                lb.add_solid(s)
+                if porousModel=="darcy":
+                    darcy = solid.get("darcy")
+                    lb.set_poro_Darcy(s,darcy)
+                elif porousModel == "darcyForchheimer":
+                    darcy = solid.get("darcy")
+                    forchheimer = solid.get("forchheimer")
+                    lb.set_poro_Darcy_Forchheimer(s,darcy,forchheimer)
+                elif porousModel == "ergun":
+                    pass
+                    
+            elif solidType=="concrete":
                 if solid["zone"]=="ALL":
                     for geo_name,geo_data in geo_dict.items():
                         s += geo_data[0]
-                    s = (s>0)*np.float32(1.0)
+                    s = (s>0)*(1.0)
                 elif type(solid["zone"]) is ruamel.yaml.comments.CommentedSeq: # []
                     for zoneName in solid["zone"]:
                         s += geo_dict[zoneName][0]
-                    s = (s>0)*np.float32(1.0)
+                    s = (s>0)*(1.0)
                 elif type(solid["zone"]) is str:
                     s = geo_dict[solid["zone"]][0]
-                    s = (s>0)*np.float32(1.0)
-        lb.init_field(lb.solid,s)
-
+                    s = (s>0)*(1.0)
+                lb.add_solid(s)
+            elif solidType=="substract":
+                if solid["zone"]=="ALL":
+                    for geo_name,geo_data in geo_dict.items():
+                        s += geo_data[0]
+                    s = (s>0)*(-1.0)
+                elif type(solid["zone"]) is ruamel.yaml.comments.CommentedSeq: # []
+                    for zoneName in solid["zone"]:
+                        s += geo_dict[zoneName][0]
+                    s = (s>0)*(-1.0)
+                elif type(solid["zone"]) is str:
+                    s = geo_dict[solid["zone"]][0]
+                    s = (s>0)*(-1.0)
+                lb.add_solid(s)
     logger.info("Initial condition set.")
     logger.info("Simulation initializing...")
     lb.init_simulation()
@@ -340,6 +409,8 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
             lb.export_VTK()
         if lb.tLattice%snapshotInterval==0:
             lb.export_snapshot(config)
+        if debug:
+            lb.check_python()
         if debug and time.time()-last_print_time>debugCheckInterval:
             last_print_time = time.time()
             logger.debug(lb.tLattice)

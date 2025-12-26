@@ -14,8 +14,25 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
             self.v[i] = ti.Vector([0,0,0])
             self.rho[i] = 1.0
     def description(self):
-        des = "\n------------------------------------------\n"
-        des += "Basic information of the LBM simulation:\n"
+        des = "\n------------------------------------------\n"        
+        des += self.description_basic()
+        # des += self.description_flow()
+        # des += self.description_porous()
+        # des += self.description_thermal()
+        # des += self.description_chemical()
+        des += self.description_BC()
+        des += "------------------------------------------\n\n"
+        return des
+    def description_chemical(self)->str:
+        des = "Chemical module: \n"
+        if ti.static(self.CHEMISTRY):
+            des+="The species involved are: "
+            for specie in self.species:
+                des += specie.__str__()+" "
+            des += "\n"+self.reactions.__str__()
+        return des
+    def description_basic(self)->str:
+        des = "Basic information of the LBM simulation:\n"
         des += " name : " + self.name+f"\n Size : {self.nx} x {self.ny} x {self.nz}\n dx : {self.dx}\n dt : {self.dt}\n"
         des += "Modules activated :\n"
         des += " -flow field\n"
@@ -26,9 +43,11 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
         if self.RADIATION:
             des+=" -radiation\n"
         if ti.static(self.CHEMISTRY):
-            des+=" -chemical reaction\n"
+            des+=" -chemical reaction\n"        
+        return des
 
-        des+="Boundary condition model : "+ BC_MODEL(self.boundary_condition_model).name+"\n"
+    def description_BC(self)->str:
+        des="Boundary condition model : "+ BC_MODEL(self.boundary_condition_model).name+"\n"
         des+="The boundary conditions of the flow field are set to :\n"
         sideName = ti.static(["left","right","bottom","top"])
         for i in ti.static(range(4)):
@@ -45,12 +64,6 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
                 des+="    "+sideName[i]+": SYMMETRIC\n"
             if ti.static(self.bc[i]==BC_FLOW.inlet_flow):
                 des+="    "+sideName[i]+": INLET FLOW\n"
-        if ti.static(self.CHEMISTRY):
-            des+="The species involved are: "
-            for specie in self.species:
-                des += specie.__str__()+" "
-            des += "\n"+self.reactions.__str__()
-        des += "------------------------------------------\n\n"
         return des
     def init_simulation(self):
         self.init_python()

@@ -14,13 +14,16 @@ class LBM2D_BASE:
         # 模型参数
         self.X = X
         self.Y = Y
-        self.Z = 1
+        self.Z = dx
         self.tLattice : int = 0
         self.dx,self.dt = dx,dt #格子尺度 步进时间
         self.nx=int(self.X/self.dx)
         self.ny=int(self.Y/self.dx)
         self.nz = 1 
         self.max_v=ti.field(float,shape=())
+        self.viscosity_model = VISCOSITY_MODEL.NONE
+        self.visco = 2e-5
+        self.sutherland_coef = [1.6e-6,170]
         self.source_term_model = SOURCE_TERM.NONE
         self.force_term_model = FORCE_TERM.NONE
         self.boundary_condition_model = BC_MODEL.NEE

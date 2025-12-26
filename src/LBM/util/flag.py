@@ -1,4 +1,9 @@
 from enum import Enum
+class VISCOSITY_MODEL(Enum):
+    NONE = 0
+    CONSTANT = 1
+    SUTHERLAND = 2
+    MIXTURE = 3
 class SPECIE_UNIT(Enum):
     MASS = 1
     MOLE = 2

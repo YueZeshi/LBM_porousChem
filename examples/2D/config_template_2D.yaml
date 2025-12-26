@@ -143,11 +143,11 @@ initialCondition:
   solid: # to specify the solid area (operation in order)
     solid1:
       zone : zone1 # the zones concerned
-      type : poro # concrete/poro/substract
+      type : concrete # concrete/poro/substract
       # if concrete
       # if substract
-      # if poro
-      porosity : 0.4
+      # # if poro
+      # porosity : 0.4
     # solid2:
     #   zone : zone2
     #   type : substract
@@ -160,7 +160,7 @@ initialCondition:
     # TF : 300
   chemical:
     N2 : 
-      zone : all
+      zone : ALL
       value : 1
     wood(S):
       zone : zone1
@@ -172,8 +172,10 @@ boundaryCondition:
       type: inlet
       velocity : [0.01,0,0]
     thermalFluid:
-      type: fixedValue # none/periodic/fixedValue/zeroGradient # none = periodic
-      value : 
+      type: fixedValue # periodic/fixedValue/zeroGradient
+      # if fixedValue
+      value : 100
+      # # if zeroGradient
     thermalSolid : 
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
     chemical:
@@ -183,7 +185,7 @@ boundaryCondition:
       type: outlet
       rho: 1
     thermalFluid:
-      type: fixedValue # none/periodic/fixedValue/zeroGradient # none = periodic
+      type: fixedValue # periodic/fixedValue/zeroGradient 
       value : 
     thermalSolid : 
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
@@ -193,7 +195,7 @@ boundaryCondition:
     flow:
       type: wall
     thermalFluid:
-      type: fixedValue # none/periodic/fixedValue/zeroGradient # none = periodic
+      type: fixedValue # periodic/fixedValue/zeroGradient 
       value : 
     thermalSolid : 
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
@@ -203,7 +205,7 @@ boundaryCondition:
     flow:
       type : wall
     thermalFluid:
-      type: fixedValue # none/periodic/fixedValue/zeroGradient # none = periodic
+      type: fixedValue # periodic/fixedValue/zeroGradient 
       value : 
     thermalSolid : 
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
@@ -229,6 +231,6 @@ outputControl:
   log:
     interval : 1
     LOD : 1 # 
-  snapshot: # the snapshot will save all the LBM simulation in one moment in order to restart the LBM in case of interruption
+  snapshot: # resume from the snapshot
     interval : 100 # the interval of snapshot
     path : snapshot # the relative path of the snapshot folder

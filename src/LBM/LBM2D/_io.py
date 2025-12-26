@@ -77,29 +77,30 @@ class LBM2D_INPUT(LBM2D_BASE):
         data = np.concatenate((dat1,dat2,dat3),axis = 3)
         field.from_numpy(data)
     # 设置物理场属性
+    def add_solid(self,solid):
+        s = self.solid.to_numpy()
+        s += solid
+        self.init_field(self.solid,s)
     ## 密度场
-    def set_viscosity(self,niu,unit = "lattice"):#定义常黏度
-        if unit=="SI":
-            niu *=self.dt/self.dx**2
-        @ti.func
-        def new_viscosity(self,i):
-            return niu
-        self.viscosity = new_viscosity.__get__(self,LBM2D_INPUT)
-    def set_viscosity_func(self,func):# 根据方程定义黏度
-        self.viscosity = func.__get__(self,LBM2D_INPUT)
+    def set_viscosity(self,niu):#定义常黏度
+        self.visco = niu
+        self.viscosity_model = VISCOSITY_MODEL.CONSTANT
+    def set_viscosity_sutherland(self,As,Ts):
+        self.sutherland_coef = [As,Ts]
+        self.viscosity_model = VISCOSITY_MODEL.SUTHERLAND
+    def set_viscosity_mixture(self):
+        self.viscosity_model = VISCOSITY_MODEL.MIXTURE
     ## 多孔介质
-    def set_poro_Darcy(self,coefDarcy,unit = "lattice"): # L-2
+    def set_poro_Darcy(self,s,coefDarcy): # L-2
         self.poro_model = PORO_MODEL.DARCY
-        if unit=="SI":
-            coefDarcy *= self.dx**2
-        self.init_field(self.coefDarcy,coefDarcy)
-    def set_poro_Darcy_Forchheimer(self,coefDarcy, coefForchheimer,unit = "lattice"):
+        coefDarcy *=self.dx**2
+        self.init_field(self.coefDarcy,coefDarcy*s)
+    def set_poro_Darcy_Forchheimer(self,s,coefDarcy, coefForchheimer):
         self.poro_model = PORO_MODEL.DARCYFORCHHEIMER
-        if unit == "SI":
-            coefDarcy*=self.dx**2 # L-2
-            coefForchheimer*=self.dx #L-1
-        self.init_field(self.coefDarcy,coefDarcy)
-        self.init_field(self.coefForchheimer,coefForchheimer)
+        coefDarcy *=self.dx**2
+        coefForchheimer *=self.dx
+        self.init_field(self.coefDarcy,coefDarcy*s)
+        self.init_field(self.coefForchheimer,coefForchheimer*s)
     ## 温度场
     def set_TS_diff(self,diff,unit = "lattice"):
         if unit=="SI":
@@ -268,7 +269,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         mesh and surface array
         """
         from ..GEO.STL import StlReader
-        stlReader = StlReader(self.X,self.Y,self.Z,self.dx,2,logger)
+        stlReader = StlReader(self.X,self.Y,self.dx,self.dx,2,logger)
         return stlReader.voxel_stl(stl_path,scale,translate,rotate)
         
     
@@ -388,8 +389,8 @@ class LBM2D_OUTPUT(LBM2D_BASE):
         self.check()
     @ti.func
     def check(self):
-        s1 = [int(self.nx/2),int(self.ny/2),int(self.nz/2)]
-        print(self.TF.S[s1], self.TF.physical_value(self.TF.S[s1]),self.TF.coefDiff(s1))
+        s1 = [int(self.nx/5),int(self.ny/2),int(self.nz/2)]
+        print(self.viscosity(s1))
         # rad = 0.0
         # rad_surface = 0.0
         # for i in ti.grouped(self.rho):

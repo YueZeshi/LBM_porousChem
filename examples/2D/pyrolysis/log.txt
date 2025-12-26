@@ -1,0 +1,11 @@
+pure flow field
+test constant viscosity OK
+test concrete solid OK
+test sutherland viscosity OK
+poro flow field
+test solid poro darcy OK
+
+flow + thermal 
+test Pr
+test constant capacity
+test constant conductivity

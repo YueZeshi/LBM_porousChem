@@ -232,7 +232,15 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
     
     @ti.func
     def viscosity(self,i):
-        return 0.1
+        visco = 0.1
+        if ti.static(self.viscosity_model==VISCOSITY_MODEL.CONSTANT):
+            visco = self.visco*self.dt/self.dx**2
+        elif ti.static(self.viscosity_model==VISCOSITY_MODEL.SUTHERLAND):
+            T = self.GetTF(i)
+            visco = self.sutherland_coef[0]*T**1.5/(T+self.sutherland_coef[1])*self.dt/self.dx**2
+        elif ti.static(self.viscosity_model == VISCOSITY_MODEL.MIXTURE):
+            pass
+        return visco
     @ti.func
     def kinetic_viscosity(self,i):
         nu = self.viscosity(i)
@@ -295,3 +303,9 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
     def scalarCorrectionTerm(self,k,duS,tau):
         return (1.0-1.0/2.0/tau)*3.0*self.w5[k]*self.e5[k].dot(duS)
     
+    @ti.func
+    def GetTF(self,i):
+        TF = 273.15
+        if ti.static(self.TEMPERATURE):
+            TF = self.TF.S[i]
+        return TF
