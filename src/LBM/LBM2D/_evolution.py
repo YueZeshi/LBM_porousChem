@@ -180,9 +180,9 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                     # 化学反应
                     self.reactions.update_dS(i)
                     
-                if ti.static(self.PORO):
-                    if self.rho1[i] != 0 and self.rhos[i] != 0:
-                        self.solid[i] = self.rhos[i]/self.rho1[i] # 更新孔隙结构
+                # if ti.static(self.PORO):
+                #     if self.rho1[i] != 0 and self.rhos[i] != 0:
+                #         self.solid[i] = self.rhos[i]/self.rho1[i] # 更新孔隙结构
                 # 宏观恢复温度场 并计算源项
                 if ti.static(self.TEMPERATURE):
                     Tf = 0.0
@@ -196,8 +196,8 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                     self.TS.S[i] = Ts
                     if self.solid[i] > 0: # 有固体
                         dH = self.TS.exchangeCoef[i]*self.TS.exchangeSurface[i]*(self.TF.physical_value(Tf)-self.TS.physical_value(Ts))*self.dt
-                        self.TS.dS[i] += dH/self.TS.capacity_v(i)/self.TS.v_scale
-                        self.TF.dS[i] += -dH/self.TF.capacity_v(i)/self.TF.v_scale
+                        self.TS.dS[i] += dH/self.TS.capacity_m(i)/self.rhos[i]/self.TS.v_scale
+                        self.TF.dS[i] += -dH/self.TF.capacity_m(i)/self.rho[i]/self.TF.v_scale
                     if ti.static(self.RADIATION):
                         self.TS.dS[i] += self.TS.radiation(i)*self.dt/self.TS.capacity_v(i)/self.TS.v_scale
 

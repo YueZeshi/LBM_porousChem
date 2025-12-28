@@ -6,6 +6,23 @@ poro flow field
 test solid poro darcy OK
 
 flow + thermal 
-test Pr
-test constant capacity
-test constant conductivity
+gas thermal
+test Pr OK
+test capacity constant OK
+test conductivity constant OK
+test conductivity poly OK
+test capaticy poly OK
+test capacity NASA7 OK
+solit gas thermal
+test capacity constant OK
+test thermal coef constant OK
+test thermal coef derived OK
+test conductivity constant OK
+test conductivity poly OK
+test capacity polynomial OK
+test capacity NASA7 OK
+
+chemistry
+one gas one solid no reaction
+one gas one solid one reaction
+two gas two solid one reaction

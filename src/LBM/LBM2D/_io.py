@@ -81,6 +81,14 @@ class LBM2D_INPUT(LBM2D_BASE):
         s = self.solid.to_numpy()
         s += solid
         self.init_field(self.solid,s)
+    def add_rho_solid(self,rhos):
+        s = self.rhos.to_numpy()
+        s += rhos
+        self.init_field(self.rhos,s)
+    def set_heat_exchange_surface(self,surface):
+        self.init_field(self.TS.exchangeSurface,surface)
+    def set_heat_exchange_coef(self,coef):
+        self.init_field(self.TS.exchangeCoef,coef)
     ## 密度场
     def set_viscosity(self,niu):#定义常黏度
         self.visco = niu
@@ -101,26 +109,72 @@ class LBM2D_INPUT(LBM2D_BASE):
         coefForchheimer *=self.dx
         self.init_field(self.coefDarcy,coefDarcy*s)
         self.init_field(self.coefForchheimer,coefForchheimer*s)
+    
     ## 温度场
-    def set_TS_diff(self,diff,unit = "lattice"):
-        if unit=="SI":
-            diff *=self.dt/self.dx**2
-        @ti.func
-        def new_diff(self,i):
-            return diff
-        self.set_TS_diff_func(new_diff)
-    def set_TS_diff_func(self,func):
-        self.TS.coefDiff = func.__get__(self.TS,ScalarField)
+    def set_fluid_thermal_diff(self,diff):
+        self.TF.thermal_diff_model = THERMAL_DIFF_MODEL.CONSTANT
+        self.TF.thermal_diff= diff
+    def set_fluid_Prandtl(self,Pr):
+        self.TF.thermal_diff_model = THERMAL_DIFF_MODEL.PRANDTL
+        self.TF.Pr = Pr
+    def set_fluid_thermal_diff_derived(self):
+        self.TF.thermal_diff_model = THERMAL_DIFF_MODEL.DERIVED
+    def set_fluid_conductivity(self,value):
+        self.TF.conductivity_model = CONDUCTIVITY_MODEL.CONSTANT
+        self.TF.cond = value
+    def set_fluid_conductivity_poly(self,poly):
+        self.TF.conductivity_model = CONDUCTIVITY_MODEL.POLYNOMIAL
+        self.TF.cond_poly = poly 
+    def set_fluid_conductivity_mixture(self):
+        self.TF.conductivity_model = CONDUCTIVITY_MODEL.MIXTURE
+    def set_fluid_capacity(self,value):
+        self.TF.capacity_model = CAPACITY_MODEL.CONSTANT
+        self.TF.cm = value
+        print(value)
+    def set_fluid_capacity_poly(self,poly):
+        self.TF.capacity_model = CAPACITY_MODEL.POLYNOMIAL
+        self.TF.cm_poly = poly 
+    def set_fluid_capacity_NASA7(self,Trange,data):
+        self.TF.capacity_model = CAPACITY_MODEL.NASA7
+        self.TF.Trange = Trange
+        self.TF.NASA_coef = data
+    def set_fluid_capacity_mixture(self):
+        self.TF.capacity_model = CAPACITY_MODEL.MIXTURE
+    def set_fluid_Trange(self,Trange):
+        self.TF.v_ref = Trange[0]
+        self.TF.v_scale = Trange[1]-Trange[0]
         
-    def set_TF_diff(self,diff,unit = "lattice"):
-        if unit=="SI":
-            diff *=self.dt/self.dx**2
-        @ti.func
-        def new_diff(self,i):
-            return diff
-        self.set_TF_diff_func(new_diff)
-    def set_TF_diff_func(self,func):
-        self.TF.coefDiff = func.__get__(self.TF,ScalarField)
+    def set_solid_thermal_diff(self,diff):
+        self.TS.thermal_diff_model = THERMAL_DIFF_MODEL.CONSTANT
+        self.TS.thermal_diff= diff
+    def set_solid_thermal_diff_derived(self):
+        self.TS.thermal_diff_model = THERMAL_DIFF_MODEL.DERIVED
+    def set_solid_conductivity(self,value):
+        self.TS.conductivity_model = CONDUCTIVITY_MODEL.CONSTANT
+        self.TS.cond = value
+    def set_solid_conductivity_poly(self,poly):
+        self.TS.conductivity_model = CONDUCTIVITY_MODEL.POLYNOMIAL
+        self.TS.cond_poly = poly 
+    def set_solid_conductivity_mixture(self):
+        self.TS.conductivity_model = CONDUCTIVITY_MODEL.MIXTURE
+    def set_solid_capacity(self,value):
+        self.TS.capacity_model = CAPACITY_MODEL.CONSTANT
+        self.TS.cm = value
+    def set_solid_capacity_poly(self,poly):
+        self.TS.capacity_model = CAPACITY_MODEL.POLYNOMIAL
+        self.TS.cm_poly = poly 
+    def set_solid_capacity_NASA7(self,Trange,data):
+        self.TS.capacity_model = CAPACITY_MODEL.NASA7
+        self.TS.Trange = Trange
+        self.TS.NASA_coef = data
+
+    def set_solid_capacity_mixture(self):
+        self.TS.capacity_model = CAPACITY_MODEL.MIXTURE
+
+    def set_solid_Trange(self,Trange):
+        self.TS.v_ref = Trange[0]
+        self.TS.v_scale = Trange[1]-Trange[0]
+
     ### 辐射相关
     def set_radiation(self,model,param):
         if model == RADIATION_MODEL.SURFACE_UNIFORM:
@@ -307,6 +361,13 @@ class LBM2D_OUTPUT(LBM2D_BASE):
         self.max_v[None] = -1e10        
         self.cal_max_v()
         return self.max_v[None]
+    def get_max_T(self):
+        if self.TEMPERATURE:
+            self.max_T[None]= -1e10
+            self.cal_max_T()
+            return self.TF.get_physical_value(self.max_T[None])
+        else:
+            return -1
     def get_min_T(self):
         if self.TEMPERATURE:
             self.min_T[None]= 1e10
@@ -319,13 +380,17 @@ class LBM2D_OUTPUT(LBM2D_BASE):
         for I in ti.grouped(self.rho):
             ti.atomic_max(self.max_v[None], self.v[I].norm())
     @ti.kernel
+    def cal_max_T(self):
+        for I in ti.grouped(self.rho):
+            ti.atomic_max(self.max_T[None], self.TF.S[I])
+    @ti.kernel
     def cal_min_T(self):
         for I in ti.grouped(self.rho):
             ti.atomic_min(self.min_T[None], self.TF.S[I])
     def log_info(self):
         p = f"    t(LU)={self.tLattice} : Max velocity magnitude (LU) : {self.get_max_v():.7f}, "
         if self.TEMPERATURE:
-            p +=f"Min temperature: {self.get_min_T():.7f} K"
+            p +=f"Min temperature: {self.get_min_T():.7f} K, Max temperature : {self.get_max_T():.7f}"
         return p
     def export_snapshot(self,config):
 
@@ -346,18 +411,22 @@ class LBM2D_OUTPUT(LBM2D_BASE):
     def get_data(self): # 获取所有数据（字典）
         data = {    "solid":self.solid.to_numpy(),
                     "rho": self.rho.to_numpy(),
+                    "rho_solid":self.rhos.to_numpy(),
                     "velocity": (
                         np.ascontiguousarray(self.v.to_numpy()[:,:,:,0]), 
                         np.ascontiguousarray(self.v.to_numpy()[:,:,:,1]), 
                         np.ascontiguousarray(self.v.to_numpy()[:,:,:,2]), 
                         ),
                 }
-        if self.PORO:
-            # data["solid"]=self.solid.to_numpy()
-            data["solid_init"]=self.rho1.to_numpy()
+        # if self.PORO:
+        #     data["solid_init"]=self.rho1.to_numpy()
         if self.TEMPERATURE:
             data["Tf"]  = self.TF.get_physical_value(self.TF.S.to_numpy())
             data["Ts"]  = self.TS.get_physical_value(self.TS.S.to_numpy())
+            data["dTf"] = self.TF.dS.to_numpy()
+            data["dTs"] = self.TS.dS.to_numpy()
+            data["solid_fluid_exchange_surface"] = self.TS.exchangeSurface.to_numpy()
+            data["solid_fluid_exchange_coef"] = self.TS.exchangeCoef.to_numpy()
             if self.RADIATION:
                 data["Radiation_surface"] = self.TS.radiation_surface.to_numpy()
                 if self.TS.radiation_model == RADIATION_MODEL.REAL_RADIATION:
@@ -389,8 +458,8 @@ class LBM2D_OUTPUT(LBM2D_BASE):
         self.check()
     @ti.func
     def check(self):
-        s1 = [int(self.nx/5),int(self.ny/2),int(self.nz/2)]
-        print(self.viscosity(s1))
+        s1 = [int(self.nx/2),int(self.ny/2),int(self.nz/2)]
+        print(self.TF.coefDiff(s1),self.TS.capacity_m(s1),self.TS.conductivity(s1),self.TS.coefDiff(s1))
         # rad = 0.0
         # rad_surface = 0.0
         # for i in ti.grouped(self.rho):

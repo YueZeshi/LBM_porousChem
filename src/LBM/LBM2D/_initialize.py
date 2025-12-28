@@ -23,6 +23,15 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
         des += self.description_BC()
         des += "------------------------------------------\n\n"
         return des
+    def description_flow(self):
+        des = ""
+        return des
+    def description_porous(self):
+        des = ""
+        return des
+    def description_thermal(self):
+        des = ""
+        return des
     def description_chemical(self)->str:
         des = "Chemical module: \n"
         if ti.static(self.CHEMISTRY):
@@ -70,7 +79,6 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
         self.init_kernel()
     def init_python(self):
         if ti.static(self.CHEMISTRY):
-            print(self.CHEMISTRY)
             self.reactions.dS = ti.Vector.field(len(self.species),dtype = float,shape=self.rho.shape)
             self.reactions.specieNum = len(self.species)
     @ti.kernel
@@ -96,10 +104,10 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
                     for specie in ti.static(list(self.species)):
                         if ti.static(specie.FIX):
                             self.rhos[i] += specie.S[i]
-                if self.solid[i]!=0: # 计算孔隙率为1的密度作为参考
-                    self.rho1[i] = self.rhos[i]/self.solid[i]
-                    if self.rho1[i]==0:
-                        self.rho1[i]=1.0
+                # if self.solid[i]!=0: # 计算孔隙率为1的密度作为参考
+                #     self.rho1[i] = self.rhos[i]/self.solid[i]
+                #     if self.rho1[i]==0:
+                #         self.rho1[i]=1.0
             for s in ti.static(range(9)):
                 self.f[i][s] = self.feq9(s,i[0],i[1],i[2])
                 self.F[i][s] = self.f[i][s]

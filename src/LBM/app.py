@@ -68,7 +68,7 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
         viscosityType = viscosity.get("type")
         if viscosityType == "constant":
             nu = viscosity.get("value")
-            lb.set_viscosity(nu,unit = "SI")
+            lb.set_viscosity(nu)
         elif viscosityType == "sutherland":
             As = viscosity.get("As")
             Ts = viscosity.get("Ts")
@@ -78,15 +78,27 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
     # thermal
     thermalPropertiesFluid = config.get("thermalPropertiesFluid")
     if isThermal and (thermalPropertiesFluid is not None):
+        normalize = thermalPropertiesFluid.get("normalize")
+        if normalize is not None:
+            Trange = normalize.get("Trange",[0,1])
+            lb.set_fluid_Trange(Trange)
+        thermalDiff = thermalPropertiesFluid.get("thermalDiff")
+        if thermalDiff is not None:
+            thermalDiffType = thermalDiff.get("type")
+            if thermalDiffType=="constant":
+                diff = thermalDiff.get("value")
+                lb.set_fluid_thermal_diff(diff)
+            elif thermalDiffType=="Prandtl":
+                Pr = thermalDiff.get("Pr")
+                lb.set_fluid_Prandtl(Pr)
+            elif thermalDiffType=="derived":
+                lb.set_fluid_thermal_diff_derived()
         conductivity = thermalPropertiesFluid.get("conductivity")
         if conductivity is not None:
             conductivityType = conductivity.get("type")
             if conductivityType == "constant":
                 lamb = conductivity.get("value")
                 lb.set_fluid_conductivity(lamb)
-            elif conductivityType == "Prandtl":
-                Pr = conductivity.get("Pr")
-                lb.set_fluid_Prandtl(Pr)
             elif conductivityType == "polynomial":
                 data = conductivity.get("data")
                 lb.set_fluid_conductivity_poly(data)
@@ -114,6 +126,18 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
         
     thermalPropertiesSolid = config.get("thermalPropertiesSolid")
     if isThermal and (thermalPropertiesSolid is not None):
+        normalize = thermalPropertiesSolid.get("normalize")
+        if normalize is not None:
+            Trange = normalize.get("Trange",[0,1])
+            lb.set_solid_Trange(Trange)
+        thermalDiff = thermalPropertiesSolid.get("thermalDiff")
+        if thermalDiff is not None:
+            thermalDiffType = thermalDiff.get("type")
+            if thermalDiffType=="constant":
+                diff = thermalDiff.get("value")
+                lb.set_solid_thermal_diff(diff)
+            elif thermalDiffType=="derived":
+                lb.set_solid_thermal_diff_derived()
         conductivity = thermalPropertiesSolid.get("conductivity")
         if conductivity is not None:
             conductivityType = conductivity.get("type")
@@ -187,7 +211,7 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
             if bcThermalFluid is not None:
                 bcType = bcThermalFluid.get("type")
                 if bcType=="fixedValue":
-                    value = bcThermalFluid.get("value",0)
+                    value = bcThermalFluid.get("value",0.0)
                     lb.set_TF_BC(i,BC.fixedValue)
                     lb.set_TF_BC_value(i,value)
                 elif bcType=="zeroGradient":
@@ -207,6 +231,8 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
                     lb.set_TS_BC(i,BC.zeroGradient)
                 elif bcType=="periodic":
                     lb.set_TS_BC(i,BC.periodic)
+                elif bcType=="none":
+                    pass
                 else:
                     logger.warning(f"Boundary condition type {bcType} of thermalSolid not valid. The valid consitions : periodic|fixedValue|zeroGradient")        
     logger.info("Boundary condition set.")
@@ -289,13 +315,13 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
         TS = thermalIC.get("TS")
         T = thermalIC.get("T",0)
         if TF is not None:
-            lb.init_field(lb.TF.S,TF)
+            lb.init_field(lb.TF.S,lb.TF.get_normalized_value(TF))
         else:
-            lb.init_field(lb.TF.S,T)
+            lb.init_field(lb.TF.S,lb.TF.get_normalized_value(T))
         if TS is not None:
-            lb.init_field(lb.TS.S,TS)
+            lb.init_field(lb.TS.S,lb.TS.get_normalized_value(TS))
         else:
-            lb.init_field(lb.TS.S,T)
+            lb.init_field(lb.TS.S,lb.TS.get_normalized_value(T))
     ## chemical
     chemicalIC = initialCondition.get("chemical")
     if isChemical and chemicalIC is not None:
@@ -310,21 +336,25 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
             if isPoro and solidType=="poro":
                 eps = solid["porosity"]
                 zone =solid.get("zone")
-                porousModel = solid.get("porosModel")
+                rhos = solid.get("rho",1)
+                exchangeSurface = solid.get("exchangeSurface",1)
+                exchangeCoef = solid.get("exchangeCoef",1)
+                porousModel = solid.get("porousModel")
                 s = np.zeros((lb.nx,lb.ny,lb.nz))
                 if zone =="ALL":
                     for geo_name,geo_data in geo_dict.items():
                         s += geo_data[0]
-                    s = (1-eps)*s
                 elif type(zone) is ruamel.yaml.comments.CommentedSeq: # []
                     for zoneName in solid["zone"]:
                         s += geo_dict[zoneName][0]
-                    s = (1-eps)*s
                 elif type(zone) is str:
                     s = geo_dict[solid["zone"]][0]
-                    s = (1-eps)*s
-                print(s.sum())
-                lb.add_solid(s)
+                s = (s>0)*(1.0)
+                solid_fraction = (1-eps)*s
+                lb.add_solid(solid_fraction)
+                lb.add_rho_solid(rhos*s)
+                lb.set_heat_exchange_surface(exchangeSurface*s)
+                lb.set_heat_exchange_coef(exchangeCoef*s)
                 if porousModel=="darcy":
                     darcy = solid.get("darcy")
                     lb.set_poro_Darcy(s,darcy)
@@ -339,15 +369,15 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
                 if solid["zone"]=="ALL":
                     for geo_name,geo_data in geo_dict.items():
                         s += geo_data[0]
-                    s = (s>0)*(1.0)
                 elif type(solid["zone"]) is ruamel.yaml.comments.CommentedSeq: # []
                     for zoneName in solid["zone"]:
                         s += geo_dict[zoneName][0]
-                    s = (s>0)*(1.0)
                 elif type(solid["zone"]) is str:
                     s = geo_dict[solid["zone"]][0]
-                    s = (s>0)*(1.0)
+                s = (s>0)*(1.0)
+                rhos = solid.get("rho",1)
                 lb.add_solid(s)
+                lb.add_rho_solid(rhos*s)
             elif solidType=="substract":
                 if solid["zone"]=="ALL":
                     for geo_name,geo_data in geo_dict.items():
@@ -361,6 +391,7 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
                     s = geo_dict[solid["zone"]][0]
                     s = (s>0)*(-1.0)
                 lb.add_solid(s)
+    print(lb.TS.thermal_diff_model)
     logger.info("Initial condition set.")
     logger.info("Simulation initializing...")
     lb.init_simulation()
@@ -395,6 +426,7 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
             debugCheckInterval = debugSetting.get("interval",10)
     logger.info("Time control and path set.")
     logger.info("Simulation running...")
+    logger.info("(The first step will take long time because of the compilation time.)")
     while lb.tLattice<=endTimeLattice:
         if lb.tLattice % printInterval==0:
             calTime = time.time()-preTime

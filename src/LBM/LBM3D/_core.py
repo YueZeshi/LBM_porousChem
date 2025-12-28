@@ -24,6 +24,9 @@ class LBM3D_BASE:
         self.ny=int(self.Y/self.dx)
         self.nz = int(self.Z/self.dx) # 模型大小
         self.max_v=ti.field(float,shape=())
+        self.viscosity_model = VISCOSITY_MODEL.NONE
+        self.visco = 2e-5
+        self.sutherland_coef = [1.6e-6,170]
         self.source_term_model = SOURCE_TERM.NONE
         self.force_term_model = FORCE_TERM.NONE
         self.boundary_condition_model = BC_MODEL.NEE

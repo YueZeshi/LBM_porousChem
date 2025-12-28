@@ -1,30 +1,58 @@
+from ast import Constant
 from enum import Enum
 class VISCOSITY_MODEL(Enum):
     NONE = 0
     CONSTANT = 1
     SUTHERLAND = 2
     MIXTURE = 3
-class SPECIE_UNIT(Enum):
-    MASS = 1
-    MOLE = 2
-class REACTION_TYPE(Enum):
-    ARREHNIUS = 0 # power law
-    LMH = 1 # langemuir--
-class FLUID_STATE_EQUATION(Enum):
-    IDEAL_GAS = 0 # compressible model
-    INCOMPRESSIBLE = 1
-class RADIATION_MODEL(Enum):
-    # radiation model
-    NONE = 0 # no radiation
-    SURFACE_UNIFORM = 1 # uniform environmental temperature
-    REAL_RADIATION = 2 # baked radiation
-    P1_APPROACH = 3 # not implemented
+
 class PORO_MODEL(Enum):
     # the porosity model
     SPHERICAL = 0 # ergun
     DARCY = 1 # linear
     DARCYFORCHHEIMER=2 # non-linear
     DARCY_HIGH = 3 # correction (not correct)
+    ERGUN = 4
+
+class CONDUCTIVITY_MODEL(Enum):
+    NONE = 0
+    CONSTANT = 1
+    POLYNOMIAL = 2
+    MIXTURE = 3
+
+class CAPACITY_MODEL(Enum):
+    NONE = 0
+    CONSTANT = 1
+    POLYNOMIAL = 2
+    NASA7 = 3
+    MIXTURE = 4
+
+class THERMAL_DIFF_MODEL(Enum):
+    NONE = 0
+    CONSTANT = 1
+    DERIVED = 2
+    PRANDTL = 3
+
+
+class SPECIE_UNIT(Enum):
+    MASS = 1
+    MOLE = 2
+
+class REACTION_TYPE(Enum):
+    ARREHNIUS = 0 # power law
+    LMH = 1 # langemuir--
+
+class FLUID_STATE_EQUATION(Enum):
+    IDEAL_GAS = 0 # compressible model
+    INCOMPRESSIBLE = 1
+
+class RADIATION_MODEL(Enum):
+    # radiation model
+    NONE = 0 # no radiation
+    SURFACE_UNIFORM = 1 # uniform environmental temperature
+    REAL_RADIATION = 2 # baked radiation
+    P1_APPROACH = 3 # not implemented
+
 class SOURCE_TERM(Enum):
     # the source term schema
     NONE = 0

@@ -66,7 +66,6 @@ class ScalarField:
         self.BC = BCs
     def set_s_BC_value(self,index,s):
         self.s_BC[index]=self.get_normalized_value(s)
-        print(self.s_BC[index],s)
     def set_s_BCs_value(self,s):
         for i in range(4):
             self.set_s_BC_value(i,s[i])

@@ -74,7 +74,9 @@ class LBM2D_BASE:
         if self.TEMPERATURE:
             self.TF = TemperatureFluid("Temperature of Fluid",self)
             self.TS = TemperatureSolid("Temperature of Solid",self,isRadiation = self.RADIATION)
+            self.rhos = ti.field(float,shape=(self.nx,self.ny,self.nz))
             self.min_T = ti.field(float,shape=())
+            self.max_T = ti.field(float,shape=())
         if self.CHEMISTRY:
             self.specieName = []
             self.species:list[Specie] = []
@@ -83,8 +85,6 @@ class LBM2D_BASE:
             self.poro_model = PORO_MODEL.SPHERICAL # 使用的多孔介质模型 如球孔介质模型 Darcy Darcy-Forhheimer
             self.coefDarcy = ti.field(float,shape=(self.nx,self.ny,self.nz))
             self.coefForchheimer = ti.field(float,shape=(self.nx,self.ny,self.nz))
-            self.rhos = ti.field(float,shape=(self.nx,self.ny,self.nz))
-            self.rho1 = ti.field(float,shape=(self.nx,self.ny,self.nz))
         # default init all fields
         self.default_init()
         self.static_init_kernel()
