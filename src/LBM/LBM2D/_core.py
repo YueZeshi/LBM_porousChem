@@ -4,7 +4,6 @@ import numpy as np
 from ..util.flag import *
 from ._thermal import TemperatureFluid,TemperatureSolid
 from ._chemical import Specie,Reaction,Reactions
-from ._info import INFO
 from ..vtk_tool.paraview import PVDWriter
 @ti.data_oriented
 class LBM2D_BASE:
@@ -103,8 +102,6 @@ class LBM2D_BASE:
         return self.__str__()
     def __call__(self):
         print(self)
-    def __str__(self):
-        return INFO
     
     def default_init():
         pass

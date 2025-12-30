@@ -5,41 +5,85 @@ from ..util.flag import *
 from ..util import constant
 @ti.data_oriented
 class Specie(ScalarField): # 物种质量分数场
-    def __init__(self,name,lb3d,FIX = False,Mmass = 1.0):
-        super().__init__(name,lb3d,FIX)
-        self.molemass = Mmass
-        self.Trange = ti.Vector.field(3,float,shape=())
-        self.NASAcoef1 = ti.Vector.field(7,float,shape=())
-        self.NASAcoef2 = ti.Vector.field(7,float,shape=())
-        self.coefSutherland = ti.Vector.field(2,float,shape = ())
-        self.default_init_NASA()
-    def default_init_NASA(self):
-        for i in range(3):
-            self.Trange[i]=0.0
-        for i in range(7):
-            self.NASAcoef1[i]=0.0
-            self.NASAcoef2[i]=0.0
+    def __init__(self,name,lb,FIX = False,Mmass = 1.0):
+        super().__init__(name,lb,FIX)
+        self.molemass = Mmass/1000
+        if not FIX:
+            self.viscosity_type = VISCOSITY_MODEL.NONE
+            self.visco = 1e-5
+            self.coefSutherland = [0,0]
+            self.diff_model = DIFF_MODEL.CONSANT
+            self.diff = 1e-5
+        self.thermo_model = THERMO_MODEL.CONSTANT
+        self.enthaply = 100
+        self.capa = 100
+        self.Trange = [0,0,0]
+        self.NASAcoef = [[0]*7]*2
+        self.Sc = 1.0
+        self.cond_model = CONDUCTIVITY_MODEL.CONSTANT
+        self.cond = 1.0
+        self.cond_poly = [0,0,0,0,0]
     def __str__(self):
-        return f"Specie: {self.name}, Molar Mass: {self.molemass} kg/mol, FIX: {self.FIX}"
+        des = f"{self.name} : \n" 
+        des +=f"        - Molar Mass : {self.molemass} kg/mol\n"
+        des +="        - State : "
+        if self.FIX:
+            des += "SOLID\n"
+        else: 
+            des +="FLUID\n"
+        if not self.FIX:
+            des += "        - Viscosity model : "
+            if self.viscosity_type==VISCOSITY_MODEL.CONSTANT:
+                des += f"constant {self.visco}\n"
+            elif self.viscosity_type==VISCOSITY_MODEL.SUTHERLAND:
+                des += f"sutherland {self.coefSutherland}\n"
+            else:
+                des += "not valid\n"
+        
+        return des
     def __repr__(self):
         return self.__str__()
-    
+    @ti.func
+    def coefDiff(self,i):
+        diff = 0.0
+        if ti.static(self.diff_model==DIFF_MODEL.CONSANT):
+            diff += self.diff*self.LBM.dt/self.LBM.dx**2
+        elif ti.static(self.diff_model==DIFF_MODEL.SCHMIDT):
+            diff += self.Sc*self.viscosity(i)*self.LBM.dt/self.LBM.dx**2
+        return diff
+    @ti.func
+    def viscosity(self,i): # in LU
+        visco = 1e-5
+        if ti.static(self.viscosity_type==VISCOSITY_MODEL.CONSTANT):
+            visco = self.visco*self.LBM.dt/self.LBM.dx**2
+        elif ti.static(self.viscosity_type==VISCOSITY_MODEL.SUTHERLAND):
+            T = self.LBM.GetTF(i)
+            visco = self.coefSutherland[0]*T**1.5/(T+self.coefSutherland[1])
+        return visco
     @ti.func
     def capacity_mole(self,T): # T in Kelvin
-        c_R = 1
-        if T < self.Trange[1]:
-            c_R = (((self.NASAcoef1[4]*T+self.NASAcoef1[3])*T+self.NASAcoef1[2])*T+self.NASAcoef1[1])*T+self.NASAcoef1[0]
-        else:
-            c_R = (((self.NASAcoef2[4]*T+self.NASAcoef2[3])*T+self.NASAcoef2[2])*T+self.NASAcoef2[1])*T+self.NASAcoef2[0]
-        return c_R*constant.R
+        capa = 0.0
+        if ti.static(self.thermo_model==THERMO_MODEL.CONSTANT):
+            capa += self.capa
+        elif ti.static(self.thermo_model==THERMO_MODEL.NASA7):
+            if T < self.Trange[1]:
+                capa = (((self.NASAcoef1[4]*T+self.NASAcoef1[3])*T+self.NASAcoef1[2])*T+self.NASAcoef1[1])*T+self.NASAcoef1[0]
+            else:
+                capa = (((self.NASAcoef2[4]*T+self.NASAcoef2[3])*T+self.NASAcoef2[2])*T+self.NASAcoef2[1])*T+self.NASAcoef2[0]
+            capa *=constant.R
+        return capa
     @ti.func
     def enthalpy_mole(self,T): 
-        H_RT = 1.0
-        if T < self.Trange[1]:
-            H_RT = ((((self.NASAcoef1[4]*T/5+self.NASAcoef1[3]/4)*T+self.NASAcoef1[2]/3)*T+self.NASAcoef1[1]/2)*T+self.NASAcoef1[0])*T+self.NASAcoef1[5]        
-        else:
-            H_RT = ((((self.NASAcoef2[4]*T/5+self.NASAcoef2[3]/4)*T+self.NASAcoef2[2]/3)*T+self.NASAcoef2[1]/2)*T+self.NASAcoef2[0])*T+self.NASAcoef2[5]
-        return H_RT*constant.R*T
+        H = 0.0
+        if ti.static(self.thermo_model==THERMO_MODEL.CONSTANT):
+            H += self.enthaply
+        elif ti.static(self.thermo_model==THERMO_MODEL.NASA7):
+            if T < self.Trange[1]:
+                H = ((((self.NASAcoef1[4]*T/5+self.NASAcoef1[3]/4)*T+self.NASAcoef1[2]/3)*T+self.NASAcoef1[1]/2)*T+self.NASAcoef1[0])*T+self.NASAcoef1[5]        
+            else:
+                H = ((((self.NASAcoef2[4]*T/5+self.NASAcoef2[3]/4)*T+self.NASAcoef2[2]/3)*T+self.NASAcoef2[1]/2)*T+self.NASAcoef2[0])*T+self.NASAcoef2[5]
+            H *=constant.R*H*T
+        return H
     @ti.func
     def entropy_mole(self,T):
         S_R = 1.0
@@ -50,13 +94,22 @@ class Specie(ScalarField): # 物种质量分数场
         return S_R*constant.R
     @ti.func
     def capacity_m(self,T):
-        # cm = self.capacity_mole(T)/self.molemass
-        cm = 1.0
+        cm = self.capacity_mole(T)/self.molemass
         return cm
+    @ti.func
+    def enthalpy_m(self,T):
+        Hm = self.enthalpy_mole(T)/self.molemass
+        return Hm
     
     @ti.func
     def conductivity(self,i): #UDF
-        return 0.2
+        cond = 0.0
+        if ti.static(self.cond_model==CONDUCTIVITY_MODEL.CONSTANT):
+            cond += self.cond
+        elif ti.static(self.cond_model==CONDUCTIVITY_MODEL.POLYNOMIAL):
+            T = self.LBM.GetTF(i)
+            cond+=(((self.cond_poly[4]*T+self.cond_poly[3])*T+self.cond_poly[2])*T+self.cond_poly[1])*T+self.cond_poly[0]
+        return cond
     
     @ti.func
     def geq5(self,k,S,x,y,z):
@@ -210,11 +263,8 @@ class Reactions:
             # self.dH[i] += r.dH[i]
         for j in ti.static(range(self.specieNum)):
             self.LBM.species[j].dS[i] = self.dS[i][j]
-        # for specie in ti.static(list(self.LBM.species)):
-        #     specie.dS[i] = self.dS[i][j]
-            # j += 1
         if ti.static(self.LBM.TEMPERATURE):
             if self.LBM.solid[i] > 0:
-                self.LBM.TS.dS[i] += self.dS[i][self.specieNum]/self.LBM.TS.capacity_v(i)
+                self.LBM.TS.dS[i] += self.dS[i][self.specieNum]/self.LBM.TS.capacity_m(i)/self.LBM.rhos[i]
             else:
-                self.LBM.TF.dS[i] += self.dS[i][self.specieNum]/self.LBM.TF.capacity_v(i)
+                self.LBM.TF.dS[i] += self.dS[i][self.specieNum]/self.LBM.TF.capacity_m(i)/self.LBM.rho[i]

@@ -60,7 +60,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         if ti.static(k<5):
                             for specie in ti.static(list(self.species)):
                                 if ti.static(not specie.FIX): # 气体物质更新
-                                    specie.g[i][k] += self.TF.geq5(k,specie.dS[i],i[0],i[1],i[2])
+                                    specie.g[i][k] += specie.geq5(k,specie.dS[i],i[0],i[1],i[2])
                                 else:
                                     if ti.static(k==0):
                                         specie.S[i] += specie.dS[i]
@@ -173,7 +173,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                             Yall += specie.S[i]
                         else:
                             if ti.static(self.PORO): # 计算当前固体物质总密度
-                                self.rhos[i]+=specie.S[i]
+                                self.rhos[i] += specie.S[i]
                     for specie in ti.static(list(self.species)):
                         if ti.static(not specie.FIX): # 更新流体组分
                             specie.S[i] /= Yall # 归一化处理
@@ -199,7 +199,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         self.TS.dS[i] += dH/self.TS.capacity_m(i)/self.rhos[i]/self.TS.v_scale
                         self.TF.dS[i] += -dH/self.TF.capacity_m(i)/self.rho[i]/self.TF.v_scale
                     if ti.static(self.RADIATION):
-                        self.TS.dS[i] += self.TS.radiation(i)*self.dt/self.TS.capacity_v(i)/self.TS.v_scale
+                        self.TS.dS[i] += self.TS.radiation(i)*self.dt/self.TS.capacity_m(i)/self.rhos[i]/self.TS.v_scale
 
     # 使用函数
     @ti.func
@@ -231,7 +231,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
         return feqout
     
     @ti.func
-    def viscosity(self,i):
+    def viscosity(self,i): # in LU
         visco = 0.1
         if ti.static(self.viscosity_model==VISCOSITY_MODEL.CONSTANT):
             visco = self.visco*self.dt/self.dx**2
@@ -239,7 +239,10 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
             T = self.GetTF(i)
             visco = self.sutherland_coef[0]*T**1.5/(T+self.sutherland_coef[1])*self.dt/self.dx**2
         elif ti.static(self.viscosity_model == VISCOSITY_MODEL.MIXTURE):
-            pass
+            if ti.static(self.CHEMISTRY):
+                for specie in ti.static(self.species):
+                    if ti.static(not specie.FIX):
+                        visco += specie.S[i]*specie.viscosity(i)
         return visco
     @ti.func
     def kinetic_viscosity(self,i):
@@ -307,5 +310,5 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
     def GetTF(self,i):
         TF = 273.15
         if ti.static(self.TEMPERATURE):
-            TF = self.TF.S[i]
+            TF = self.TF.physical_value(self.TF.S[i])
         return TF

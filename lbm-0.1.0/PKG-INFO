@@ -1,0 +1,18 @@
+Metadata-Version: 2.4
+Name: LBM
+Version: 0.1.0
+Summary: LBM using Taichi for biomass pyrolysis simulation
+Author-email: ZeshiYUE <609190542@qq.com>
+License: MIT
+Requires-Python: ==3.12.*
+Description-Content-Type: text/markdown
+License-File: AUTHORS.rst
+Requires-Dist: click
+Requires-Dist: numpy
+Requires-Dist: taichi
+Requires-Dist: matplotlib
+Requires-Dist: pyevtk
+Requires-Dist: pytest
+Requires-Dist: setuptools
+Requires-Dist: ruamel-yaml>=0.18.16
+Dynamic: license-file

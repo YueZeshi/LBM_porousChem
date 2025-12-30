@@ -24,7 +24,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         self.PVD.path = path
     def init_field(self,field,param):
         if(type(param) in [float,int]):
-            data = param*np.ones(shape=(self.nx,self.ny,self.nz),dtype=np.float32) 
+            data = float(param)*np.ones(shape=(self.nx,self.ny,self.nz),dtype=np.float32) 
             field.from_numpy(data)
         if(type(param) is str):
             in_dat = np.loadtxt(param,dtype=np.float32)
@@ -32,8 +32,6 @@ class LBM2D_INPUT(LBM2D_BASE):
             field.from_numpy(in_dat)
         if(type(param)==np.ndarray):
             field.from_numpy(param)
-
-        
     def init_field2(self,field,param1,param2): 
         if(type(param1) in [float,int]):
             dat1 = param1*np.ones(shape=(self.nx,self.ny,self.nz))   
@@ -128,18 +126,18 @@ class LBM2D_INPUT(LBM2D_BASE):
     def set_fluid_conductivity_mixture(self):
         self.TF.conductivity_model = CONDUCTIVITY_MODEL.MIXTURE
     def set_fluid_capacity(self,value):
-        self.TF.capacity_model = CAPACITY_MODEL.CONSTANT
+        self.TF.capacity_model = THERMO_MODEL.CONSTANT
         self.TF.cm = value
         print(value)
     def set_fluid_capacity_poly(self,poly):
-        self.TF.capacity_model = CAPACITY_MODEL.POLYNOMIAL
+        self.TF.capacity_model = THERMO_MODEL.POLYNOMIAL
         self.TF.cm_poly = poly 
     def set_fluid_capacity_NASA7(self,Trange,data):
-        self.TF.capacity_model = CAPACITY_MODEL.NASA7
+        self.TF.capacity_model = THERMO_MODEL.NASA7
         self.TF.Trange = Trange
         self.TF.NASA_coef = data
     def set_fluid_capacity_mixture(self):
-        self.TF.capacity_model = CAPACITY_MODEL.MIXTURE
+        self.TF.capacity_model = THERMO_MODEL.MIXTURE
     def set_fluid_Trange(self,Trange):
         self.TF.v_ref = Trange[0]
         self.TF.v_scale = Trange[1]-Trange[0]
@@ -158,18 +156,18 @@ class LBM2D_INPUT(LBM2D_BASE):
     def set_solid_conductivity_mixture(self):
         self.TS.conductivity_model = CONDUCTIVITY_MODEL.MIXTURE
     def set_solid_capacity(self,value):
-        self.TS.capacity_model = CAPACITY_MODEL.CONSTANT
+        self.TS.capacity_model = THERMO_MODEL.CONSTANT
         self.TS.cm = value
     def set_solid_capacity_poly(self,poly):
-        self.TS.capacity_model = CAPACITY_MODEL.POLYNOMIAL
+        self.TS.capacity_model = THERMO_MODEL.POLYNOMIAL
         self.TS.cm_poly = poly 
     def set_solid_capacity_NASA7(self,Trange,data):
-        self.TS.capacity_model = CAPACITY_MODEL.NASA7
+        self.TS.capacity_model = THERMO_MODEL.NASA7
         self.TS.Trange = Trange
         self.TS.NASA_coef = data
 
     def set_solid_capacity_mixture(self):
-        self.TS.capacity_model = CAPACITY_MODEL.MIXTURE
+        self.TS.capacity_model = THERMO_MODEL.MIXTURE
 
     def set_solid_Trange(self,Trange):
         self.TS.v_ref = Trange[0]
@@ -184,26 +182,24 @@ class LBM2D_INPUT(LBM2D_BASE):
             self.TS.radiation_model = model
             self.TS.real_radiation = ti.field(float,shape=(self.nx,self.ny,self.nz))
             self.init_field(self.TS.real_radiation,param)
-    ## 浓度场 (物种密度)
-    def set_specie(self,specie,FIX = False):
-        self.species.append(Specie(specie,self,FIX))
-        self.specieName.append(specie)
 
-    def set_specie_mole(self,specie,Fix = False,molemass = 1.0):
+    ## 浓度场 (物种密度)
+
+    def set_specie(self,specie,Fix = False,molemass = 1.0):
         self.species.append(Specie(specie,self,Mmass = molemass,FIX=Fix))
         self.specieName.append(specie)
+    def set_specie_viscosity(self,specieName,value):
+        specie = self.species[self.specieName.index(specieName)]
+        specie.viscosity_type = VISCOSITY_MODEL.CONSTANT
+        specie.visco = value       
+    def set_specie_viscosity_sutherland(self,specieName,coef):
+        specie = self.species[self.specieName.index(specieName)]
+        specie.viscosity_type = VISCOSITY_MODEL.SUTHERLAND
+        specie.coefSutherland = coef 
     def set_specie_NASA7(self,specieName:str,TRange:list[float],coef:list):
         specie = self.species[self.specieName.index(specieName)]
-        for i in range(len(TRange)):
-            specie.Trange[i] = TRange[i]
-        if len(coef)==1:
-            for i in range(7):
-                specie.NASAcoef1[i] = coef[0][i]
-                specie.NASAcoef2[i] = coef[0][i]
-        else:
-            for i in range(7):
-                specie.NASAcoef1[i] = coef[0][i]
-                specie.NASAcoef2[i] = coef[1][i]
+        specie.Trange = TRange
+        specie.NASAcoef = coef
     def set_species(self,species,FIX=None):# 登记所有物质
         if FIX == None:
             FIX = [False]*len(species)
@@ -222,20 +218,33 @@ class LBM2D_INPUT(LBM2D_BASE):
             i += 1
     def init_specie(self,name,param):
         self.init_field(self.species[self.specieName.index(name)].S,param)
-    def set_specie_diff(self,name,diff,unit="lattice"):
-        if unit=="SI":
-            diff *=self.dt/self.dx**2
-        @ti.func
-        def new_diff(self,i):
-            return diff
-        self.set_specie_diff_func(name,new_diff)
-    def set_specie_diff_func(self,name,func):
-        self.species[self.specieName.index(name)].coefDiff = func.__get__(self.species[self.specieName.index(name)],ScalarField)
-    def set_specie_capacity(self,name:str,cm:float): # 质量热容
-        self.set_specie_NASA7(name,[0,0,0],[[0,cm,0,0,0,0,0]]) # Jkg-1K-1 to kJkg-1K-1
+    def set_specie_diff(self,specieName,diff):
+        specie = self.species[self.specieName.index(specieName)]
+        specie.diff_model = DIFF_MODEL.CONSANT
+        specie.diff = diff
+    def set_specie_diff_Schmidt(self,specieName,Sc):
+        specie = self.species[self.specieName.index(specieName)]
+        specie.diff_model=DIFF_MODEL.SCHMIDT
+        specie.Sc = Sc
+    def set_specie_enthalpy(self,specieName,enthalpy):
+        specie = self.species[self.specieName.index(specieName)]
+        specie.thermo_model = THERMO_MODEL.CONSTANT
+        specie.enthalpy = enthalpy
+    def set_specie_capacity(self,specieName,capacity): # 质量热容
+        specie = self.species[self.specieName.index(specieName)]
+        specie.thermo_model = THERMO_MODEL.CONSTANT
+        specie.capa = capacity
 
     def set_specie_conductivity(self,name,lamb): # 传热系数
-        self.species[self.specieName.index(name)].default_conductivity = lamb
+        specie = self.species[self.specieName.index(name)]
+        specie.cond_model=CONDUCTIVITY_MODEL.CONSTANT
+        specie.cond = lamb
+    
+    def set_specie_conductivity_poly(self,name,poly): # 传热系数
+        specie = self.species[self.specieName.index(name)]
+        specie.cond_model=CONDUCTIVITY_MODEL.POLYNOMIAL
+        specie.cond_poly = list(poly)
+    
     # 定义化学反应
     def add_reaction(self,formula,A,Ea,b = 0,Tmin = 0,deltaH = 0,name="unnamed",unit=SPECIE_UNIT.MASS,fixDH = True):
         self.reactions.add_reaction(Reaction(formula,A,Ea,b,Tmin,deltaH,self,name,unit,fixDH))
@@ -299,19 +308,20 @@ class LBM2D_INPUT(LBM2D_BASE):
         self.TF.set_s_BC_value(i,T)
     def set_TF_BCs_value(self,Ts):
         self.TF.set_s_BCs_value(Ts)
-    
-    def set_specie_BC(self,specie,i,BC):
-        self.species[specie].set_BC(i,BC)
+    def set_specie_BC(self,name,i,BC):
+        specie = self.species[self.specieName.index(name)]
+        specie.set_BC(i,BC)
     def set_specie_BCs(self,specie,BCs):
-        self.species[specie].set_BCs(BCs)
+        self.species[self.specieName.index(specie)].set_BCs(BCs)
     def set_species_BC(self,i,BC):
         for specie in self.species:
-            specie.set_BCs(i,BC)
+            specie.set_BC(i,BC)
     def set_species_BCs(self,BCs):# 定义所有物种的边界条件
         for specie in self.species:
             specie.set_BCs(BCs)
     def set_specie_BC_value(self,name,i,S):
-        self.species[self.specieName.index(name)].set_s_BC_value(i,S)
+        specie = self.species[self.specieName.index(name)]
+        specie.set_s_BC_value(i,S)
     def set_specie_BCs_value(self,name,Ss):
         self.species[self.specieName.index(name)].set_s_BCs_value(Ss)
     def set_specie_BC_flux(self,name, i,f):
@@ -411,7 +421,6 @@ class LBM2D_OUTPUT(LBM2D_BASE):
     def get_data(self): # 获取所有数据（字典）
         data = {    "solid":self.solid.to_numpy(),
                     "rho": self.rho.to_numpy(),
-                    "rho_solid":self.rhos.to_numpy(),
                     "velocity": (
                         np.ascontiguousarray(self.v.to_numpy()[:,:,:,0]), 
                         np.ascontiguousarray(self.v.to_numpy()[:,:,:,1]), 
@@ -421,6 +430,7 @@ class LBM2D_OUTPUT(LBM2D_BASE):
         # if self.PORO:
         #     data["solid_init"]=self.rho1.to_numpy()
         if self.TEMPERATURE:
+            data["rho_solid"] = self.rhos.to_numpy()
             data["Tf"]  = self.TF.get_physical_value(self.TF.S.to_numpy())
             data["Ts"]  = self.TS.get_physical_value(self.TS.S.to_numpy())
             data["dTf"] = self.TF.dS.to_numpy()
@@ -428,7 +438,8 @@ class LBM2D_OUTPUT(LBM2D_BASE):
             data["solid_fluid_exchange_surface"] = self.TS.exchangeSurface.to_numpy()
             data["solid_fluid_exchange_coef"] = self.TS.exchangeCoef.to_numpy()
             if self.RADIATION:
-                data["Radiation_surface"] = self.TS.radiation_surface.to_numpy()
+                data["radiation_surface"] = self.TS.radiation_surface.to_numpy()
+                data["emissivity"] = self.TS.emissivity.to_numpy()
                 if self.TS.radiation_model == RADIATION_MODEL.REAL_RADIATION:
                     data["Real Radiation"] = self.TS.real_radiation.to_numpy()
         if self.CHEMISTRY:
@@ -437,6 +448,8 @@ class LBM2D_OUTPUT(LBM2D_BASE):
                     data[specie.name+"(S)"]=specie.S.to_numpy()
                 else:
                     data[specie.name]=specie.S.to_numpy()
+        # for key,value in data.items():
+        #     print(key,np.shape(value))
         return data    
 
     def export_variable(self, name,iter):
@@ -459,7 +472,8 @@ class LBM2D_OUTPUT(LBM2D_BASE):
     @ti.func
     def check(self):
         s1 = [int(self.nx/2),int(self.ny/2),int(self.nz/2)]
-        print(self.TF.coefDiff(s1),self.TS.capacity_m(s1),self.TS.conductivity(s1),self.TS.coefDiff(s1))
+        # print(self.species[0].coefDiff(s1))
+        print(self.tau(s1),self.TF.coefDiff(s1),self.TF.capacity_m(s1),self.TF.conductivity(s1),self.viscosity(s1),self.TS.conductivity(s1),self.TS.capacity_m(s1),self.rhos[s1])
         # rad = 0.0
         # rad_surface = 0.0
         # for i in ti.grouped(self.rho):

@@ -10,14 +10,14 @@ module :
   flow : true
   porous_media : true
   temperature : true
-  chemistry : false
-  radiation : false
+  chemistry : true
+  radiation : false # only mean temperature model
 
 flowProperties:
   viscosity : 
-    type : constant # constant/sutherland/mixture
+    type : mixture # constant/sutherland/mixture
     # # if constant
-    value : 2e-5
+    # value : 2e-5
     # if sutherland
     # As : 1.6e-6
     # Ts : 170
@@ -30,29 +30,29 @@ thermalPropertiesFluid :
     type : derived # constant/Prandtl/derived
     # if constant
     # value : 1e-5
-    # # if Prandtl
+    # if Prandtl
     Pr : 0.71
     # # if derived
   conductivity: 
-    type: polynomial # constant/polynomial/mixture
+    type: mixture # constant/polynomial/mixture
     # if constant
     # value : 0.01
     # # if polynomial
-    data : [0.01,-1e-6,0,0,0] # max 5 order
+    # data : [0.01,-1e-6,0,0,0] # max 5 order
     # # if mixture
   capacity : 
-    type : NASA7 # constant/polynomial/NASA7/mixture
+    type : mixture # constant/polynomial/NASA7/mixture
     # if constant
     # value : 10000.0
     # # if polynomial
     # data : [24.78245636, -24.99673416e-03, 80.84730201e-06, -80.68129509e-09, 24.24372837e-12]
     # # if NASA7
-    Trange : [200.0, 1000.0, 3500.0]
-    data : 
-    - [3.78245636, -2.99673416e-03, 9.84730201e-06, -9.68129509e-09, 3.24372837e-12,
-      -1063.94356, 3.65767573]
-    - [3.28253784, 1.48308754e-03, -7.57966669e-07, 2.09470555e-10, -2.16717794e-14,
-      -1088.45772, 5.45323129]
+    # Trange : [200.0, 1000.0, 3500.0]
+    # data : 
+    # - [3.78245636, -2.99673416e-03, 9.84730201e-06, -9.68129509e-09, 3.24372837e-12,
+    #   -1063.94356, 3.65767573]
+    # - [3.28253784, 1.48308754e-03, -7.57966669e-07, 2.09470555e-10, -2.16717794e-14,
+    #   -1088.45772, 5.45323129]
   # if mixture
 
 thermalPropertiesSolid : 
@@ -64,14 +64,14 @@ thermalPropertiesSolid :
     # value : 1e-5
     # # if derived
   conductivity: 
-    type: polynomial # constant/polynomial/mixture
+    type: mixture # constant/polynomial/mixture
     # if constant
     # value : 4
     # if polynomial
     data : [4,1e-4,0,0,0] # max 5 order
     # # if mixture
   capacity : 
-    type : NASA7 # constant/polynomial/NASA7/mixture
+    type : mixture # constant/polynomial/NASA7/mixture
     # # if constant
     # value : 1000
     # # if polynomial
@@ -85,22 +85,26 @@ thermalPropertiesSolid :
       -1088.45772, 5.45323129]
     # if mixture
 
+radiationProperties:
+  type : mean_temp # mean_temp/none
+  Tambient : 400 
 
 chemicalProperties:
-  type : cantera # cantera/input
+  type : input # cantera/input
   # # if cantera
   # path : YOUR_CANTERA_FILE.yaml
   # if input
   species :
     N2 : 
+      composition : {N : 2}
       state : fluid
       viscosity : 
-        type : constant # constant/sutherland
+        type : sutherland # constant/sutherland
         # # if constant
         value : 1e-5
         # # if sutherland
-        # As : 1
-        # Ts : 1
+        As : 1e-6
+        Ts : 170
       thermodynamic :
         type : constant # constant/NASA7
         # if constant
@@ -110,13 +114,47 @@ chemicalProperties:
         # Trange : [0,0,0]
         # data : [[0,0,0,0,0,0,0],[0,0,0,0,0,0,0]]
       diffusitivity:
+        type : Schmidt # constant/Schmidt
+        # if constant
+        # value : 1e-5
+        # # if Schmidt
+        Sc : 1.0
+      conductivity : 
+        type: constant # constant/polynomial
+        # if constant
+        value : 0.01
+        # # if polynomial
+        # data : [0,0,0,0,0]
+    O2 : 
+      composition : {O : 2}
+      state : fluid
+      viscosity : 
+        type : constant # constant/sutherland
+        # # if constant
+        value : 1e-5
+        # # if sutherland
+        As : 1e-6
+        Ts : 170
+      thermodynamic :
+        type : NASA7 # constant/NASA7
+        # # if constant
+        # enthalpy : 100
+        # capacity : 1000
+        # if NASA7
+        Trange : [0,0,0]
+        data : [[0,0,0,0,0,0,0],[0,0,0,0,0,0,0]]
+      diffusitivity:
         type : constant # constant/Schmidt
         # if constant
         value : 1e-5
         # # if Schmidt
         # Sc : 1.0
       conductivity : 
-        type: constant # constant/Prandtl/polynomial
+        type: constant # constant/polynomial
+        # if constant
+        value : 0.01
+        # if polynomial
+        # data : [0,0,0,0,0]
     wood(S) :
       state : solid # solid phase has only thermodynamic properties
       thermodynamic :
@@ -127,6 +165,12 @@ chemicalProperties:
         # # if NASA7
         # Trange : [0,0,0]
         # data : [[0,0,0,0,0,0,0],[0,0,0,0,0,0,0]]
+      conductivity:
+        type:   polynomial # constant/polynomial
+        # if constant
+        # value : 12
+        # if polynomial
+        data : [1,1e-6,0,0,0]
     # reaction:
 
 
@@ -178,7 +222,8 @@ initialCondition:
       # forchheimer : 6e4
       # if ergun    # solid2:
       exchangeSurface : 1000
-      exchangeCoef : 1
+      exchangeCoef : 10
+      emissivity : 0.6
     #   zone : zone2
     #   type : poro
     #   rho : 400
@@ -200,10 +245,13 @@ initialCondition:
   chemical:
     N2 : 
       zone : ALL
-      value : 1
+      value : 0.5
+    O2 : 
+      zone : ALL
+      value : 0.5
     wood(S):
       zone : zone1
-      vaue : 400
+      value : 400
 
 boundaryCondition:
   left:
@@ -219,6 +267,8 @@ boundaryCondition:
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
     chemical:
       type: fixedValue
+      N2 : 0.9
+      O2 : 0.1
   right:
     flow:
       type: outlet
@@ -229,7 +279,7 @@ boundaryCondition:
     thermalSolid : 
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
     chemical:
-      type: fixedValue
+      type: zeroGradient
   down:
     flow:
       type: wall
@@ -240,7 +290,7 @@ boundaryCondition:
     thermalSolid : 
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
     chemical:
-      type: fixedValue
+      type: zeroGradient
   up:
     flow:
       type : wall
@@ -250,7 +300,7 @@ boundaryCondition:
     thermalSolid : 
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
     chemical:
-      type: fixedValue
+      type: zeroGradient 
   
   
 spaceControl:
@@ -267,7 +317,7 @@ outputControl:
     interval : 1 # the interval of vtk output
     path : vtk # the relative path of the output folder
     LOD : 1
-    clear : false # true to clear all the existing output in the folder
+    clear : true # true to clear all the existing output in the folder
   log:
     interval : 1
     LOD : 1 # 

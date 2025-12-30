@@ -20,7 +20,7 @@ class CONDUCTIVITY_MODEL(Enum):
     POLYNOMIAL = 2
     MIXTURE = 3
 
-class CAPACITY_MODEL(Enum):
+class THERMO_MODEL(Enum):
     NONE = 0
     CONSTANT = 1
     POLYNOMIAL = 2
@@ -33,6 +33,10 @@ class THERMAL_DIFF_MODEL(Enum):
     DERIVED = 2
     PRANDTL = 3
 
+class DIFF_MODEL(Enum):
+    NONE = 0
+    CONSANT = 1
+    SCHMIDT = 2
 
 class SPECIE_UNIT(Enum):
     MASS = 1

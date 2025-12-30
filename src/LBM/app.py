@@ -10,7 +10,10 @@ import time
 import ruamel
 import logging
 import sys
+
+from LBM.LBM2D._chemical import Specie
 from .util.flag import *
+from .util.constant import MOLEMASS
 
 def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
     verbose_level = {
@@ -168,7 +171,13 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
                 lb.set_solid_capacity_mixture()
             else:
                 logger.warning(f"Capacity type {capacityType} of thermalPropertiesSolid not valid. The valid type : constant|polynomial|NASA7|mixture")
-     
+    radiationProperties = config.get("radiationProperties")
+    if isRadiation and radiationProperties is not None:
+        logger.info("Radiation module loading...")
+        radiationType = radiationProperties.get("type")
+        if radiationType=="mean_temp":
+            Tambient = radiationProperties.get("Tambient",300)
+            lb.set_radiation(RADIATION_MODEL.SURFACE_UNIFORM,Tambient)
     # chemistry
     chemicalProperties = config.get("chemicalProperties")
     if isChemical and chemicalProperties is not None:
@@ -181,7 +190,93 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
             lb.load_cantera(cantera_file)
             logger.info("Cantera loaded.")
         elif chemicalType == "input":
-            pass
+            species = chemicalProperties.get("species")
+            if species is not None:
+                for specie in species:
+                    logger.info(f"Specie {specie} loading...")
+                    composition = species[specie].get("composition")
+                    mmass = 0.0
+                    if composition is not None:
+                        for key,value in composition.items():
+                            mmass += value*MOLEMASS[key]
+                    state = species[specie].get("state","fluid")
+                    if state =="fluid":
+                        lb.set_specie(specie,False,mmass)
+                        viscosityProperty = species[specie].get("viscosity")
+                        if viscosityProperty is not None:
+                            viscosityType = viscosityProperty.get("type")
+                            if viscosityType == "constant":
+                                value = viscosityProperty.get("value",1e-5)
+                                lb.set_specie_viscosity(specie,value)
+                            elif viscosityType == "sutherland":
+                                As = viscosityProperty.get("As",1e-6)
+                                Ts = viscosityProperty.get("Ts",70)
+                                lb.set_specie_viscosity_sutherland(specie,[As,Ts])
+                            else:
+                                logger.warning(f"Specie {specie} viscosity type {viscosityType} not valid. The valid value : constant|sutherland")
+                        diffProperty = species[specie].get("diffusitivity")
+                        if diffProperty is not None:
+                            diffType = diffProperty.get("type")
+                            if diffType=="constant":
+                                diff = diffProperty.get("value")
+                                lb.set_specie_diff(specie,diff)
+                            elif diffType=="Schmidt":
+                                Sch = diffProperty.get("Sc")
+                                lb.set_specie_diff_Schmidt(specie,Sch)
+                            else:
+                                logger.warning(f"Specie {specie} diffusitivity type {diffType} not valid. The valid value : constant|Schmidt")
+                        if isThermal:
+                            thermodynamicProperty = species[specie].get("thermodynamic")
+                            if thermodynamicProperty is not None:
+                                thermodynamicType = thermodynamicProperty.get("type")
+                                if thermodynamicType=="constant":
+                                    capa = thermodynamicProperty.get("capacity")
+                                    lb.set_specie_capacity(specie,capa)
+                                    enthalpy = thermodynamicProperty.get("enthalpy")
+                                    lb.set_specie_enthalpy(specie,enthalpy)
+                                elif thermodynamicType=="NASA7":
+                                    Trange = thermodynamicProperty.get("Trange")
+                                    data = thermodynamicProperty.get("data")
+                                    lb.set_specie_NASA7(specie,Trange,data)
+                                else: 
+                                    logger.warning("ss")
+                            condProperty = species[specie].get("conductivity")
+                            if condProperty is not None:
+                                condType = condProperty.get("type")
+                                if condType=="constant":
+                                    cond = condProperty.get("value")
+                                    lb.set_specie_conductivity(specie,cond)
+                                elif condType=="polynomial":
+                                    poly = condProperty.get("data")
+                                    lb.set_specie_conductivity_poly(specie,poly)
+                    elif state == "solid":
+                        lb.set_specie(specie,True)
+                        if isThermal:
+                            thermodynamicProperty = species[specie].get("thermodynamic")
+                            if thermodynamicProperty is not None:
+                                thermodynamicType = thermodynamicProperty.get("type")
+                                if thermodynamicType=="constant":
+                                    capa = thermodynamicProperty.get("capacity")
+                                    lb.set_specie_capacity(specie,capa)
+                                    enthalpy = thermodynamicProperty.get("enthalpy")
+                                    lb.set_specie_enthalpy(specie,enthalpy)
+                                elif thermodynamicType=="NASA7":
+                                    Trange = thermodynamicProperty.get("Trange")
+                                    data = thermodynamicProperty.get("data")
+                                    lb.set_specie_NASA7(specie,Trange,data)
+                                else: 
+                                    logger.warning("ss")
+                            condProperty = species[specie].get("conductivity")
+                            if condProperty is not None:
+                                condType = condProperty.get("type")
+                                if condType=="constant":
+                                    cond = condProperty.get("value")
+                                    lb.set_specie_conductivity(specie,cond)
+                                elif condType=="polynomial":
+                                    poly = condProperty.get("data")
+                                    lb.set_specie_conductivity_poly(specie,poly)
+                    else:
+                        logger.warning(f"Specie state {state} not valid. The valid value : fluid|solid")
         else:
             logger.warning(f"Chemical type {chemicalType} of chemicalProperties not valid. The valid type : cantera|input")
         logger.info("Chemistry module loading...")
@@ -235,6 +330,23 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
                     pass
                 else:
                     logger.warning(f"Boundary condition type {bcType} of thermalSolid not valid. The valid consitions : periodic|fixedValue|zeroGradient")        
+        ## bc of specie field
+        if isChemical:
+            bcChemical = bc.get("chemical")
+            if bcChemical is not None:
+                bcType = bcChemical.get("type")
+                if bcType=="fixedValue":
+                    for specie in lb.specieName:
+                        bcSpecie = bcChemical.get(specie,0)
+                        lb.set_specie_BC(specie,i,BC.fixedValue)
+                        lb.set_specie_BC_value(specie,i,bcSpecie)
+                elif bcType=="zeroGradient":
+                    lb.set_species_BC(i,BC.zeroGradient)
+                elif bcType=="periodic":
+                    lb.set_species_BC(i,BC.periodic)
+                else:
+                    logger.warning(f"Boundary condition type {bcType} of thermalFluid not valid. The valid consitions : periodic|fixedValue|zeroGradient")
+        
     logger.info("Boundary condition set.")
 
 
@@ -308,6 +420,8 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
     if flowIC is not None:
         rho = flowIC.get("rho",1.0)
         velocity = flowIC.get("velocity",[0,0,0])
+        lb.init_field(lb.rho,rho)
+        lb.init_field3(lb.v,float(velocity[0]),float(velocity[1]),float(velocity[2]))
     ## thermal
     thermalIC = initialCondition.get("thermal")
     if isThermal and thermalIC is not None:
@@ -326,7 +440,18 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
     chemicalIC = initialCondition.get("chemical")
     if isChemical and chemicalIC is not None:
         for specie in chemicalIC:
-            pass
+            zone = chemicalIC[specie].get("zone")
+            value = chemicalIC[specie].get("value",0)
+            s = np.zeros_like(lb.rho.to_numpy())
+            if zone == "ALL":
+                lb.init_specie(specie,float(value))
+            elif type(zone) is ruamel.yaml.comments.CommentedSeq: # []
+                for zoneName in zone:
+                    s += value*geo_dict[zoneName][0]
+                lb.init_specie(specie,s)    
+            elif type(zone) is str:
+                s += value*geo_dict[zone][0]
+                lb.init_specie(specie,s)
         
     ## solid phase
     solidIC = initialCondition.get("solid")
@@ -340,21 +465,30 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
                 exchangeSurface = solid.get("exchangeSurface",1)
                 exchangeCoef = solid.get("exchangeCoef",1)
                 porousModel = solid.get("porousModel")
+                emis = solid.get("emisssivity",1.0)
                 s = np.zeros((lb.nx,lb.ny,lb.nz))
+                border = np.zeros((lb.nx,lb.ny,lb.nz))
                 if zone =="ALL":
                     for geo_name,geo_data in geo_dict.items():
                         s += geo_data[0]
+                        border +=geo_data[1]
                 elif type(zone) is ruamel.yaml.comments.CommentedSeq: # []
                     for zoneName in solid["zone"]:
                         s += geo_dict[zoneName][0]
+                        border +=geo_dict[zoneName][1]
                 elif type(zone) is str:
                     s = geo_dict[solid["zone"]][0]
+                    border += geo_dict[solid["zone"]][1] 
                 s = (s>0)*(1.0)
                 solid_fraction = (1-eps)*s
                 lb.add_solid(solid_fraction)
                 lb.add_rho_solid(rhos*s)
+                print(type(rhos*s))
                 lb.set_heat_exchange_surface(exchangeSurface*s)
                 lb.set_heat_exchange_coef(exchangeCoef*s)
+                if isRadiation:
+                    lb.init_field(lb.TS.radiation_surface,border)
+                    lb.init_field(lb.TS.emissivity,border*emis)
                 if porousModel=="darcy":
                     darcy = solid.get("darcy")
                     lb.set_poro_Darcy(s,darcy)
@@ -391,7 +525,6 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
                     s = geo_dict[solid["zone"]][0]
                     s = (s>0)*(-1.0)
                 lb.add_solid(s)
-    print(lb.TS.thermal_diff_model)
     logger.info("Initial condition set.")
     logger.info("Simulation initializing...")
     lb.init_simulation()
@@ -460,11 +593,11 @@ def application_3D(config:ruamel.yaml.comments.CommentedMap,verbose):
         1:logging.INFO,
         2:logging.DEBUG
     }
-    logger = logging.getLogger("LBM 2D logger")
+    logger = logging.getLogger("LBM 3D logger")
     logger.addHandler(logging.StreamHandler(sys.stdout))
     logger.setLevel(verbose_level[verbose])
     debug = (verbose==2)
-    # Implementation for 2D application
+    # Implementation for 3D application
     startTime = time.time()
     from .LBM3D import LBM3DSolver
     ARCH = config["basic"].get("arch")
