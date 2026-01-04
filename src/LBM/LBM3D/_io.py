@@ -244,7 +244,7 @@ class LBM3D_INPUT(LBM3D_BASE):
     def set_specie_BCs_flux(self,specie, fs):
         self.species[self.specieName.index(specie)].set_s_BCs_flux(fs)
     
-    def load_stl(self,stl_path,scale = 1.0,translate = [0,0,0],rotate = [0,0,0],logger=None):
+    def load_stl(self,stl_path,scale = [1.0,1.0,1.0],translate = [0,0,0],rotate = [0,0,0],logger=None):
         """
         mesh and surface array
         """

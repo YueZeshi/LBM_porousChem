@@ -21,7 +21,7 @@ class LBM2D_INPUT(LBM2D_BASE):
     # 设置场初值
     def set_vtk_path(self,path):
         self.path = path
-        self.PVD.path = path
+        self.PVD.exportPath = path
     def init_field(self,field,param):
         if(type(param) in [float,int]):
             data = float(param)*np.ones(shape=(self.nx,self.ny,self.nz),dtype=np.float32) 
@@ -178,10 +178,10 @@ class LBM2D_INPUT(LBM2D_BASE):
         if model == RADIATION_MODEL.SURFACE_UNIFORM:
             self.TS.radiation_model = model
             self.TS.Tambient = float(param)
-        if model == RADIATION_MODEL.REAL_RADIATION:
-            self.TS.radiation_model = model
-            self.TS.real_radiation = ti.field(float,shape=(self.nx,self.ny,self.nz))
-            self.init_field(self.TS.real_radiation,param)
+        # if model == RADIATION_MODEL.REAL_RADIATION:
+        #     self.TS.radiation_model = model
+        #     self.TS.real_radiation = ti.field(float,shape=(self.nx,self.ny,self.nz))
+        #     self.init_field(self.TS.real_radiation,param)
 
     ## 浓度场 (物种密度)
 
@@ -206,15 +206,6 @@ class LBM2D_INPUT(LBM2D_BASE):
         i = 0
         for name in species:
             self.set_specie(name,FIX[i])
-            i += 1
-    def set_species_mole(self,species,FIX=None,molemass=None):
-        if FIX == None:
-            FIX = [False]*len(species)
-        if molemass==None:
-            molemass=[0.002]*len(species)
-        i = 0
-        for name in species:
-            self.set_specie_mole(name,FIX[i],molemass[i])
             i += 1
     def init_specie(self,name,param):
         self.init_field(self.species[self.specieName.index(name)].S,param)
@@ -247,7 +238,7 @@ class LBM2D_INPUT(LBM2D_BASE):
     
     # 定义化学反应
     def add_reaction(self,formula,A,Ea,b = 0,Tmin = 0,deltaH = 0,name="unnamed",unit=SPECIE_UNIT.MASS,fixDH = True):
-        self.reactions.add_reaction(Reaction(formula,A,Ea,b,Tmin,deltaH,self,name,unit,fixDH))
+        self.reactions.add_reaction(Reaction(self,formula,A,Ea,b,Tmin,deltaH,name,unit,fixDH))
     
     # 设置边界条件
     def set_BC(self,i,bc): # v and rho can't be fixed together - overconstrain
@@ -328,12 +319,12 @@ class LBM2D_INPUT(LBM2D_BASE):
         self.species[self.specieName.index(name)].set_s_BC_flux(i,f)
     def set_specie_BCs_flux(self,name, fs):
         self.species[self.specieName.index(name)].set_s_BCs_flux(fs)
-    def load_stl(self,stl_path,scale = 1.0,translate = [0,0,0],rotate = [0,0,0],logger=None):
+    def load_stl(self,stl_path,scale = [1.0,1.0,1.0],translate = [0,0,0],rotate = [0,0,0],**kwargs):
         """
         mesh and surface array
         """
         from ..GEO.STL import StlReader
-        stlReader = StlReader(self.X,self.Y,self.dx,self.dx,2,logger)
+        stlReader = StlReader(self.X,self.Y,self.dx,self.dx,2,logger=kwargs["logger"])
         return stlReader.voxel_stl(stl_path,scale,translate,rotate)
         
     
@@ -352,9 +343,9 @@ class LBM2D_INPUT(LBM2D_BASE):
                 for elem,number in specie_info["composition"].items():
                     mmass+=number*constant.MOLEMASS[elem]
                 if name.endswith("(S)"):
-                    self.set_specie_mole(name,Fix = True,molemass=mmass)
+                    self.set_specie(name,Fix = True,molemass=mmass)
                 else:
-                    self.set_specie_mole(name,Fix = False,molemass=mmass)
+                    self.set_specie(name,Fix = False,molemass=mmass)
                 self.set_specie_NASA7(name,specie_info["thermo"]["temperature-ranges"],specie_info["thermo"]["data"])
                 
             for reaction_info in data["reactions"]:
@@ -440,14 +431,15 @@ class LBM2D_OUTPUT(LBM2D_BASE):
             if self.RADIATION:
                 data["radiation_surface"] = self.TS.radiation_surface.to_numpy()
                 data["emissivity"] = self.TS.emissivity.to_numpy()
-                if self.TS.radiation_model == RADIATION_MODEL.REAL_RADIATION:
-                    data["Real Radiation"] = self.TS.real_radiation.to_numpy()
+                # if self.TS.radiation_model == RADIATION_MODEL.REAL_RADIATION:
+                #     data["Real Radiation"] = self.TS.real_radiation.to_numpy()
         if self.CHEMISTRY:
             for specie in self.species:
                 if specie.FIX and not specie.name.endswith("(S)"):
                     data[specie.name+"(S)"]=specie.S.to_numpy()
                 else:
                     data[specie.name]=specie.S.to_numpy()
+                    data["d "+specie.name] = specie.dS.to_numpy()
         # for key,value in data.items():
         #     print(key,np.shape(value))
         return data    
@@ -471,9 +463,10 @@ class LBM2D_OUTPUT(LBM2D_BASE):
         self.check()
     @ti.func
     def check(self):
-        s1 = [int(self.nx/2),int(self.ny/2),int(self.nz/2)]
+        s1 = [int(0),int(self.ny/2),int(self.nz/2)]
         # print(self.species[0].coefDiff(s1))
-        print(self.tau(s1),self.TF.coefDiff(s1),self.TF.capacity_m(s1),self.TF.conductivity(s1),self.viscosity(s1),self.TS.conductivity(s1),self.TS.capacity_m(s1),self.rhos[s1],self.reactions.dS[s1])
+        # print(self.tau(s1),self.TF.coefDiff(s1),self.TF.capacity_m(s1),self.TF.conductivity(s1),self.viscosity(s1),self.TS.conductivity(s1),self.TS.capacity_m(s1),self.rhos[s1],self.reactions.dS[0][s1],self.reactions.reactions[0].reaction(s1))
+        print(self.reactions.reactions[0].Arrehnius(s1))
         # rad = 0.0
         # rad_surface = 0.0
         # for i in ti.grouped(self.rho):

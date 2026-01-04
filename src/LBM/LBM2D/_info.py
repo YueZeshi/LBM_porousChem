@@ -6,7 +6,7 @@ class LBM2D_INFO(LBM2D_BASE):
         return self.description()
 
     def __repr__(self):
-        return self._str__()
+        return self.__str__()
 
     def description(self):
         des = "\n------------------------------------------\n"        
@@ -35,7 +35,15 @@ class LBM2D_INFO(LBM2D_BASE):
         des = ""
         if self.PORO:
             des += f"Porous media model : {self.poro_model}"
-        return des
+            if self.poro_model==PORO_MODEL.SPHERICAL:
+                des +=""
+            elif self.poro_model==PORO_MODEL.DARCY:
+                des +=""
+            elif self.poro_model==PORO_MODEL.DARCYFORCHHEIMER:
+                des +=""
+            elif self.poro_model==PORO_MODEL.ERGUN:
+                des +=""
+        return des+"\n"
     def description_thermal(self):
         des = ""
         if self.TEMPERATURE:

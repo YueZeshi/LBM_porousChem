@@ -178,7 +178,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         if ti.static(not specie.FIX): # 更新流体组分
                             specie.S[i] /= Yall # 归一化处理
                     # 化学反应
-                    # self.reactions.update_dS(i)
+                    self.reactions.update_dS(i)
                     
                 # if ti.static(self.PORO):
                 #     if self.rho1[i] != 0 and self.rhos[i] != 0:
@@ -296,10 +296,10 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
         eps = 1.0-self.solid[i]
         term = 0.0
         if ti.static(self.EOS==FLUID_STATE_EQUATION.INCOMPRESSIBLE):
-            term = (1.0-1.0/2.0/tau)*self.w9[s]*(3.0*(self.e9[s]-u/eps).dot(F)\
+            term = (1.0-1.0/2.0/tau)*self.w9[s]*(3.0*ti.math.dot(self.e9[s]-u/eps,F)\
               +9.0*self.e9[s].dot(u)*self.e9[s].dot(F)/eps)
         elif ti.static(self.EOS==FLUID_STATE_EQUATION.IDEAL_GAS):
-            term = (1.0-1.0/2.0/tau)*rho*self.w9[s]*(3.0*(self.e9[s]-u/(eps+1e-12)).dot(F)\
+            term = (1.0-1.0/2.0/tau)*rho*self.w9[s]*(3.0*ti.math.dot(self.e9[s]-u/(eps+1e-12),F)\
               +9.0*self.e9[s].dot(u)*self.e9[s].dot(F)/(eps+1e-12))
         return term
     @ti.func

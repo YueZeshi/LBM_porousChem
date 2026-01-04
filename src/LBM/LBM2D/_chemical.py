@@ -11,14 +11,14 @@ class Specie(ScalarField): # 物种质量分数场
         if not FIX:
             self.viscosity_type = VISCOSITY_MODEL.NONE
             self.visco = 1e-5
-            self.coefSutherland = [0,0]
+            self.coefSutherland = [0.0,0.0]
             self.diff_model = DIFF_MODEL.CONSANT
             self.diff = 1e-5
         self.thermo_model = THERMO_MODEL.CONSTANT
-        self.enthaply = 100
-        self.capa = 100
-        self.Trange = [0,0,0]
-        self.NASAcoef = [[0]*7]*2
+        self.enthalpy = 100.0
+        self.capa = 100.0
+        self.Trange = [0.0,0.0,0.0]
+        self.NASAcoef = [[0.0]*7]*2
         self.Sc = 1.0
         self.cond_model = CONDUCTIVITY_MODEL.CONSTANT
         self.cond = 1.0
@@ -42,7 +42,7 @@ class Specie(ScalarField): # 物种质量分数场
         
         des += "        - Thermodynamic model : "
         if self.thermo_model==THERMO_MODEL.CONSTANT:
-            des += f"constant : enthalpy {self.enthaply}, capacity {self.capa}\n"
+            des += f"constant : enthalpy {self.enthalpy}, capacity {self.capa}\n"
         elif self.thermo_model==THERMO_MODEL.NASA7:
             des += f"NASA7 : Trange {self.Trange}, coef {self.NASAcoef}\n"
         else:
@@ -82,30 +82,30 @@ class Specie(ScalarField): # 物种质量分数场
             capa += self.capa
         elif ti.static(self.thermo_model==THERMO_MODEL.NASA7):
             if T < self.Trange[1]:
-                capa = (((self.NASAcoef1[4]*T+self.NASAcoef1[3])*T+self.NASAcoef1[2])*T+self.NASAcoef1[1])*T+self.NASAcoef1[0]
+                capa = (((self.NASAcoef[0][4]*T+self.NASAcoef[0][3])*T+self.NASAcoef[0][2])*T+self.NASAcoef[0][1])*T+self.NASAcoef[0][0]
             else:
-                capa = (((self.NASAcoef2[4]*T+self.NASAcoef2[3])*T+self.NASAcoef2[2])*T+self.NASAcoef2[1])*T+self.NASAcoef2[0]
+                capa = (((self.NASAcoef[1][4]*T+self.NASAcoef[1][3])*T+self.NASAcoef[1][2])*T+self.NASAcoef[1][1])*T+self.NASAcoef[1][0]
             capa *=constant.R
         return capa
     @ti.func
     def enthalpy_mole(self,T): 
         H = 0.0
         if ti.static(self.thermo_model==THERMO_MODEL.CONSTANT):
-            H += self.enthaply
+            H += self.enthalpy
         elif ti.static(self.thermo_model==THERMO_MODEL.NASA7):
             if T < self.Trange[1]:
-                H = ((((self.NASAcoef1[4]*T/5+self.NASAcoef1[3]/4)*T+self.NASAcoef1[2]/3)*T+self.NASAcoef1[1]/2)*T+self.NASAcoef1[0])*T+self.NASAcoef1[5]        
+                H = ((((self.NASAcoef[0][4]*T/5+self.NASAcoef[0][3]/4)*T+self.NASAcoef[0][2]/3)*T+self.NASAcoef[0][1]/2)*T+self.NASAcoef[0][0])*T+self.NASAcoef[0][5]        
             else:
-                H = ((((self.NASAcoef2[4]*T/5+self.NASAcoef2[3]/4)*T+self.NASAcoef2[2]/3)*T+self.NASAcoef2[1]/2)*T+self.NASAcoef2[0])*T+self.NASAcoef2[5]
+                H = ((((self.NASAcoef[1][4]*T/5+self.NASAcoef[1][3]/4)*T+self.NASAcoef[1][2]/3)*T+self.NASAcoef[1][1]/2)*T+self.NASAcoef[1][0])*T+self.NASAcoef[1][5]
             H *=constant.R*H*T
         return H
     @ti.func
     def entropy_mole(self,T):
         S_R = 1.0
         if T < self.Trange[1]:
-            S_R = (((self.NASAcoef1[4]*T/4+self.NASAcoef1[3]/3)*T+self.NASAcoef1[2]/2)*T+self.NASAcoef1[1])*T+self.NASAcoef1[0]*ti.log(T)+self.NASAcoef1[6]        
+            S_R = (((self.NASAcoef[0][4]*T/4+self.NASAcoef[0][3]/3)*T+self.NASAcoef[0][2]/2)*T+self.NASAcoef[0][1])*T+self.NASAcoef[0][0]*ti.log(T)+self.NASAcoef[0][6]        
         else:
-            S_R = (((self.NASAcoef2[4]*T/4+self.NASAcoef2[3]/3)*T+self.NASAcoef2[2]/2)*T+self.NASAcoef2[1])*T+self.NASAcoef2[0]*ti.log(T)+self.NASAcoef2[6]  
+            S_R = (((self.NASAcoef[1][4]*T/4+self.NASAcoef[1][3]/3)*T+self.NASAcoef[1][2]/2)*T+self.NASAcoef[1][1])*T+self.NASAcoef[1][0]*ti.log(T)+self.NASAcoef[1][6]  
         return S_R*constant.R
     @ti.func
     def capacity_m(self,T):
@@ -136,7 +136,7 @@ class Specie(ScalarField): # 物种质量分数场
 
 @ti.data_oriented
 class Reaction:
-    def __init__(self,formula,A,Ea,b = 0,Tmin = 0,deltaH = 0,lb2d=None,name="unnamed reaction",unit = SPECIE_UNIT.MASS,fixDH = True):
+    def __init__(self,lb2d,formula,A,Ea,b = 0,Tmin = 0,deltaH = 0,name="unnamed reaction",unit = SPECIE_UNIT.MASS,fixDH = True):
         self.reactionType = REACTION_TYPE.ARREHNIUS
         self.formula = formula
         self.name = name
@@ -202,8 +202,8 @@ class Reaction:
         k = 0.0
         T = 0.0
         if ti.static(self.LBM.TEMPERATURE):
-            # 有固相参与使用固相温度
-            if self.LBM.solid[i]>0:
+            # 有固相参与使用固相温度 
+            if self.LBM.solid[i]>0: # 有点问题，有固体不代表固相反应
                 T = self.LBM.GetTS(i)
             else:
                 T = self.LBM.GetTF(i)
@@ -214,43 +214,42 @@ class Reaction:
         return k
     @ti.func
     def reaction(self,i):  # mole修正还没有写好
-        # kr = self.Arrehnius(i)
+        kr = self.Arrehnius(i)
         dS = ti.Vector([0.0]*(self.specieNum+1)) # concentration change (specieNum) and enthalpy change (1)
-        # # 计算化学反应速率
-        # for j in ti.static(range(len(self.LBM.species))):
-        #     if self.coefReactant[j]>0 : # 该物质参与反应
-        #         if self.LBM.species[j].S[i]>1e-6: # 存在该物质
-        #             if self.coefRate[j] != 0:#浓度参与化学反应速率计算
-        #                 if ti.static(self.unit==SPECIE_UNIT.MASS):
-        #                     if ti.static(not self.LBM.species[j].FIX):
-        #                         kr *= (self.LBM.species[j].S[i]*self.LBM.rho[i])**self.coefRate[j] # 气态反应物 该物质对反应的贡献 可以不贡献
-        #                     else:
-        #                         kr *= self.LBM.species[j].S[i]**self.coefRate[j] # 固态反应物 该物质对反应的贡献 可以不贡献
-        #                 # elif ti.static(self.unit==SPECIE_UNIT.MOLE): # mole表示的化学反应需要按照摩尔质量修正因为物种信息存储的是密度信息
-        #                 #     kr *= (specie.S[i]/specie.molemass)**self.coefRate[j] # 该物质对反应的贡献 可以不贡献
-        #         else: # no reaction including absence of catalyst
-        #             kr = 0
-        # # 计算物种浓度变化和焓变
-        # dh = 0.0 # 物种变化带来的焓变以及反应焓变
-        # for j in ti.static(range(len(self.LBM.species))):
-        #     coef = -self.coefReactant[j]+self.coefProduct[j] # 物质生成或者消耗
-        #     if coef != 0.:
-        #         ds = kr*coef*self.LBM.dt # 密度变化
-        #         if ti.static(self.unit==SPECIE_UNIT.MOLE):
-        #             ds *= self.LBM.species[j].molemass # 摩尔质量修正到密度
-        #         self.reactionResult[i][j]=ds
-        #         # # 物质的生成和消失会影响焓变                    
-        #         # # dh += ds*self.LBM.Temperature.S[i]*specie.capacity_m(i) # 物种生成和消失带来的焓变
-        # # 反应热效应
-        # if ti.static(self.LBM.TEMPERATURE):
-        #     dh += -kr*self.deltaH*self.LBM.dt # 注意保证kr deltaH的单位匹配。是质量都是质量，是摩尔数都是摩尔数。
-        #     self.dH[i]=dh
+        # 计算化学反应速率 mole
+        for j in ti.static(range(len(self.LBM.species))):
+            if self.coefReactant[j]>0 : # 该物质参与反应
+                if self.LBM.species[j].S[i]>1e-5: # 存在该物质
+                    if self.coefRate[j] != 0:#浓度参与化学反应速率计算
+                        if ti.static(not self.LBM.species[j].FIX):
+                            kr *= (self.LBM.species[j].S[i]*self.LBM.rho[i]/self.LBM.species[j].molemass)**self.coefRate[j] # 气态反应物 该物质对反应的贡献 可以不贡献
+                        else:
+                            kr *= (self.LBM.species[j].S[i]/self.LBM.species.molemass)**self.coefRate[j] # 固态反应物 该物质对反应的贡献 可以不贡献
+                        # elif ti.static(self.unit==SPECIE_UNIT.MOLE): # mole表示的化学反应需要按照摩尔质量修正因为物种信息存储的是密度信息
+                        #     kr *= (specie.S[i]/specie.molemass)**self.coefRate[j] # 该物质对反应的贡献 可以不贡献
+                else: # no reaction including absence of catalyst
+                    kr = 0
+        # 计算物种浓度变化和焓变
+        # kr mol/m3/s
+        dH = 0.0 # 物种变化带来的焓变以及反应焓变
+        for j in ti.static(range(len(self.LBM.species))):
+            coef = -self.coefReactant[j]+self.coefProduct[j] # 物质生成或者消耗
+            if coef != 0.:
+                ds = kr*coef*self.LBM.dt*self.LBM.species[j].molemass # 摩尔质量修正到密度
+                dS[j] = ds # d\rho
+                dH += coef*self.LBM.species[j].enthalpy_mole(i)
+                # # 物质的生成和消失会影响焓变                    
+                # # dh += ds*self.LBM.Temperature.S[i]*specie.capacity_m(i) # 物种生成和消失带来的焓变
+        # 反应热效应
+        if ti.static(self.LBM.TEMPERATURE):
+            dH *= -kr*self.LBM.dt # 注意保证kr deltaH的单位匹配。是质量都是质量，是摩尔数都是摩尔数。
+            dS[self.specieNum]= dH # J
         return dS
 @ti.data_oriented
 class Reactions:
     def __init__(self,lbm):
         self.LBM = lbm
-        self.dS = None # initialize during init_python (specieNum + 1)
+        self.dS = [] # initialize during init_python (specieNum + 1)
         self.reactions:list[Reaction] = []
         self.specieNum = 0
     def __str__(self):

@@ -418,10 +418,10 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
                 path = geo_infos[geo_name].get("path")
                 translate = geo_infos[geo_name].get("translate")
                 rotate = geo_infos[geo_name].get("rotate")
-                scale = geo_infos[geo_name].get("scale")
+                scale = geo_infos[geo_name].get("scale",[1,1,1])
             else:
                 logger.warning(f"Geometry {shape} not valid.")
-            mesh,surface = lb.load_stl(path,scale,translate,rotate,logger)
+            mesh,surface = lb.load_stl(path,scale,translate,rotate,logger=logger)
             if np.shape(mesh)[0]!=0:
                 geo_dict[geo_name]=mesh,surface
         logger.info("Geometry loaded.")

@@ -102,8 +102,20 @@ class LBM2D_BASE:
         return self.__str__()
     def __call__(self):
         print(self)
-    
-    def default_init():
+    @ti.func
+    def tau(self,i):
+        return 300
+    @ti.func
+    def viscosity(self,i):
+        return 300
+        
+    @ti.func
+    def GetTF(self,i):
+        return 300
+    @ti.func
+    def GetTS(self,i):
+        return 300
+    def default_init(self):
         pass
     @ti.kernel
     def static_init_kernel(self): # 初始化静态变量
@@ -121,5 +133,5 @@ class LBM2D_BASE:
     @ti.func 
     def Boundary_condition_ES(self):
         pass
-    def updateBC(self):
+    def updateBC(self,t):
         pass

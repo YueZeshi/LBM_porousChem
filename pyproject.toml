@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "LBM"
-version = "0.1.0"
-description = "LBM using Taichi for biomass pyrolysis simulation"
+version = "0.1.1"
+description = "Taichi-based LBM for biomass pyrolysis simulation"
 authors = [
     {name = "ZeshiYUE", email = "609190542@qq.com"},
 ]

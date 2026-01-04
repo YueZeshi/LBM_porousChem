@@ -104,6 +104,7 @@ class TemperatureSolid(ScalarField):
         self.exchangeCoef = ti.field(float,shape=(self.nx,self.ny,self.nz))
         self.exchangeSurface = ti.field(float,shape=(self.nx,self.ny,self.nz))
         if isRadiation:
+            self.Tambient = 300.0
             self.radiation_model = RADIATION_MODEL.NONE # 辐射模型
             self.radiation_surface = ti.field(float,shape = (self.nx,self.ny,self.nz)) # S/V L-1
             self.emissivity = ti.field(float,shape=(self.nx,self.ny,self.nz))
@@ -112,12 +113,19 @@ class TemperatureSolid(ScalarField):
         self.Pr = 0.71
         self.conductivity_model = CONDUCTIVITY_MODEL.CONSTANT
         self.cond = 0.2
-        self.cond_poly = [0,0,0,0]
+        self.cond_poly = [0.0]*5
         self.capacity_model = THERMO_MODEL.CONSTANT
-        self.cm = 1000
-        self.cm_poly = [0,0,0,0,0]
-        self.Trange = [0,0,0]
-        self.NASA_coef = [[0,0,0,0,0,0,0],[0,0,0,0,0,0,0]]
+        self.cm = 1000.0
+        self.cm_poly = [0.0]*5
+        self.Trange = [0.0,0,0]
+        self.NASA_coef = [[0.0,0,0,0,0,0,0],[0,0,0,0,0,0,0]]
+    def __str__(self):
+        des= "Solid Temperature Field : \n"
+        if self.thermal_diff_model==THERMAL_DIFF_MODEL.CONSTANT:
+            des += "constant thermal diffusitivity"
+        elif self.thermal_diff_model==THERMAL_DIFF_MODEL.DERIVED:
+            des += "calculated base on the capacity and conductivity"
+        return des
     @ti.func
     def geq5(self,k,T,x,y,z):
         geqout = 0.0
@@ -186,7 +194,7 @@ class TemperatureSolid(ScalarField):
         q = 0.0
         if ti.static(self.radiation_model==RADIATION_MODEL.SURFACE_UNIFORM):
             q += self.emissivity[i]*SIGMA*self.radiation_surface[i]/self.LBM.dx*(ti.pow(self.Tambient,4)-ti.pow(self.physical_value(self.S[i]),4))
-        elif ti.static(self.radiation_model==RADIATION_MODEL.REAL_RADIATION):
-            q += self.real_radiation[i]-self.radiation_surface[i]/self.LBM.dx*ti.pow(self.physical_value(self.S[i]),4)
+        # elif ti.static(self.radiation_model==RADIATION_MODEL.REAL_RADIATION):
+        #     q += self.real_radiation[i]-self.radiation_surface[i]/self.LBM.dx*ti.pow(self.physical_value(self.S[i]),4)
         return q
     
