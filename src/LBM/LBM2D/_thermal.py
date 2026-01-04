@@ -9,13 +9,13 @@ from ._scalarField import ScalarField
 class TemperatureFluid(ScalarField):
     def __init__(self,name,lb2d,FIX = False):
         super().__init__(name,lb2d,FIX)
-        self.thermal_diff_model = THERMAL_DIFF_MODEL.NONE
+        self.thermal_diff_model = THERMAL_DIFF_MODEL.CONSTANT
         self.Pr = 0.71
         self.thermal_diff = 3e-5
-        self.conductivity_model = CONDUCTIVITY_MODEL.NONE
+        self.conductivity_model = CONDUCTIVITY_MODEL.CONSTANT
         self.cond = 1000
         self.cond_poly = [0,0,0,0]
-        self.capacity_model = THERMO_MODEL.NONE
+        self.capacity_model = THERMO_MODEL.CONSTANT
         self.cm = 1000
         self.cm_poly = [0,0,0,0,0]
         self.Trange = [0,0,0]
@@ -107,13 +107,13 @@ class TemperatureSolid(ScalarField):
             self.radiation_model = RADIATION_MODEL.NONE # 辐射模型
             self.radiation_surface = ti.field(float,shape = (self.nx,self.ny,self.nz)) # S/V L-1
             self.emissivity = ti.field(float,shape=(self.nx,self.ny,self.nz))
-        self.thermal_diff_model = THERMAL_DIFF_MODEL.DERIVED
+        self.thermal_diff_model = THERMAL_DIFF_MODEL.CONSTANT
         self.thermal_diff = 3e-5
         self.Pr = 0.71
-        self.conductivity_model = CONDUCTIVITY_MODEL.MIXTURE
+        self.conductivity_model = CONDUCTIVITY_MODEL.CONSTANT
         self.cond = 0.2
         self.cond_poly = [0,0,0,0]
-        self.capacity_model = THERMO_MODEL.MIXTURE
+        self.capacity_model = THERMO_MODEL.CONSTANT
         self.cm = 1000
         self.cm_poly = [0,0,0,0,0]
         self.Trange = [0,0,0]

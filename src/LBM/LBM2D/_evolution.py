@@ -178,7 +178,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         if ti.static(not specie.FIX): # 更新流体组分
                             specie.S[i] /= Yall # 归一化处理
                     # 化学反应
-                    self.reactions.update_dS(i)
+                    # self.reactions.update_dS(i)
                     
                 # if ti.static(self.PORO):
                 #     if self.rho1[i] != 0 and self.rhos[i] != 0:
@@ -312,3 +312,10 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
         if ti.static(self.TEMPERATURE):
             TF = self.TF.physical_value(self.TF.S[i])
         return TF
+    
+    @ti.func
+    def GetTS(self,i):
+        TS = 273.15
+        if ti.static(self.TEMPERATURE):
+            TS = self.TS.physical_value(self.TS.S[i])
+        return TS

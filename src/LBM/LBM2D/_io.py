@@ -276,7 +276,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         self.bc_rho[i]=bc
     def set_v_BC_value(self,i,v):
         self.v_BC[i]=v
-    def set_v_BCs_value(self,vs,unit = "lattice"):
+    def set_v_BCs_value(self,vs,unit):
         for i in range(4):
             if unit=="SI":
                 vs[i] = np.array(vs[i])*self.dt/self.dx
@@ -286,11 +286,11 @@ class LBM2D_INPUT(LBM2D_BASE):
     def set_rho_BCs_value(self,rhos):
         for i in range(4):        
             self.set_rho_BC_value(i,rhos[i])    
-    def set_flow_BC_value(self,i,v):
-        self.flow_BC[i]=v
-    def set_flow_BCs_value(self,vs,unit = "lattice"):
+    def set_flow_BC_value(self,i,f):
+        self.flow_BC[i]=f
+    def set_flow_BCs_value(self,fs):
         for i in range(4):
-            self.set_flow_BC_value(i,vs[i])
+            self.set_flow_BC_value(i,fs[i])
 
     def set_TS_BC(self,i,BC):
         self.TS.set_BC(i,BC)
@@ -473,7 +473,7 @@ class LBM2D_OUTPUT(LBM2D_BASE):
     def check(self):
         s1 = [int(self.nx/2),int(self.ny/2),int(self.nz/2)]
         # print(self.species[0].coefDiff(s1))
-        print(self.tau(s1),self.TF.coefDiff(s1),self.TF.capacity_m(s1),self.TF.conductivity(s1),self.viscosity(s1),self.TS.conductivity(s1),self.TS.capacity_m(s1),self.rhos[s1])
+        print(self.tau(s1),self.TF.coefDiff(s1),self.TF.capacity_m(s1),self.TF.conductivity(s1),self.viscosity(s1),self.TS.conductivity(s1),self.TS.capacity_m(s1),self.rhos[s1],self.reactions.dS[s1])
         # rad = 0.0
         # rad_surface = 0.0
         # for i in ti.grouped(self.rho):

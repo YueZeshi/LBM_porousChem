@@ -40,6 +40,21 @@ class Specie(ScalarField): # 物种质量分数场
             else:
                 des += "not valid\n"
         
+        des += "        - Thermodynamic model : "
+        if self.thermo_model==THERMO_MODEL.CONSTANT:
+            des += f"constant : enthalpy {self.enthaply}, capacity {self.capa}\n"
+        elif self.thermo_model==THERMO_MODEL.NASA7:
+            des += f"NASA7 : Trange {self.Trange}, coef {self.NASAcoef}\n"
+        else:
+            des += "not valid\n"
+        
+        des += "        - Conductivity model : "
+        if self.cond_model==CONDUCTIVITY_MODEL.CONSTANT:
+            des += f"constant : conductivity {self.cond}\n"
+        elif self.cond_model==CONDUCTIVITY_MODEL.POLYNOMIAL:
+            des += f"polynomial : coef {self.cond_poly}\n"
+        else:
+            des += "not valid\n"
         return des
     def __repr__(self):
         return self.__str__()
@@ -121,7 +136,6 @@ class Specie(ScalarField): # 物种质量分数场
 
 @ti.data_oriented
 class Reaction:
-    R = 8.31
     def __init__(self,formula,A,Ea,b = 0,Tmin = 0,deltaH = 0,lb2d=None,name="unnamed reaction",unit = SPECIE_UNIT.MASS,fixDH = True):
         self.reactionType = REACTION_TYPE.ARREHNIUS
         self.formula = formula
@@ -134,15 +148,17 @@ class Reaction:
         self.LBM = lb2d
         self.unit = unit
         self.isFixDH = fixDH
-        self.coefProduct = ti.field(float,shape=(len(self.LBM.species)))
-        self.coefReactant = ti.field(float,shape=(len(self.LBM.species)))
-        self.coefRate = ti.field(float,shape=(len(self.LBM.species)))
+        self.specieNum = len(self.LBM.species)
+        self.coefProduct = ti.field(float,shape=(self.specieNum))
+        self.coefReactant = ti.field(float,shape=(self.specieNum))
+        self.coefRate = ti.field(float,shape=(self.specieNum))
 
-        self.reactionResult = ti.Vector.field(len(self.LBM.species),dtype=float,shape=self.LBM.rho.shape) # specie concentration and enthalpy change
-        self.dH = ti.field(float,shape=self.LBM.rho.shape)
+        # self.reactionResult = ti.Vector.field(len(self.LBM.species),dtype=float,shape=self.LBM.rho.shape) # specie concentration and enthalpy change
+        # self.dH = ti.field(float,shape=self.LBM.rho.shape)
         self.parse_formula(formula)
     def parse_formula(self,formula:str):
-        reactant,product = formula.split("=>")
+        formula = formula.replace("<=>","|").replace("=>","|")
+        reactant,product = formula.split("|")
         reactant = [specie.strip() for specie in reactant.split('+')]
         product = [specie.strip() for specie in product.split('+')]
         for term in reactant:
@@ -188,18 +204,18 @@ class Reaction:
         if ti.static(self.LBM.TEMPERATURE):
             # 有固相参与使用固相温度
             if self.LBM.solid[i]>0:
-                T = self.LBM.TS.S[i]
+                T = self.LBM.GetTS(i)
             else:
-                T = self.LBM.TF.S[i]
+                T = self.LBM.GetTF(i)
             if (T>self.Tmin):
-                k = self.A*(T+1e-6)**self.b*ti.math.exp(-self.Ea/(T+1e-6)/Reaction.R)
+                k = self.A*(T+1e-6)**self.b*ti.math.exp(-self.Ea/(T+1e-6)/constant.R)
         else:
             k = self.A
         return k
     @ti.func
     def reaction(self,i):  # mole修正还没有写好
-        kr = self.Arrehnius(i)
-        dS = ti.Vector([0.0]*self.specieNum)
+        # kr = self.Arrehnius(i)
+        dS = ti.Vector([0.0]*(self.specieNum+1)) # concentration change (specieNum) and enthalpy change (1)
         # # 计算化学反应速率
         # for j in ti.static(range(len(self.LBM.species))):
         #     if self.coefReactant[j]>0 : # 该物质参与反应
@@ -234,8 +250,7 @@ class Reaction:
 class Reactions:
     def __init__(self,lbm):
         self.LBM = lbm
-        self.dS = None # initialize during init_python
-        self.dH = ti.field(float,shape=self.LBM.rho.shape)
+        self.dS = None # initialize during init_python (specieNum + 1)
         self.reactions:list[Reaction] = []
         self.specieNum = 0
     def __str__(self):
@@ -252,15 +267,10 @@ class Reactions:
 
     @ti.func
     def update_dS(self,i): # 计算所有化学反应带来的物质源项和能量源项
-        for j in ti.static(range(self.specieNum)): 
+        for j in ti.static(range(self.specieNum+1)): 
             self.dS[i][j] = 0
-        self.dH[i] = 0.0 # Set to 0
         for r in ti.static(self.reactions): # reaction update
             self.dS[i]+=r.reaction(i)
-            # r.reaction(i)
-            # for j in ti.static(range(self.specieNum)):
-            #     self.dS[i][j] += r.reactionResult[i][j]
-            # self.dH[i] += r.dH[i]
         for j in ti.static(range(self.specieNum)):
             self.LBM.species[j].dS[i] = self.dS[i][j]
         if ti.static(self.LBM.TEMPERATURE):

@@ -48,8 +48,6 @@ class Reaction:
         self.coefProduct = ti.field(float,shape=(len(self.LBM.species)))
         self.coefReactant = ti.field(float,shape=(len(self.LBM.species)))
         self.coefRate = ti.field(float,shape=(len(self.LBM.species)))
-        self.reactionResult = ti.Vector.field(len(self.LBM.species),dtype=float,shape=self.LBM.rho.shape) # specie concentration and enthalpy change
-        self.dH = ti.field(float,shape=self.LBM.rho.shape)
         for i in range(len(self.LBM.species)):
             for r in reactant:
                 if r[0]==self.LBM.specieName[i]:

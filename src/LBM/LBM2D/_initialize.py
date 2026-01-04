@@ -18,7 +18,8 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
         self.init_kernel()
     def init_python(self):
         if ti.static(self.CHEMISTRY):
-            self.reactions.dS = ti.Vector.field(len(self.species)+1,dtype = float,shape=self.rho.shape)
+            # initialize reactions class , knowing all species
+            self.reactions.dS = ti.Vector.field(len(self.species)+1,dtype = float,shape=self.rho.shape) # specie num + 1
             self.reactions.specieNum = len(self.species)
     @ti.kernel
     def static_init_kernel(self): # 初始化静态变量

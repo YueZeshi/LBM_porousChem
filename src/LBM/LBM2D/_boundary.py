@@ -323,7 +323,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
             for j,k in ti.ndrange(self.ny,self.nz):
                 flow0 += self.rho[0,j,k]*self.v[0,j,k][0]
             coef = self.flow_BC[0]/flow0
-            a = .1
+            a = .01
             for j,k in ti.ndrange(self.ny,self.nz):
                 self.v_bc_profile[0][0,j,k] = (a*coef+1-a)*self.v[1,j,k]
                 self.rho_bc_profile[0][0,j,k] = self.rho[1,j,k]

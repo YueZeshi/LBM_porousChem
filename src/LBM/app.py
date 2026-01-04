@@ -179,6 +179,7 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
             Tambient = radiationProperties.get("Tambient",300)
             lb.set_radiation(RADIATION_MODEL.SURFACE_UNIFORM,Tambient)
     # chemistry
+    logger.info("Chemistry module loading...")
     chemicalProperties = config.get("chemicalProperties")
     if isChemical and chemicalProperties is not None:
         logger.info("Chemistry module loading...")
@@ -277,15 +278,22 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
                                     lb.set_specie_conductivity_poly(specie,poly)
                     else:
                         logger.warning(f"Specie state {state} not valid. The valid value : fluid|solid")
+            reactions = chemicalProperties.get("reactions")
+            if reactions is not None:
+                for reaction in reactions:
+                    coefRate = reaction["rate-constant"]
+                    lb.add_reaction(reaction["equation"],coefRate["A"],coefRate["Ea"],coefRate["b"])
+
         else:
             logger.warning(f"Chemical type {chemicalType} of chemicalProperties not valid. The valid type : cantera|input")
-        logger.info("Chemistry module loading...")
+        logger.info("Chemistry module loaded.")
 
     # boundary condition
     logger.info("Boundary condition setting...")
     boundaryName = ["left","right","down","up"]
     for i in range(4):
         bc =config["boundaryCondition"][boundaryName[i]] 
+        # bc of flow field
         bc_flow = bc["flow"]
         if bc_flow["type"]=="inlet":
             v = bc_flow["velocity"]
@@ -298,6 +306,13 @@ def application_2D(config:ruamel.yaml.comments.CommentedMap,verbose:int = 1):
             rho = bc_flow["rho"]
             lb.set_BC(i,BC_FLOW.outlet)
             lb.set_rho_BC_value(i,rho)
+        elif bc_flow["type"]=="inlet_flowrate":
+            F = bc_flow["flowrate"]
+            lb.set_BC(i,BC_FLOW.inlet_flow)
+            lb.set_flow_BC_value(i,F)
+            rho = bc_flow.get("rho",1)
+            if rho:
+                lb.set_rho_BC_value(i,rho)
         elif bc_flow["type"]=="wall":
             lb.set_BC(i,BC_FLOW.wall)
         ## bc of temperature field
