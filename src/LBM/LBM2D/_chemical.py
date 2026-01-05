@@ -152,9 +152,6 @@ class Reaction:
         self.coefProduct = ti.field(float,shape=(self.specieNum))
         self.coefReactant = ti.field(float,shape=(self.specieNum))
         self.coefRate = ti.field(float,shape=(self.specieNum))
-
-        # self.reactionResult = ti.Vector.field(len(self.LBM.species),dtype=float,shape=self.LBM.rho.shape) # specie concentration and enthalpy change
-        # self.dH = ti.field(float,shape=self.LBM.rho.shape)
         self.parse_formula(formula)
     def parse_formula(self,formula:str):
         formula = formula.replace("<=>","|").replace("=>","|")
@@ -258,7 +255,7 @@ class Reactions:
         for r in self.reactions:
             description += f" - {r.name}\n"
             description += "   "+r.__str__() + "\n"
-        description += f"{len(self.reactions)} reactions in total.\n"
+        description += f"{len(self.reactions)} reaction(s) in total.\n"
         return description 
     def __repr__(self):
         return self.__str__()

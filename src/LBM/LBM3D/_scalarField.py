@@ -6,23 +6,39 @@ class ScalarField:
     '''
     标量场 D3Q7
     '''
-    def __init__(self,name,nx,ny,nz,lb3d,FIX = False):
+    def __init__(self,name,lb3d,FIX = False):
         self.name = name
-        self.nx,self.ny,self.nz = nx,ny,nz
+        self.nx,self.ny,self.nz = lb3d.nx,lb3d.ny,lb3d.nz
         self.LBM = lb3d
         self.FIX = FIX
-        self.S = ti.field(float,shape=(nx,ny,nz))
-        self.dS = ti.field(float,shape = (nx,ny,nz))
+        self.S = ti.field(float,shape=(self.nx,self.ny,self.nz))
+        self.dS = ti.field(float,shape = (self.nx,self.ny,self.nz))
         if not self.FIX:
-            self.g = ti.Vector.field(7,float,shape=(nx,ny,nz))
-            self.G = ti.Vector.field(7,float,shape=(nx,ny,nz))
+            self.g = ti.Vector.field(7,float,shape=(self.nx,self.ny,self.nz))
+            self.G = ti.Vector.field(7,float,shape=(self.nx,self.ny,self.nz))
             self.BC = [BC.periodic]*6
             self.flux_BC =ti.field(float,shape = (6))
             self.s_BC = ti.field(float,shape = (6))
             for i in range(6):
                 self.flux_BC[i]=0.0
                 self.s_BC[i]=0.0
-                
+    def get_physical_value(self,v): # change unit and reference
+        v_phys = v*self.v_scale + self.v_ref
+        return v_phys
+
+    def get_normalized_value(self,v_phys):
+        v = (v_phys - self.v_ref)/self.v_scale
+        return v    
+    
+    @ti.func
+    def normalized_value(self,v_phys):
+        v = (v_phys - self.v_ref)/self.v_scale
+        return v
+    @ti.func
+    def physical_value(self,v):
+        v_phys = v*self.v_scale + self.v_ref
+        return v_phys
+
     @ti.kernel
     def default_init(self):
         for i in range(6):
@@ -31,7 +47,7 @@ class ScalarField:
         for i in ti.grouped(self.S):
             self.S[i]=0.0
             if not self.FIX:
-                for k in ti.static(range(5)):
+                for k in ti.static(range(7)):
                     self.g[i][k]=0.0
                     self.G[i][k]=0.0
     @ti.func
@@ -42,19 +58,22 @@ class ScalarField:
         return 0.1
     # boundary condition
     def set_BC(self,index_boundary,BC):
-        self.BC[index_boundary]=BC
+        if not self.FIX:
+            self.BC[index_boundary]=BC
     def set_BCs(self,BCs):
-        self.BC = BCs
+        for i in range(6):
+            self.set_BC(i,BCs[i])
     def set_s_BC_value(self,index,s):
-        self.s_BC[index]=s
+        if not self.FIX:
+            self.s_BC[index]=self.get_normalized_value(s)
     def set_s_BCs_value(self,s):
         for i in range(6):
-            self.s_BC[i]=s[i]
+            self.set_s_BC_value(i,s[i])
     def set_s_BC_flux(self,index,f):
         self.flux_BC[index]=f
     def set_s_BCs_flux(self,f):
         for i in range(6):
-            self.flux_BC[i]=f[i]
+            self.set_s_BC_flux(i,f[i])
     @ti.func
     def geq7(self,k,S,x,y,z):
         return 0

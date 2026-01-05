@@ -2,6 +2,7 @@
 result/
 data/stl/*.stl
 *.vtr
+*.vts
 *.pvd
 # Byte-compiled / optimized / DLL files
 __pycache__/

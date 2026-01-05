@@ -223,12 +223,6 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
         if self.EOS==FLUID_STATE_EQUATION.IDEAL_GAS:
             feqout = self.w9[s]*rho*(1.0+3.0*eu+4.5*eu*eu/(eps+1e-12)-1.5*uv/(eps+1e-12))
         return feqout
-    @ti.func
-    def feq5(self, k,s,i): #计算平衡分布函数 考虑多孔介质
-        u = self.v[i]
-        eu = self.e5[k].dot(u)
-        feqout = self.w5[k]*s*(1.0+3.0*eu)
-        return feqout
     
     @ti.func
     def viscosity(self,i): # in LU

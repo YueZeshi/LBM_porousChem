@@ -69,18 +69,6 @@ class TemperatureFluid(ScalarField):
             D = self.LBM.kinetic_viscosity(i)/self.Pr
         elif ti.static(self.thermal_diff_model==THERMAL_DIFF_MODEL.DERIVED):
             D = self.conductivity(i)/self.LBM.rho[i]/self.capacity_m(i)*self.LBM.dt/self.LBM.dx**2
-        # if ti.static(self.LBM.CHEMISTRY):
-        #     rhoc = 0.0
-        #     k = 0.0
-        #     for specie in ti.static(list(self.LBM.species)):
-        #         if ti.static(not specie.FIX):
-        #             k+=specie.S[i]*specie.conductivity(i)
-        #             rhoc += specie.S[i]*self.LBM.rho[i]*specie.capacity_m(self.physical_value(self.S[i]))
-        #     D += k*self.LBM.dt/rhoc/self.LBM.dx**2
-        # else:
-        #     D += self.default_coefDiff
-        # if D == 0:
-        #     D +=self.default_coefDiff
         return D    
     @ti.func
     def conductivity(self,i):
@@ -184,18 +172,6 @@ class TemperatureSolid(ScalarField):
             D = self.thermal_diff*self.LBM.dt/self.LBM.dx**2
         elif ti.static(self.thermal_diff_model==THERMAL_DIFF_MODEL.DERIVED):
             D = self.conductivity(i)/self.LBM.rhos[i]/self.capacity_m(i)*self.LBM.dt/self.LBM.dx**2
-        # if ti.static(self.LBM.CHEMISTRY):
-        #     rhoc = 0.0
-        #     k = 0.0
-        #     for specie in ti.static(list(self.LBM.species)):
-        #         if ti.static(not specie.FIX):
-        #             k+=specie.S[i]*specie.conductivity(i)
-        #             rhoc += specie.S[i]*self.LBM.rho[i]*specie.capacity_m(self.physical_value(self.S[i]))
-        #     D += k*self.LBM.dt/rhoc/self.LBM.dx**2
-        # else:
-        #     D += self.default_coefDiff
-        # if D == 0:
-        #     D +=self.default_coefDiff
         return D    
     @ti.func
     def conductivity(self,i):

@@ -19,13 +19,12 @@ def run(config,verbose,clear):
     logger = logging.getLogger("LBM 2D logger")
     logger.addHandler(logging.StreamHandler(sys.stdout))
     logger.setLevel(verbose_level[verbose])
-    debug = (verbose==2)
     if not clear:
         if not os.path.exists(config):
             found = False
             for p in os.listdir(os.curdir):
                 if p.endswith(".yaml"):
-                    print(f"{config} not found. Found {p} yaml file instead.")
+                    logger.info(f"{config} not found. Found {p} yaml file instead.")
                     config  = p
                     found = True
                     break
