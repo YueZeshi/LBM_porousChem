@@ -11,10 +11,15 @@ class LBM2D_INFO(LBM2D_BASE):
     def description(self):
         des = "\n------------------------------------------\n"        
         des += self.description_basic()
+        des += "\n"
         des += self.description_flow()
+        des += "\n"
         des += self.description_porous()
+        des += "\n"
         des += self.description_thermal()
+        des += "\n"
         des += self.description_chemical()
+        des += "\n"
         des += self.description_BC()
         des += "------------------------------------------\n\n"
         return des
@@ -53,9 +58,9 @@ class LBM2D_INFO(LBM2D_BASE):
     def description_chemical(self)->str:
         des = "Chemical module: \n"
         if self.CHEMISTRY:
-            des+="The species involved are: \n"
+            des+="  The species involved are: \n"
             for specie in self.species:
-                des += "    " + specie.__str__()+"\n"
+                des += "    " + specie.__str__()
             des += self.reactions.__str__()
         return des
     def description_basic(self)->str:

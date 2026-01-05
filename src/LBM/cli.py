@@ -3,12 +3,23 @@ import os
 from ruamel.yaml import YAML
 import shutil
 from .util.path import root_path
+import logging
+import sys
 #
 @click.command()
 @click.option('--config','-c',default ='config.yaml',help = 'the configuration of simulation case')
 @click.option('--verbose','-v',default=1,help = "log level 0:warning;1:info;2:debug")
 @click.option('--clear',is_flag=True,help = 'clear past result folder')
 def run(config,verbose,clear):
+    verbose_level = {
+        0:logging.WARNING,
+        1:logging.INFO,
+        2:logging.DEBUG
+    }
+    logger = logging.getLogger("LBM 2D logger")
+    logger.addHandler(logging.StreamHandler(sys.stdout))
+    logger.setLevel(verbose_level[verbose])
+    debug = (verbose==2)
     if not clear:
         if not os.path.exists(config):
             found = False
@@ -22,16 +33,10 @@ def run(config,verbose,clear):
                 raise ValueError("The configuration file not exist. Please specify the input configuration file name or create the default file : config.yaml.")
         yaml = YAML()
         with open(config,'r',encoding="utf8") as f:
-            print(f"Load {config} file")
-            data = yaml.load(f)
-            if data["basic"]["dimension"] == 2:
-                from .app import application_2D
-                application_2D(data,verbose)
-            if data["basic"]["dimension"] == 3:
-                from .app import application_3D
-                application_3D(data,verbose)
-            if data["basic"]["dimension"] not in [2,3]:
-                raise ValueError("The dimention value in the configuration file is invalid. Please set it to 2 or 3 depending on your case.")
+            logger.info(f"Loading {config} file")
+            config = yaml.load(f)
+            from .app import application
+            application(config,logger)
     else:                
         dirs = os.listdir()
         for dir in dirs:

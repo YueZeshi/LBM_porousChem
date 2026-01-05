@@ -2,9 +2,8 @@ import taichi as ti
 import numpy as np
 import os
 from pyevtk.hl import gridToVTK
-import pickle
 import json
-
+import pyvista as pv
 from ruamel.yaml import YAML
 from ._core import LBM2D_BASE
 from ..util.flag import *
@@ -17,11 +16,11 @@ class LBM2D_INPUT(LBM2D_BASE):
     #----------
     # 用户使用函数
     #----------
+    def set_vtk_path(self,path):
+        self.exportPath = path
+        self.PVD.exportPath = path
     # 初始化场
     # 设置场初值
-    def set_vtk_path(self,path):
-        self.path = path
-        self.PVD.exportPath = path
     def init_field(self,field,param):
         if(type(param) in [float,int]):
             data = float(param)*np.ones(shape=(self.nx,self.ny,self.nz),dtype=np.float32) 
@@ -45,6 +44,8 @@ class LBM2D_INPUT(LBM2D_BASE):
         if(type(param2) is str):
             dat2 = np.loadtxt(param2)
             dat2 = np.reshape(dat2, (self.nx,self.ny,self.nz),order='F')
+        if(type(param2)==np.ndarray):
+            dat2 = param2
         data = np.concatenate((dat1,dat2),axis = 3)
         field.from_numpy(data)   
     def init_field3(self,field,param1,param2,param3): 
@@ -200,9 +201,11 @@ class LBM2D_INPUT(LBM2D_BASE):
         specie = self.species[self.specieName.index(specieName)]
         specie.Trange = TRange
         specie.NASAcoef = coef
-    def set_species(self,species,FIX=None):# 登记所有物质
+    def set_species(self,species,FIX=None,molemass = None):# 登记所有物质
         if FIX == None:
             FIX = [False]*len(species)
+        if molemass==None:
+            molemass = [0.028]*len(species)
         i = 0
         for name in species:
             self.set_specie(name,FIX[i])
@@ -267,10 +270,8 @@ class LBM2D_INPUT(LBM2D_BASE):
         self.bc_rho[i]=bc
     def set_v_BC_value(self,i,v):
         self.v_BC[i]=v
-    def set_v_BCs_value(self,vs,unit):
+    def set_v_BCs_value(self,vs):
         for i in range(4):
-            if unit=="SI":
-                vs[i] = np.array(vs[i])*self.dt/self.dx
             self.set_v_BC_value(i,vs[i])
     def set_rho_BC_value(self,i,r):
         self.rho_BC[i]=r
@@ -299,6 +300,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         self.TF.set_s_BC_value(i,T)
     def set_TF_BCs_value(self,Ts):
         self.TF.set_s_BCs_value(Ts)
+
     def set_specie_BC(self,name,i,BC):
         specie = self.species[self.specieName.index(name)]
         specie.set_BC(i,BC)
@@ -319,6 +321,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         self.species[self.specieName.index(name)].set_s_BC_flux(i,f)
     def set_specie_BCs_flux(self,name, fs):
         self.species[self.specieName.index(name)].set_s_BCs_flux(fs)
+
     def load_stl(self,stl_path,scale = [1.0,1.0,1.0],translate = [0,0,0],rotate = [0,0,0],**kwargs):
         """
         mesh and surface array
@@ -397,7 +400,7 @@ class LBM2D_OUTPUT(LBM2D_BASE):
 
         pass
 
-    def export_VTK(self): # 导出为vtk 到指定文件夹中
+    def export_VTK_pyevtk(self): # 导出为vtk 到指定文件夹中
         filename = os.path.join(self.exportPath,self.name+"_"+str(self.tLattice))
         gridToVTK(
                 filename,
@@ -405,11 +408,49 @@ class LBM2D_OUTPUT(LBM2D_BASE):
                 self.y,
                 self.z,
                 # cellData={"pressure": pressure},
-                pointData=self.get_data()
+                pointData=self.get_data_pyevtk()
             )
         self.PVD.addVTK(self.tLattice*self.dt,os.path.basename(filename)+".vtr")
         self.PVD.writePVD()
-    def get_data(self): # 获取所有数据（字典）
+    def export_VTK_pyvista(self): # 导出为vtk 到指定文件夹中
+        filename = os.path.join(self.exportPath,self.name+"_"+str(self.tLattice)+".vts")
+        grid = pv.StructuredGrid(self.meshX,self.meshY,self.meshZ)
+        grid.point_data.update(self.get_data_pyvista())
+        grid.save(filename)
+        self.PVD.addVTK(self.tLattice*self.dt,os.path.basename(filename))
+        self.PVD.writePVD()
+    def get_data_pyvista(self):
+        data = {    "solid":self.solid.to_numpy().ravel(order="F"),
+                    "rho": self.rho.to_numpy().ravel(order="F"),
+                    "velocity": self.v.to_numpy().reshape(-1,3,order="F")
+                }
+        # if self.PORO:
+        #     data["solid_init"]=self.rho1.to_numpy()
+        if self.TEMPERATURE:
+            data["rho_solid"] = self.rhos.to_numpy().ravel(order="F")
+            data["Tf"]  = self.TF.get_physical_value(self.TF.S.to_numpy().ravel(order="F"))
+            data["Ts"]  = self.TS.get_physical_value(self.TS.S.to_numpy().ravel(order="F"))
+            data["dTf"] = self.TF.dS.to_numpy().ravel(order="F")
+            data["dTs"] = self.TS.dS.to_numpy().ravel(order="F")
+            data["solid_fluid_exchange_surface"] = self.TS.exchangeSurface.to_numpy().ravel(order="F")
+            data["solid_fluid_exchange_coef"] = self.TS.exchangeCoef.to_numpy().ravel(order="F")
+            if self.RADIATION:
+                data["radiation_surface"] = self.TS.radiation_surface.to_numpy().ravel(order="F")
+                data["emissivity"] = self.TS.emissivity.to_numpy().ravel(order="F")
+                # if self.TS.radiation_model == RADIATION_MODEL.REAL_RADIATION:
+                #     data["Real Radiation"] = self.TS.real_radiation.to_numpy().ravel(order="F")
+        if self.CHEMISTRY:
+            for specie in self.species:
+                if specie.FIX and not specie.name.endswith("(S)"):
+                    data[specie.name+"(S)"]=specie.S.to_numpy().ravel(order="F")
+                else:
+                    data[specie.name]=specie.S.to_numpy().ravel(order="F")
+                    data["d "+specie.name] = specie.dS.to_numpy().ravel(order="F")
+        # for key,value in data.items():
+        #     print(key,np.shape(value))
+        return data    
+
+    def get_data_pyevtk(self): # 获取所有数据（字典）
         data = {    "solid":self.solid.to_numpy(),
                     "rho": self.rho.to_numpy(),
                     "velocity": (
@@ -440,8 +481,6 @@ class LBM2D_OUTPUT(LBM2D_BASE):
                 else:
                     data[specie.name]=specie.S.to_numpy()
                     data["d "+specie.name] = specie.dS.to_numpy()
-        # for key,value in data.items():
-        #     print(key,np.shape(value))
         return data    
 
     def export_variable(self, name,iter):

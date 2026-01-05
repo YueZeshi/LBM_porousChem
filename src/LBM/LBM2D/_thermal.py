@@ -14,7 +14,7 @@ class TemperatureFluid(ScalarField):
         self.thermal_diff = 3e-5
         self.conductivity_model = CONDUCTIVITY_MODEL.CONSTANT
         self.cond = 1000
-        self.cond_poly = [0,0,0,0]
+        self.cond_poly = [0,0,0,0,0]
         self.capacity_model = THERMO_MODEL.CONSTANT
         self.cm = 1000
         self.cm_poly = [0,0,0,0,0]
@@ -22,13 +22,36 @@ class TemperatureFluid(ScalarField):
         self.NASA_coef = [[0,0,0,0,0,0,0],[0,0,0,0,0,0,0]]
     def __str__(self):
         des= "Fluid Temperature Field : \n"
+        des+="  thermal diffusitivity model : "
         if self.thermal_diff_model==THERMAL_DIFF_MODEL.CONSTANT:
-            des += "constant thermal diffusitivity"
+            des += "constant"
         elif self.thermal_diff_model==THERMAL_DIFF_MODEL.PRANDTL:
-            des += f"constant Prandtl number {self.Pr}"
+            des += f"constant Prandtl {self.Pr}"
         elif self.thermal_diff_model==THERMAL_DIFF_MODEL.DERIVED:
             des += "calculated base on the capacity and conductivity"
-        return des
+        else:
+            des += "None"
+        des +="\n  conductivity model : "
+        if self.conductivity_model==CONDUCTIVITY_MODEL.CONSTANT:
+            des +=f"constant {self.cond}"
+        elif self.conductivity_model==CONDUCTIVITY_MODEL.POLYNOMIAL:
+            des +=f"polynomial {self.cond_poly}"
+        elif self.conductivity_model==CONDUCTIVITY_MODEL.MIXTURE:
+            des += "mixture"
+        else:
+            des += "None"
+        des += "\n  capacity model : "
+        if self.capacity_model==THERMO_MODEL.CONSTANT:
+            des +=f"constant {self.cm}"
+        elif self.capacity_model==THERMO_MODEL.POLYNOMIAL:
+            des +=f"polynomial {self.cm_poly}"
+        elif self.capacity_model==THERMO_MODEL.MIXTURE:
+            des += "mixture"
+        elif self.capacity_model==THERMO_MODEL.NASA7:
+            des += f"NASA7 Trange {self.Trange} coef {self.NASA_coef}"
+        else:
+            des += "None"
+        return des + "\n"
     @ti.func
     def geq5(self,k,T,x,y,z):
         u = self.LBM.v[x,y,z]
@@ -121,11 +144,34 @@ class TemperatureSolid(ScalarField):
         self.NASA_coef = [[0.0,0,0,0,0,0,0],[0,0,0,0,0,0,0]]
     def __str__(self):
         des= "Solid Temperature Field : \n"
+        des+="  thermal diffusitivity model : "
         if self.thermal_diff_model==THERMAL_DIFF_MODEL.CONSTANT:
-            des += "constant thermal diffusitivity"
+            des += "constant"
         elif self.thermal_diff_model==THERMAL_DIFF_MODEL.DERIVED:
             des += "calculated base on the capacity and conductivity"
-        return des
+        else:
+            des += "None"
+        des +="\n  conductivity model : "
+        if self.conductivity_model==CONDUCTIVITY_MODEL.CONSTANT:
+            des +=f"constant {self.cond}"
+        elif self.conductivity_model==CONDUCTIVITY_MODEL.POLYNOMIAL:
+            des +=f"polynomial {self.cond_poly}"
+        elif self.conductivity_model==CONDUCTIVITY_MODEL.MIXTURE:
+            des += "mixture"
+        else:
+            des += "None"
+        des += "\n  capacity model : "
+        if self.capacity_model==THERMO_MODEL.CONSTANT:
+            des +=f"constant {self.cm}"
+        elif self.capacity_model==THERMO_MODEL.POLYNOMIAL:
+            des +=f"polynomial {self.cm_poly}"
+        elif self.capacity_model==THERMO_MODEL.MIXTURE:
+            des += "mixture"
+        elif self.capacity_model==THERMO_MODEL.NASA7:
+            des += f"NASA7 Trange {self.Trange} coef {self.NASA_coef}"
+        else:
+            des += "None"
+        return des + "\n"
     @ti.func
     def geq5(self,k,T,x,y,z):
         geqout = 0.0

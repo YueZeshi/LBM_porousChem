@@ -1,4 +1,3 @@
-from typing import Literal
 import taichi as ti
 import numpy as np
 from ..util.flag import *
@@ -7,9 +6,12 @@ from ._chemical import Specie,Reaction,Reactions
 from ..vtk_tool.paraview import PVDWriter
 @ti.data_oriented
 class LBM2D_BASE:
-    def __init__(self, X, Y ,dx = 0.001,dt = 0.001,name="LBM",isThermal = False,isChemical = False,isPoro = False,isRadiation = False):
+    """LBM2D base class
+    """
+    def __init__(self, X, Y,Z,dx = 0.001,dt = 0.001,name="LBM",isThermal = False,isChemical = False,isPoro = False,isRadiation = False):
         self.name = name
         self.t = 0.0
+        self.tol = 1e-6
         # 模型参数
         self.X = X
         self.Y = Y

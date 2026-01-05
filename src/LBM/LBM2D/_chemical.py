@@ -171,6 +171,7 @@ class Reaction:
             else:
                 specie = terms[0]
             self.coefReactant[self.LBM.specieName.index(specie)] = coef # chemkin 中默认基元反应，没有反应阶数
+            self.coefRate[self.LBM.specieName.index(specie)] = coef # 默认按照化学计量数进行化学反应
         for term in product:
             terms = term.split()
             coef = 1
@@ -219,7 +220,7 @@ class Reaction:
         # 计算化学反应速率 mole
         for j in ti.static(range(len(self.LBM.species))):
             if self.coefReactant[j]>0 : # 该物质参与反应
-                if self.LBM.species[j].S[i]>1e-5: # 存在该物质
+                if self.LBM.species[j].S[i]>self.LBM.tol: # 存在该物质
                     if self.coefRate[j] != 0:#浓度参与化学反应速率计算
                         if ti.static(not self.LBM.species[j].FIX):
                             kr *= (self.LBM.species[j].S[i]*self.LBM.rho[i]/self.LBM.species[j].molemass)**self.coefRate[j] # 气态反应物 该物质对反应的贡献 可以不贡献

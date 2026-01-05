@@ -65,13 +65,13 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
         self.init_boundary()
     @ti.func
     def init_boundary(self): # 固定流量边界需要特殊初始化
+        # boundary 0
         if ti.static(self.bc[0]==BC_FLOW.inlet_flow):
             v0 = self.flow_BC[0]/self.ny/self.nz
             for j,k in ti.ndrange(self.ny,self.nz):
                 self.v_bc_profile[0][0,j,k] = ti.Vector([v0,0,0])
                 self.v[0,j,k] = ti.Vector([v0,0,0])
                 self.v[1,j,k] = ti.Vector([v0,0,0])
-            print("inlet flow v0:",v0)
         if ti.static(self.bc[0]==BC_FLOW.inlet):
             for j,k in ti.ndrange(self.ny,self.nz):
                 self.v_bc_profile[0][0,j,k] = self.v_BC[0]
