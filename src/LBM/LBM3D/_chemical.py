@@ -5,8 +5,8 @@ from ..util.flag import *
 from ..util import constant
 @ti.data_oriented
 class Specie(ScalarField): # 物种质量分数场
-    def __init__(self,name,nx,ny,nz,lb3d,FIX = False,Mmass = 1.0):
-        super().__init__(name,nx,ny,nz,lb3d,FIX)
+    def __init__(self,name,lb3d,FIX = False,Mmass = 1.0):
+        super().__init__(name,lb3d,FIX)
         self.molemass = Mmass/1000
         if not FIX:
             self.viscosity_type = VISCOSITY_MODEL.NONE
@@ -238,7 +238,7 @@ class Reaction:
 class Reactions:
     def __init__(self,lbm):
         self.LBM = lbm
-        self.dS = None # initialize during init_python
+        self.dS:ti.MatrixField # initialize during init_python
         self.reactions:list[Reaction] = []
         self.specieNum = 0
 

@@ -19,8 +19,8 @@ class LBM3D_BASE:
         self.Z = Z
         self.tLattice : int = 0
         self.dx,self.dt = dx,dt #格子尺度 步进时间
-        self.nx=int(self.X/self.dx)
-        self.ny=int(self.Y/self.dx)
+        self.nx = int(self.X/self.dx)
+        self.ny = int(self.Y/self.dx)
         self.nz = int(self.Z/self.dx) # 模型大小
         self.max_v=ti.field(float,shape=())
         self.viscosity_model = VISCOSITY_MODEL.NONE
@@ -79,8 +79,8 @@ class LBM3D_BASE:
         self.RADIATION = isRadiation and isThermal
 
         if self.TEMPERATURE:
-            self.TF:TemperatureFluid = TemperatureFluid("Temperature of Fluid",self.nx,self.ny,self.nz,self)
-            self.TS:TemperatureSolid = TemperatureSolid("Temperature of Solid",self.nx,self.ny,self.nz,self,isRadiation = self.RADIATION)
+            self.TF:TemperatureFluid = TemperatureFluid("Temperature of Fluid",self)
+            self.TS:TemperatureSolid = TemperatureSolid("Temperature of Solid",self,isRadiation = self.RADIATION)
             self.rhos = ti.field(float,shape=(self.nx,self.ny,self.nz))
             self.min_T = ti.field(float,shape=())
             self.max_T = ti.field(float,shape=())
@@ -128,8 +128,6 @@ class LBM3D_BASE:
     @ti.func
     def GetTS(self,i):
         return 300
-    def default_init(self):
-        pass
     @ti.kernel
     def static_init_kernel(self): # 初始化静态变量
         pass

@@ -1,7 +1,7 @@
 import taichi as ti
 from ..util.flag import *
 from ._scalarField import ScalarField
-
+from ..util.constant import R,SIGMA
 @ti.data_oriented
 class TemperatureFluid(ScalarField):
     def __init__(self,name,lb3d,FIX = False):
@@ -102,7 +102,7 @@ class TemperatureFluid(ScalarField):
                 T = self.physical_value(self.S[i])
                 for specie in ti.static(list(self.LBM.species)):
                     if ti.static(not specie.FIX):
-                        cm += specie.capacity_m(S)*specie.S[i]
+                        cm += specie.capacity_m(i)*specie.S[i]
         return cm
 
 

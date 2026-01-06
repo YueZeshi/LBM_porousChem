@@ -2,6 +2,7 @@ import taichi as ti
 import numpy as np
 import os
 from pyevtk.hl import gridToVTK
+import pyvista as pv
 import json
 from ruamel.yaml import YAML
 from ._core import LBM3D_BASE
@@ -308,7 +309,7 @@ class LBM3D_INPUT(LBM3D_BASE):
         self.species[self.specieName.index(specie)].set_BCs(BCs)
     def set_species_BC(self,i,BC):
         for specie in self.species:
-            specie.set_BCs(i,BC)
+            specie.set_BC(i,BC)
     def set_species_BCs(self,BCs):# 定义所有物种的边界条件
         for specie in self.species:
             specie.set_BCs(BCs)
@@ -345,9 +346,9 @@ class LBM3D_INPUT(LBM3D_BASE):
                 for elem,number in specie_info["composition"].items():
                     mmass+=number*constant.MOLEMASS[elem]
                 if name.endswith("(S)"):
-                    self.set_specie_mole(name,Fix = True,molemass=mmass)
+                    self.set_specie(name,Fix = True,molemass=mmass)
                 else:
-                    self.set_specie_mole(name,Fix = False,molemass=mmass)
+                    self.set_specie(name,Fix = False,molemass=mmass)
                 self.set_specie_NASA7(name,specie_info["thermo"]["temperature-ranges"],specie_info["thermo"]["data"])
                 
             for reaction_info in data["reactions"]:
@@ -397,68 +398,7 @@ class LBM3D_OUTPUT(LBM3D_BASE):
     def export_snapshot(self,config):
         pass
 
-    def export_LBM(self,path):
-        lbm_info = {"TYPE":"snapshot"}
-        # config
-        ## BASIC
-        basic_info = {
-        "name":self.name,
-        "X":self.X,
-        "Y":self.Y,
-        "Z":self.Z,
-        "DX":self.dx,
-        "DT":self.dt,
-        "PORO":self.PORO,
-        "CHEMISTRY":self.CHEMISTRY,
-        "TEMPERATURE":self.TEMPERATURE,
-        "RADIATION":self.RADIATION
-        }
-        lbm_info["BASIC"]=basic_info
-        ## FLOW
-        flow_info = {}
-        flow_info["viscosity"] = {
-            "function":"uniform",
-            "value":1e-5
-            }
-        flow_BC = {}
-        for i in range(6):
-            flow_BC_side = {}
-            if self.bc[i]==BC_FLOW.periodic:
-                flow_BC_side["type"]="periodic"
-            elif self.bc[i]==BC_FLOW.inlet:
-                flow_BC_side["type"]="inlet"
-                flow_BC_side["velocity"] = list(self.v_BC[i])
-            elif self.bc[i]==BC_FLOW.outlet:
-                flow_BC_side["type"]="outlet"
-                flow_BC_side["rho"]= self.rho_BC[i]
-            elif self.bc[i]==BC_FLOW.wall:
-                flow_BC_side["type"]="wall"
-            elif self.bc[i]==BC_FLOW.symmetric:
-                flow_BC_side["type"]="symmetric"
-            flow_BC[self.sideName[i]]=flow_BC_side
-        flow_info["boundaryCondition"]=flow_BC
-        flow_info["f"]=self.f.to_numpy().tolist()
-        flow_info["v"] = self.v.to_numpy().tolist()
-        lbm_info["FLOW"] = flow_info
-        ## SOLID
-        solid = self.solid.to_numpy().tolist()
-        lbm_info["SOLID"]=solid
-        if self.TEMPERATURE:
-            ## TEMPERATURE FLUID
-            TF_info = {}
-            lbm_info["TEMPERATURE_FLUID"]=TF_info
-            ## TEMPERATURE SOLID
-            TS_info = {}
-            lbm_info["TEMPERATURE_SOLID"]=TS_info
-            ## RADIATION
-            if self.RADIATION:
-                radiation_info = {}
-                lbm_info["RADIATION"]=radiation_info
-        ## SPECIES
-        if self.CHEMISTRY:
-            species_info = {}
-        with open(path,"w") as f:
-            json.dump(lbm_info,f,indent=4)
+    
    
 
     def export_VTK_pyevtk(self): # 导出为vtk 到指定文件夹中

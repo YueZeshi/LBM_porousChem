@@ -2,11 +2,12 @@ import taichi as ti
 from ._core import LBM3D_BASE
 from ._evolution import LBM3D_EVOLUTION
 from ._io import LBM3D_INPUT,LBM3D_OUTPUT
+from ._info import LBM3D_INFO
 from ._initialize import LBM3D_INITIALIZATION
 from ._boundary import LBM3D_BOUNDARY
 from ..util.flag import *
 @ti.data_oriented
-class LBM3DSolver(LBM3D_EVOLUTION,LBM3D_BOUNDARY,LBM3D_INPUT,LBM3D_OUTPUT,LBM3D_INITIALIZATION,LBM3D_BASE):
+class LBM3DSolver(LBM3D_EVOLUTION,LBM3D_BOUNDARY,LBM3D_INPUT,LBM3D_OUTPUT,LBM3D_INITIALIZATION,LBM3D_INFO,LBM3D_BASE):
     """
     LBM3DSolver: Combined class for 3D LBM solver with evolution, I/O, and initialization functionalities
     """

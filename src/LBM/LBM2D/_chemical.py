@@ -247,7 +247,7 @@ class Reaction:
 class Reactions:
     def __init__(self,lbm):
         self.LBM = lbm
-        self.dS = [] # initialize during init_python (specieNum + 1)
+        self.dS:ti.MatrixField # initialize during init_python (specieNum + 1)
         self.reactions:list[Reaction] = []
         self.specieNum = 0
     def __str__(self):
