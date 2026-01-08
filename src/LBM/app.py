@@ -336,7 +336,7 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
 
     # boundary condition
     logger.info("Loading boundary condition...")
-    boundaryName = ["left","right","down","up","foreward","back"]
+    boundaryName = ["left","right","down","up","forward","back"]
     boundaryNum = 4
     if dim==3:
         boundaryNum=6

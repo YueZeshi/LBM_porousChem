@@ -359,6 +359,28 @@ boundaryCondition:
       type: zeroGradient 
   
   
+  forward:
+    flow:
+      type : wall
+    thermalFluid:
+      type: fixedValue # periodic/fixedValue/zeroGradient 
+      value : 400
+    thermalSolid : 
+      type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
+    chemical:
+      type: zeroGradient 
+  
+  back:
+    flow:
+      type : wall
+    thermalFluid:
+      type: fixedValue # periodic/fixedValue/zeroGradient 
+      value : 400
+    thermalSolid : 
+      type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
+    chemical:
+      type: zeroGradient 
+  
 
 outputControl:
   vtk:

@@ -3,9 +3,10 @@ import pyvista as pv
 import numpy as np
 import xml.etree.ElementTree as ET
 import os
-from pathlib import Path
+from pathlib import Path        
 
-class TimeSeriesViewer:
+
+class PvViewer:
     def __init__(self, pvd_file):
         self.vtk_files, self.time_values = self._extract_from_pvd(pvd_file)
         print(f"找到 {len(self.vtk_files)} 个VTK文件")
@@ -87,7 +88,6 @@ class TimeSeriesViewer:
                             time_values.append(len(time_values))  # 使用索引作为时间
                     else:
                         print(f"警告: 文件不存在 - {full_path}")
-        
         return vtk_files, time_values
     
     def _get_available_fields(self):

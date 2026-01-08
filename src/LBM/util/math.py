@@ -1,8 +1,29 @@
+"""数值与几何小工具。"""
 import numpy as np
 from scipy.spatial.transform import Rotation
 
 def vectors_to_euler(v1, v2, seq='XYZ', degrees=False):
-    """一步计算两个向量间的欧拉角"""
+    """计算将向量 `v1` 旋转到 `v2` 的欧拉角。
+
+    Parameters
+    ----------
+    v1, v2 : array-like, shape (3,)
+        起始与目标方向向量。
+    seq : str, default 'XYZ'
+        欧拉角旋转序列，传入 `scipy.spatial.transform.Rotation.as_euler` 支持的序列。
+    degrees : bool, default False
+        为 True 时返回角度制，否则返回弧度制。
+
+    Returns
+    -------
+    np.ndarray, shape (3,)
+        欧拉角向量，对应 `seq` 指定顺序。
+
+    Notes
+    -----
+    - 当两向量共线（同向/反向）时采用稳定的特例处理。
+    - 内部基于旋转轴-角表示并转换为欧拉角。
+    """
     v1, v2 = np.asarray(v1), np.asarray(v2)
     
     # 归一化
