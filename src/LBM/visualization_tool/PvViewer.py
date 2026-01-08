@@ -106,12 +106,7 @@ class PvViewer:
         self._title_text_override = None  # 使用 add_title
         self._axes_widget_added = False
         self._help_detailed = False
-<<<<<<< HEAD
-        # 3D 等距视图方向向量：用 (±1, ±1, ±1) 指定各轴正/负朝向
-        # 例如 (1, 1, -1) 表示 +X、+Y、-Z 方向的对角视角
-        self.iso_vector = (1, 1, 1)
-=======
->>>>>>> doc
+        self.is_helping = False
         # 设置UI
         self._setup_ui()
         # 初始显示
@@ -442,7 +437,10 @@ class PvViewer:
     def _toggle_playback(self):
         """切换播放状态"""
         self.is_playing = not self.is_playing
-        self.play_button.GetRepresentation().SetValue(self.is_playing)
+        try:
+            self.play_button.GetRepresentation().SetState(1 if self.is_playing else 0)
+        except Exception:
+            pass
         if self.is_playing:
             self._play_animation()
     
@@ -451,6 +449,7 @@ class PvViewer:
         if self.current_idx < self.num_steps - 1:
             self.current_idx += 1
             self.time_slider.GetRepresentation().SetValue(self.current_idx)
+            
             self._display_current_step()
     
     def _prev_frame(self):
@@ -500,33 +499,17 @@ class PvViewer:
             self.plotter.view_xy()
         else:
             self.plotter.disable_parallel_projection()
-<<<<<<< HEAD
-            # 使用自定义向量控制等距方向：支持按轴指定正/负
-            try:
-                vec = np.array(getattr(self, "iso_vector", (1, 1, 1)), dtype=float)
-                if vec.shape == (3,):
-                    v = np.sign(vec)
-                    v[v == 0] = 1  # 避免零向量；零视为正向
-                    self.plotter.view_vector(tuple(v))
-                else:
-                    # 回退到默认等距
-                    self.plotter.view_isometric(negative=False)
-            except Exception:
-                self.plotter.view_isometric(negative=False)
-
-        self.plotter.reset_camera(bounds=bounds)
-=======
-            self.plotter.view_isometric(negative=[True,True,False])
+            self.plotter.view_vector((-1,-1,1))
+            # self.plotter.view_isometric(negative=[True,True,False])
 
         self.plotter.reset_camera(bounds =bounds)
->>>>>>> doc
         self.plotter.render()
 
     def _on_prev_click(self):
         self._prev_frame()
         # 恢复按钮为未选中
         try:
-            self._btn_prev.GetRepresentation().SetValue(False)
+            self._btn_prev.GetRepresentation().SetState(0)
         except Exception:
             pass
 
@@ -538,14 +521,14 @@ class PvViewer:
             pass
         self._display_current_step()
         try:
-            self._btn_first.GetRepresentation().SetValue(False)
+            self._btn_first.GetRepresentation().SetState(0)
         except Exception:
             pass
 
     def _on_next_click(self):
         self._next_frame()
         try:
-            self._btn_next.GetRepresentation().SetValue(False)
+            self._btn_next.GetRepresentation().SetState(0)
         except Exception:
             pass
 
@@ -557,21 +540,21 @@ class PvViewer:
             pass
         self._display_current_step()
         try:
-            self._btn_last.GetRepresentation().SetValue(False)
+            self._btn_last.GetRepresentation().SetState(0)
         except Exception:
             pass
 
     def _on_reset_click(self):
         self._reset_view()
         try:
-            self._btn_reset.GetRepresentation().SetValue(False)
+            self._btn_reset.GetRepresentation().SetState(0)
         except Exception:
             pass
 
     def _on_help_click(self):
         self._toggle_help()
         try:
-            self._btn_help.GetRepresentation().SetValue(False)
+            self._btn_help.GetRepresentation().SetState(1 if self._help_detailed else 0)
         except Exception:
             pass
 
@@ -598,7 +581,7 @@ class PvViewer:
                 "R: 重置相机"
             )
         else:
-            text = "按 H 显示/隐藏帮助"
+            text = ""
         # 顶部左上锚点，向下对齐，避免溢出
         self._help_text_actor = self.plotter.add_text(text, position='upper_left', font_size=10, color='#e5e7eb', **self.text_kwargs)
         try:
@@ -630,7 +613,10 @@ class PvViewer:
         # 播放结束
         if self.current_idx >= self.num_steps - 1:
             self.is_playing = False
-            self.play_button.GetRepresentation().SetValue(False)
+            try:
+                self.play_button.GetRepresentation().SetState(0)
+            except Exception:
+                pass
 
 
     def _display_current_step(self):
