@@ -1,31 +1,28 @@
-"""Cantera adapter layer (cantera_tool)
 
-Except for this file, sources in this directory primarily originate from the
-Cantera project (https://cantera.org, GitHub: https://github.com/Cantera/cantera).
-To make them easier to use within this project, we applied a few minor, environment-
-specific adjustments (e.g., path/import tweaks, small interface refinements, and
-occasional type hints). Core algorithms and behavior remain consistent with upstream.
+"""
+Cantera 适配层 (cantera_tool)
+=============================
 
-License and compliance
-- Upstream Cantera is distributed under the BSD-3-Clause license. In practice:
-	- You may copy, modify, and redistribute provided you preserve the original
-		copyright and license notices.
-	- You must not imply endorsement by the upstream authors or copyright holders.
-	- You must include the BSD-3-Clause license text with your distributions.
-- Third-party source files in this folder remain covered by BSD-3-Clause; newly
-	added adaptation code follows the LICENSE at the project root. These scopes
-	coexist without conflict.
+本目录除本文件外，源码主要来源于 `Cantera <https://cantera.org>`_ 项目（GitHub: https://github.com/Cantera/cantera）。
+为适应本项目需求，做了少量环境相关的调整（如路径/导入修正、接口微调、类型注解等），核心算法与行为保持与上游一致。
 
-Compliance tips (for distribution/open-source):
-1) Ship the upstream license text and copyright notices (e.g., in release
-	 notes or a THIRD_PARTY_NOTICES file), and reference Cantera with links.
-2) In modified files or change logs, note "modified from Cantera" and summarize
-	 the types of changes (line-by-line markings are not necessary).
-3) If you plan to track upstream, record the upstream version/commit for traceability.
+许可证与合规说明
+-------------------
 
-Notes
-- This __init__ serves as an informational entry point and does not export
-	symbols; if a unified API is needed later, exports can be aggregated here.
+- 上游 Cantera 遵循 BSD-3-Clause 许可证：
+  - 允许复制、修改、再分发，但需保留原始版权和许可证声明。
+  - 不得暗示上游作者或版权所有者的背书。
+  - 分发时需附带 BSD-3-Clause 许可证文本。
+- 本文件夹下第三方源码仍受 BSD-3-Clause 约束；新添加的适配代码遵循项目根目录 LICENSE。两者可共存。
+
+合规建议（分发/开源时）：
+--------------------------
+1. 附带上游许可证文本和版权声明（如在发行说明或 THIRD_PARTY_NOTICES 文件中），并注明 Cantera 来源及链接。
+2. 在修改过的文件或变更日志中注明“modified from Cantera”并简要说明更改类型（无需逐行标记）。
+3. 若需跟踪上游，建议记录上游版本或 commit 以便溯源。
+
+.. note::
+   本 ``__init__`` 仅作信息入口，不导出符号；如需统一 API，可在此聚合导出。
 """
 
 __all__ = []

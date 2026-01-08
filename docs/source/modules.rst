@@ -8,21 +8,18 @@ Overview
 核心包
 ------
 .. automodule:: LBM
-    :noindex:
-    :members:
     :undoc-members:
     :show-inheritance:
 
 2D 模块
 -------
 .. automodule:: LBM.LBM2D
-    :noindex:
     :members:
     :undoc-members:
     :show-inheritance:
 
 3D 模块
--------
+    3D 模块
 .. automodule:: LBM.LBM3D
     :noindex:
     :members:
@@ -30,14 +27,11 @@ Overview
     :show-inheritance:
 几何工具
 -------
-.. automodule:: LBM.GEO
     :noindex:
     :members:
     :undoc-members:
     :show-inheritance:
 
-工具模块
---------
 .. automodule:: LBM.util
     :noindex:
     :members:
@@ -49,7 +43,7 @@ Overview
 .. automodule:: LBM.cli
     :noindex:
     :members:
-    :undoc-members:
+命令行与应用入口
     :show-inheritance:
 
 .. automodule:: LBM.app
@@ -66,10 +60,4 @@ Overview
     :undoc-members:
     :show-inheritance:
 
-可视化绑定
----------
-.. automodule:: LBM.vtk_tool
-    :noindex:
-    :members:
-    :undoc-members:
-    :show-inheritance:
+

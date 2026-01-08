@@ -106,7 +106,10 @@ class PvViewer:
         self._title_text_override = None  # 使用 add_title
         self._axes_widget_added = False
         self._help_detailed = False
-        self.is_helping = False
+        # 当前截面轴：None / 'x' / 'y' / 'z'
+        self.slice_axis = None
+        # 三正交截面模式开关
+        self.multi_slice = False
         # 设置UI
         self._setup_ui()
         # 初始显示
@@ -384,6 +387,13 @@ class PvViewer:
 
         # H键：切换帮助文本
         self.plotter.add_key_event("h", self._toggle_help)
+
+        # X/Y/Z：按坐标轴方向旋转相机并查看对应轴向截面（再次按相同键关闭截面）
+        self.plotter.add_key_event("x", lambda: self._set_slice_axis('x'))
+        self.plotter.add_key_event("y", lambda: self._set_slice_axis('y'))
+        self.plotter.add_key_event("z", lambda: self._set_slice_axis('z'))
+        # C键：三正交截面 + 等轴测视角
+        self.plotter.add_key_event("c", self._toggle_multi_slice)
     
     def _relayout_ui(self):
         # 移除旧控件，再按新尺寸重建
@@ -487,10 +497,85 @@ class PvViewer:
         print(f"选择场: {self.current_field}")
         self._display_current_step()
 
+    def _set_slice_axis(self, axis: str):
+        """设置当前截面轴并旋转相机。
+
+        再次按同一键将关闭截面模式，恢复完整三维几何显示。
+        """
+        if axis not in ('x', 'y', 'z'):
+            return
+        # 进入单轴截面模式时，关闭三向截面模式
+        self.multi_slice = False
+
+        # 如果当前已经是该轴截面，则本次按键只关闭截面模式，不再改动相机
+        if self.slice_axis == axis:
+            # 直接调用重置视图：关闭所有截面并恢复默认相机方向/up
+            self._reset_view()
+            return
+
+        # 启用新的截面轴
+        self.slice_axis = axis
+        self._display_current_step()
+
+        # 根据轴向设置相机视角（正交投影，方便看截面）
+        try:
+            self.plotter.enable_parallel_projection()
+        except Exception:
+            pass
+
+        if axis == 'x':
+            # 沿 +X 方向观察，看到 Y-Z 截面
+            try:
+                # 视线为 +X，up 取 Z，避免与视线平行
+                self.plotter.camera.up = (0, 0, 1)
+            except Exception:
+                pass
+            self.plotter.view_vector((1, 0, 0))
+        elif axis == 'y':
+            # 沿 +Y 方向观察，看到 X-Z 截面
+            try:
+                self.plotter.camera.up = (0, 0, 1)
+            except Exception:
+                pass
+            self.plotter.view_vector((0, 1, 0))
+        elif axis == 'z':
+            # 沿 +Z 方向观察，看到 X-Y 截面
+            try:
+                # 视线为 +Z，up 取 Y，避免与视线平行
+                self.plotter.camera.up = (0, 1, 0)
+            except Exception:
+                pass
+            self.plotter.view_vector((0, 0, 1))
+
+        if self.bounds is not None:
+            self.plotter.reset_camera(bounds=self.bounds)
+        self.plotter.render()
+
+    def _toggle_multi_slice(self):
+        """切换三正交截面模式，并保持等轴测视角。"""
+        # 开关三向截面，同时关闭单轴截面
+        self.multi_slice = not self.multi_slice
+        self.slice_axis = None
+
+        # 刷新当前时间步（根据 multi_slice 状态绘制）
+        self._display_current_step()
+        if self.bounds is not None:
+            self.plotter.reset_camera(bounds=self.bounds)
+        self.plotter.render()
+
     def _reset_view(self):
         """重置视图并自动选择 2D/3D 相机模式。"""
-        # 相机根据维度调整（仅首次）
+        # 重置所有截面相关状态
+        self.slice_axis = None
+        self.multi_slice = False
+
+        # 重新按当前时间步绘制完整几何
+        self._display_current_step()
+
+        # 相机根据维度调整
         bounds = self.bounds  # (xmin,xmax,ymin,ymax,zmin,zmax)
+        if bounds is None:
+            return
         z_thickness = bounds[5] - bounds[4]
         xy_scale = max(bounds[1]-bounds[0], bounds[3]-bounds[2], 1e-9)
         is_2d = (z_thickness < 1e-6) or (z_thickness < 0.01 * xy_scale)
@@ -577,8 +662,10 @@ class PvViewer:
                 "Space: 播放/暂停\n"
                 "←/→: 上一帧/下一帧\n"
                 "+/-: 调整播放速度\n"
-                "F: 切换场\n"
-                "R: 重置相机"
+                "A/D: 上一场/下一场\n"
+                "R: 重置相机(关闭所有截面)\n"
+                "X/Y/Z: 单轴截面视图\n"
+                "C: 三正交截面 (等轴测)"
             )
         else:
             text = ""
@@ -628,10 +715,59 @@ class PvViewer:
         win_w,win_h = self.plotter.window_size 
         # 不立即清场景，先准备新 actor，减少闪烁
         
-        mesh = self._load_mesh(self.current_idx)
-        if mesh is None or mesh.n_points == 0:
+        full_mesh = self._load_mesh(self.current_idx)
+        if full_mesh is None or full_mesh.n_points == 0:
             print(f"警告: 时间步 {self.current_idx} 为空网格")
             return
+
+        # 截面模式：按当前轴向对网格做切片（通过几何中心）
+        mesh = full_mesh
+        try:
+            cx, cy, cz = full_mesh.center
+        except Exception:
+            cx = cy = cz = 0.0
+
+        # 三正交截面模式
+        if self.multi_slice:
+            slices = []
+            for axis, normal in (("x", (1.0, 0.0, 0.0)),
+                                 ("y", (0.0, 1.0, 0.0)),
+                                 ("z", (0.0, 0.0, 1.0))):
+                try:
+                    s = full_mesh.slice(origin=(cx, cy, cz), normal=normal)
+                    if s is not None and s.n_points > 0:
+                        slices.append(s)
+                except Exception as e:
+                    print(f"警告: {axis} 方向切片失败: {e}")
+
+            if slices:
+                # 合并多个截面为一个几何体
+                mesh = slices[0].copy()
+                for s in slices[1:]:
+                    try:
+                        mesh = mesh.merge(s)
+                    except Exception:
+                        # 退化情况下直接相加生成 MultiBlock 也可视化
+                        mesh = mesh + s
+            else:
+                print("警告: 三向截面结果均为空，回退到完整网格显示")
+
+        # 单轴截面模式
+        elif self.slice_axis is not None:
+            try:
+                if self.slice_axis == 'x':
+                    normal = (1.0, 0.0, 0.0)
+                elif self.slice_axis == 'y':
+                    normal = (0.0, 1.0, 0.0)
+                else:  # 'z'
+                    normal = (0.0, 0.0, 1.0)
+                sliced = full_mesh.slice(origin=(cx, cy, cz), normal=normal)
+                if sliced is not None and sliced.n_points > 0:
+                    mesh = sliced
+                else:
+                    print("警告: 当前轴向切片结果为空，回退到完整网格显示")
+            except Exception as e:
+                print(f"警告: 轴向切片失败，回退到完整网格显示: {e}")
 
         scalars = None
         if self.current_field and self.current_field in mesh.array_names:
@@ -663,7 +799,8 @@ class PvViewer:
         new_actor = self.plotter.add_mesh(
             mesh,
             scalars=scalars,
-            show_edges=self.show_edges and mesh.n_cells < 20000,
+            # 截面模式下默认不画网格线，只在完整几何时根据全局开关显示
+            show_edges=(self.show_edges and mesh.n_cells < 20000 and not (self.slice_axis or self.multi_slice)),
             cmap=self.current_cmap,
             clim=clim,
             scalar_bar_args={

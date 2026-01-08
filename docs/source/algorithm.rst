@@ -1,3 +1,6 @@
+Algorithm theory
+-----------------
+
 2D Lattice Boltzmann Method
 
 The flow field is D2Q9 and other scalar fields are D2Q5

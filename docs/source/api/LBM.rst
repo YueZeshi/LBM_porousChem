@@ -12,7 +12,7 @@ Subpackages
    LBM.LBM3D
    LBM.cantera_tool
    LBM.util
-   LBM.vtk_tool
+   LBM.visualization_tool
 
 Submodules
 ----------

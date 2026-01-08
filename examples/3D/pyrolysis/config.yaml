@@ -1,14 +1,14 @@
 basic:
   name      : pyrolysis_test
   author    : Sylvain
-  date      : 2025-12-27
+  date      : 2026-01-08
   dimension : 3 # 2 or 3
   arch      : cpu # cpu/gpu/vulkan/cuda .etc the platform
   type      : configuration # configuration / snapshot(saved)
 
 module : 
   flow : true
-  porous_media : false
+  porous_media : true
   temperature : false
   chemistry : false
   radiation : false # only mean temperature model
