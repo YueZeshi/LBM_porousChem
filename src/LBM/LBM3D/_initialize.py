@@ -24,7 +24,6 @@ class LBM3D_INITIALIZATION(LBM3D_BASE):
     
     @ti.kernel
     def static_init_kernel(self): # 初始化静态变量
-        # if ti.static(self.enable_projection): # No runtime overhead
             self.e19[0] = ti.Vector([0,0,0])
             self.e19[1] = ti.Vector([1,0,0]); self.e19[2] = ti.Vector([-1,0,0]); self.e19[3] = ti.Vector([0,1,0]); self.e19[4] = ti.Vector([0,-1,0]);self.e19[5]=ti.Vector([0,0,1]);self.e19[6]=ti.Vector([0,0,-1]) 
             self.e19[7] = ti.Vector([1,1,0]); self.e19[8] = ti.Vector([-1,1,0]); self.e19[9] = ti.Vector([1,-1,0]); self.e19[10] = ti.Vector([-1,-1,0])

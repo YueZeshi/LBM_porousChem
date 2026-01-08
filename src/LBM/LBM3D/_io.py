@@ -469,7 +469,7 @@ class LBM3D_INPUT(LBM3D_BASE):
     def set_species_BC(self,i,BC):
         """所有物种：统一设置单侧边界类型。"""
         for specie in self.species:
-            specie.set_BCs(i,BC)
+            specie.set_BC(i,BC)
     def set_species_BCs(self,BCs):# 定义所有物种的边界条件
         """所有物种：批量设置六面边界类型。"""
         for specie in self.species:
@@ -525,9 +525,9 @@ class LBM3D_INPUT(LBM3D_BASE):
                 for elem,number in specie_info["composition"].items():
                     mmass+=number*constant.MOLEMASS[elem]
                 if name.endswith("(S)"):
-                    self.set_specie_mole(name,Fix = True,molemass=mmass)
+                    self.set_specie(name,Fix = True,molemass=mmass)
                 else:
-                    self.set_specie_mole(name,Fix = False,molemass=mmass)
+                    self.set_specie(name,Fix = False,molemass=mmass)
                 self.set_specie_NASA7(name,specie_info["thermo"]["temperature-ranges"],specie_info["thermo"]["data"])
                 
             for reaction_info in data["reactions"]:

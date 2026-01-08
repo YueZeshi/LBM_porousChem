@@ -13,6 +13,8 @@ class ScalarField:
         self.FIX = FIX
         self.S = ti.field(float,shape=(self.nx,self.ny,self.nz))
         self.dS = ti.field(float,shape = (self.nx,self.ny,self.nz))
+        self.v_ref = 0.0
+        self.v_scale = 1.0
         if not self.FIX:
             self.g = ti.Vector.field(7,float,shape=(self.nx,self.ny,self.nz))
             self.G = ti.Vector.field(7,float,shape=(self.nx,self.ny,self.nz))

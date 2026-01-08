@@ -15,12 +15,12 @@ module :
 
 spaceControl:
   geometry : [0.1,0.1,0.1]
-  DX : 1e-3
+  DX : 1e-2
 
 timeControl:
   startTime : 0
-  endTime : 1000
-  DT : 1e-3
+  endTime : 10
+  DT : 1e-2
 
 
 flowProperties:
@@ -357,8 +357,6 @@ boundaryCondition:
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
     chemical:
       type: zeroGradient 
-  
-  
   forward:
     flow:
       type : wall
@@ -369,7 +367,6 @@ boundaryCondition:
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
     chemical:
       type: zeroGradient 
-  
   back:
     flow:
       type : wall
@@ -381,15 +378,15 @@ boundaryCondition:
     chemical:
       type: zeroGradient 
   
-
+  
 outputControl:
   vtk:
-    interval : 10 # the interval of vtk output
+    interval : 1 # the interval of vtk output
     path : vtk # the relative path of the output folder
     LOD : 1
     clear : true # true to clear all the existing output in the folder
   log:
-    interval : 10
+    interval : 0.1
     LOD : 1 # 
   snapshot: # resume from the snapshot
     interval : 100 # the interval of snapshot

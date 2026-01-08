@@ -607,10 +607,10 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
     if timeControl is None:
         logger.error("timeControl missing.")
     else:
-        startTime = timeControl.get("startTime",0)
+        simulationStartTime = timeControl.get("startTime",0)
         # if startTime is None:
         #     startTime = 0
-        lb.tLattice = int(startTime/lb.dt)
+        lb.tLattice = int(simulationStartTime/lb.dt)
         endTime = timeControl.get("endTime",0)
         endTimeLattice = endTime/lb.dt
     

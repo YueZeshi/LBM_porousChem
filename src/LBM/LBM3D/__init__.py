@@ -4,6 +4,7 @@ from ._info import LBM3D_INFO
 from ._core import LBM3D_BASE
 from ._evolution import LBM3D_EVOLUTION
 from ._io import LBM3D_INPUT,LBM3D_OUTPUT
+from ._info import LBM3D_INFO
 from ._initialize import LBM3D_INITIALIZATION
 from ._boundary import LBM3D_BOUNDARY
 from ..util.flag import *
