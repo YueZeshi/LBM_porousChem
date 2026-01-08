@@ -22,9 +22,9 @@ class LBM3D_INITIALIZATION(LBM3D_BASE):
             self.reactions.dS = ti.Vector.field(len(self.species),dtype = float,shape=self.rho.shape)
             self.reactions.specieNum = len(self.species)
     
-    @ti.func
+    @ti.kernel
     def static_init_kernel(self): # 初始化静态变量
-        if ti.static(self.enable_projection): # No runtime overhead
+        # if ti.static(self.enable_projection): # No runtime overhead
             self.e19[0] = ti.Vector([0,0,0])
             self.e19[1] = ti.Vector([1,0,0]); self.e19[2] = ti.Vector([-1,0,0]); self.e19[3] = ti.Vector([0,1,0]); self.e19[4] = ti.Vector([0,-1,0]);self.e19[5]=ti.Vector([0,0,1]);self.e19[6]=ti.Vector([0,0,-1]) 
             self.e19[7] = ti.Vector([1,1,0]); self.e19[8] = ti.Vector([-1,1,0]); self.e19[9] = ti.Vector([1,-1,0]); self.e19[10] = ti.Vector([-1,-1,0])
@@ -43,7 +43,7 @@ class LBM3D_INITIALIZATION(LBM3D_BASE):
             self.w7[0] = 1.0/4.0
             self.w7[1] = 1.0/8.0; self.w7[2] = 1.0/8.0; self.w7[3] = 1.0/8.0; self.w7[4] = 1.0/8.0; self.w7[5] = 1.0/8.0; self.w7[6] = 1.0/8.0
             
-    @ti.func
+    @ti.kernel
     def init_kernel(self): # 初始化所有分布函数
         for i in ti.grouped(self.rho):
             eps = 1-self.solid[i]

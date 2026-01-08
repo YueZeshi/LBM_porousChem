@@ -403,7 +403,7 @@ wheels = [
 
 [[package]]
 name = "lbm"
-version = "0.1.0"
+version = "0.1.1"
 source = { editable = "." }
 dependencies = [
     { name = "cadquery" },
@@ -423,6 +423,7 @@ dependencies = [
     { name = "torch" },
     { name = "torchvision" },
     { name = "typing-extensions" },
+    { name = "vtk" },
 ]
 
 [package.metadata]
@@ -434,7 +435,7 @@ requires-dist = [
     { name = "numpy" },
     { name = "pyevtk" },
     { name = "pytest" },
-    { name = "pyvista", specifier = ">=0.46.4" },
+    { name = "pyvista", specifier = ">=0.46" },
     { name = "rtree", specifier = ">=1.4.1" },
     { name = "ruamel-yaml", specifier = ">=0.18.16" },
     { name = "scipy", specifier = ">=1.16.3" },
@@ -444,6 +445,7 @@ requires-dist = [
     { name = "torch", specifier = ">=2.9.1" },
     { name = "torchvision", specifier = ">=0.24.1" },
     { name = "typing-extensions", specifier = ">=4.15.0" },
+    { name = "vtk", specifier = ">=9.2" },
 ]
 
 [[package]]

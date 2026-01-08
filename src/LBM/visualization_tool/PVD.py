@@ -1,7 +1,21 @@
+"""PVD 文件生成工具。
+
+提供简洁的 API 将多个 VTK 时间步组织为一个 `.pvd` 集合文件，
+便于 ParaView/PyVista 等工具按时间序列加载。
+"""
 import xml.etree.ElementTree as ET
 import os
 
 class PVDWriter:
+    """PVD 写入器，将时间步与 VTK 文件路径写入 `name.pvd`。
+
+    Parameters
+    ----------
+    path : str, default "output"
+        导出目录。
+    name : str, default "default_name"
+        集合文件名（不含扩展名）。实际输出为 `path/name.pvd`。
+    """
     def __init__(self,path="output",name="default_name"):
         self.file_infos = []
         self.exportPath = path
@@ -10,14 +24,18 @@ class PVDWriter:
         self.byte_order = "LittleEndian"
     
     def addVTK(self,time,filename):
+        """登记一个时间步及其对应的 VTK 文件。
+
+        Parameters
+        ----------
+        time : float
+            物理时间（或任意时间标量），写入 `timestep` 属性。
+        filename : str
+            相对或绝对文件路径；写入 `file` 属性。通常为 `.vtr` 或 `.vts`。
+        """
         self.file_infos.append((time,filename))
     def _createXML(self):
-        """
-        创建XML树结构
-        
-        Returns:
-            根元素
-        """
+        """创建 PVD 的 XML 树结构并返回根元素。"""
         # 创建根元素 VTKFile
         vtkfile = ET.Element("VTKFile")
         vtkfile.set("type", "Collection")
@@ -37,6 +55,12 @@ class PVDWriter:
             dataset.set("name", self.name)
         return vtkfile
     def writePVD(self): 
+        """生成并写入 `.pvd` 文件到 `exportPath`。
+
+        行为：
+        - 根据已登记的时间步/文件生成 `Collection/DataSet` 列表
+        - 使用 `minidom` 美化并写入 `path/name.pvd`
+        """
         root = self._createXML()
     
     # 生成XML字符串（包含声明）

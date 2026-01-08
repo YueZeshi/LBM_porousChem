@@ -1,3 +1,11 @@
+"""通用常数与元素摩尔质量表。
+
+包含常用物理常数（SI 单位）与 `MOLEMASS`（元素摩尔质量，单位 g/mol，键名为大写元素符号）。
+
+Notes
+-----
+- 数值用于工程近似，若需高精度或温度依赖，请在模型侧覆盖。
+"""
 c = 299792458  # speed of light in vacuum, m/s
 G = 6.7384e-11 # gravitational constant
 e = 1.602176565e-19 # elementary charge 

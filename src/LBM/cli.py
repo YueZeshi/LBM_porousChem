@@ -50,7 +50,7 @@ def run(config,verbose,clear):
 
 @click.command()
 @click.option('--data','-d',default = None ,help="The data folder")
-def paraview(data):
+def paralbm(data):
     if data: # data explicit
         if os.path.exists(data):
             if os.path.isdir(data): # find pvd in folder
@@ -106,4 +106,40 @@ def paraview(data):
             with open(config_path,"w") as f:
                 config = {"name":"config.yaml"}
                 yaml.dump(config,f)
-        
+
+
+
+@click.command()
+@click.option('--data','-d',default = None ,help="The data folder")
+def pvlbm(data):
+    if data: # data explicit
+        if os.path.exists(data):
+            if os.path.isdir(data): # find pvd in folder
+                found = False
+                for filename in os.listdir(data):
+                    if filename.endswith(".pvd"):
+                        data = os.path.join(data,filename)
+                        found = True
+                        break
+                if not found:
+                    raise ValueError(f"No pvd file in {data}")
+        else:
+            raise ValueError(f"Pvd file {data} not exist")
+    else: # data file implicit
+        found = False
+        for dir in os.listdir():
+            if os.path.isdir(dir) and not found:
+                for filename in os.listdir(dir):
+                    if filename.endswith(".pvd"):
+                        data = os.path.join(dir,filename)
+                        found = True
+                        break
+        if not found:
+            raise ValueError("No pvd file in current folder.")
+        else:
+            print(f"Found {data} pvd file")
+    print(f"Activating PvViewer to visualize {data}...")
+    from .visualization_tool.PvViewer import PvViewer
+    pv = PvViewer(data)
+    pv.show()
+    

@@ -10,7 +10,6 @@ Subpackages
    LBM.GEO
    LBM.LBM2D
    LBM.LBM3D
-   LBM.STLBM2D
    LBM.cantera_tool
    LBM.util
    LBM.vtk_tool

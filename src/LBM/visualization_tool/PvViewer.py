@@ -106,9 +106,12 @@ class PvViewer:
         self._title_text_override = None  # 使用 add_title
         self._axes_widget_added = False
         self._help_detailed = False
+<<<<<<< HEAD
         # 3D 等距视图方向向量：用 (±1, ±1, ±1) 指定各轴正/负朝向
         # 例如 (1, 1, -1) 表示 +X、+Y、-Z 方向的对角视角
         self.iso_vector = (1, 1, 1)
+=======
+>>>>>>> doc
         # 设置UI
         self._setup_ui()
         # 初始显示
@@ -497,6 +500,7 @@ class PvViewer:
             self.plotter.view_xy()
         else:
             self.plotter.disable_parallel_projection()
+<<<<<<< HEAD
             # 使用自定义向量控制等距方向：支持按轴指定正/负
             try:
                 vec = np.array(getattr(self, "iso_vector", (1, 1, 1)), dtype=float)
@@ -511,6 +515,11 @@ class PvViewer:
                 self.plotter.view_isometric(negative=False)
 
         self.plotter.reset_camera(bounds=bounds)
+=======
+            self.plotter.view_isometric(negative=[True,True,False])
+
+        self.plotter.reset_camera(bounds =bounds)
+>>>>>>> doc
         self.plotter.render()
 
     def _on_prev_click(self):

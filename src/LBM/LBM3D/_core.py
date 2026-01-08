@@ -3,7 +3,7 @@ import numpy as np
 from ..util.flag import *
 from ._thermal import TemperatureFluid,TemperatureSolid
 from ._chemical import Specie,Reaction,Reactions
-from ..vtk_tool.paraview import PVDWriter
+from ..visualization_tool.PVD import PVDWriter
 @ti.data_oriented
 class LBM3D_BASE:
     """

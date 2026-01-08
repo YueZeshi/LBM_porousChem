@@ -1,3 +1,13 @@
+"""STL 几何辅助工具。
+
+包含两部分：
+- `StlGenerator`：依赖 CadQuery 生成简单几何（球/圆柱/盒/圆锥）的单位 STL 文件并缓存到仓库。
+- `StlReader`：读取 STL，通过 PyVista 体素化并采样到规则网格，返回体素占据与近似表面长度/面积权重。
+
+依赖：
+- 生成器使用 `cadquery`（可选，若已存在对应 STL 则不需要）。
+- 读取器使用 `pyvista` 与 `taichi`。
+"""
 
 import os
 import numpy as np
@@ -5,6 +15,13 @@ from ..util.path import root_path
 import logging
 
 class StlGenerator:
+    """简单几何 STL 生成器。
+
+    Parameters
+    ----------
+    logger : logging.Logger
+        日志记录器，用于打印创建/复用信息。
+    """
     def __init__(self,logger:logging.Logger):
         self.logger = logger
         self.stl_repo = os.path.join(root_path(),"data","stl")
@@ -12,8 +29,14 @@ class StlGenerator:
             os.mkdir(self.stl_repo)
 
     def create_sphere(self):
-        """
-        origin = center of sphere
+        """生成单位球 STL（半径 0.5，原点为球心）。
+
+        若仓库中已有则直接复用。
+
+        Returns
+        -------
+        str
+            STL 文件路径。
         """
         path = os.path.join(self.stl_repo,"sphere.stl")
         if not os.path.exists(path):
@@ -27,8 +50,14 @@ class StlGenerator:
         return path
     
     def create_cylinder(self):
-        """
-        origin = center of cylinder
+        """生成单位圆柱 STL（半径 0.5，高度 1.0，原点为中心）。
+
+        若仓库中已有则直接复用。
+
+        Returns
+        -------
+        str
+            STL 文件路径。
         """    
         path = os.path.join(self.stl_repo,"cylinder.stl")
         if not os.path.exists(path):
@@ -43,8 +72,14 @@ class StlGenerator:
 
 
     def create_box(self):
-        """
-        origin = center of box
+        """生成单位立方体 STL（边长 1.0，原点为中心）。
+
+        通过平移使盒体覆盖 [-0.5,0.5]^3。
+
+        Returns
+        -------
+        str
+            STL 文件路径。
         """
         path = os.path.join(self.stl_repo,"box.stl")
         if not os.path.exists(path):
@@ -58,8 +93,12 @@ class StlGenerator:
         return path
 
     def create_cone(self):
-        """
-        origin = center of cone
+        """生成单位圆锥 STL（底半径约 0.5，高 1.0，原点为几何中心）。
+
+        Returns
+        -------
+        str
+            STL 文件路径。
         """
         path = os.path.join(self.stl_repo,"cone.stl")
         if not os.path.exists(path):
@@ -78,6 +117,19 @@ class StlGenerator:
         return path
 
 class StlReader:
+    """STL 体素化与采样读取器。
+
+    Parameters
+    ----------
+    x, y, z : float
+        模拟域在三个方向的尺寸（物理单位）。
+    dx : float
+        网格步长（物理单位）。
+    dimension : int
+        几何维度，2 或 3。用于选择表面提取规则。
+    logger : logging.Logger
+        日志记录器；若为 None，将创建默认记录器。
+    """
     def __init__(self,x,y,z,dx,dimension,logger:logging.Logger):
         self.X = x
         self.Y = y
@@ -93,6 +145,33 @@ class StlReader:
         self.e = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]]
 
     def voxel_stl(self,stl_path,scale = 1.0,translate = [0,0,0],rotate = [0,0,0]):
+        """体素化 STL 并采样到规则网格，返回占据与近似表面权重。
+
+        流程：读取与几何变换 → 体素化 → 构造带边界的规则网格 → 采样 →
+        邻域检测计算近似表面权重（2D/3D 不同规则）。
+
+        Parameters
+        ----------
+        stl_path : str or PathLike
+            STL 文件路径。
+        scale : float or list[float], default 1.0
+            缩放因子（标量或各向异性列表）。
+        translate : list[float]
+            三维平移量。
+        rotate : list[float]
+            欧拉角旋转（度），顺序为 [rx, ry, rz]。
+
+        Returns
+        -------
+        tuple[np.ndarray, np.ndarray]
+            - `voxel_array` : (nx, ny, nz) 体素占据数组（0/1/浮点）
+            - `surface_array` : (nx, ny, nz) 近似表面权重（与邻域空/实关系有关）
+
+        Notes
+        -----
+        - 体素化使用 `pv.DataSetFilters.voxelize`，采样基于结构化网格。
+        - 输出剔除了一圈边界（返回截取的 `1:-1`）。
+        """
         if scale is None:
             scale = 1.0
         if translate is None:
