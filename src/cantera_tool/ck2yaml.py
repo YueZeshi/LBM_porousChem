@@ -976,7 +976,6 @@ class Parser:
                 try:
                     name, thermo, comp = self.read_NASA7_entry(
                         entry, TintDefault, comments)
-                    # print(name)
                 except ValueError as err:
                     logger.error(self.entry("thermo entry") + str(err))
                     comments = []
@@ -2173,7 +2172,6 @@ class Parser:
             speciesMap = BlockMap([('species', self.all_species)])
             speciesMap.yaml_set_comment_before_after_key('species', before='\n')
             emitter.dump(speciesMap, dest) # 写species(thermo+transport)
-            print([sp.label for sp in self.all_species])
 
             # Write the reactions section(s)
             for label, R in reactions:

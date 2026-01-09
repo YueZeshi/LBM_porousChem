@@ -11,14 +11,14 @@ description: |-
 generator: ck2yaml
 input-files: [BIO.inp, BIO.CKT, BIO.TRAN]
 cantera-version: 3.3.0a1
-date: Fri, 09 Jan 2026 15:22:37 +0800
+date: Fri, 09 Jan 2026 15:32:10 +0800
 
 units: {length: cm, time: s, quantity: mol, activation-energy: cal/mol}
 
 phases:
 - name: gas
   thermo: ideal-gas
-  elements: [C, H, O, N, He, Ar]
+  elements: [C, H, O, N, He, Ar, K]
   species: [AR, N2, HE, H2, H, O2, O, H2O, OH, H2O2, HO2, CO, CO2, 
       HOCO, CH4, CH3, CH2, CH2(S), C, CH, CH3O2H, CH3O2, CH3OH, CH3O, 
       CH2OH, CH2O, HCO, HO2CHO, HOCHO, OCHO, C2H6, C2H5, C2H5O2H, 
