@@ -138,7 +138,7 @@ class LBM3D_BASE:
     @ti.func
     def Boundary_condition(self):
         pass
-    @ti.kernel
+    @ti.func
     def Boundary_condition_NEBB(self):
         pass
         

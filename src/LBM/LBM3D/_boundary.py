@@ -12,7 +12,7 @@ class LBM3D_BOUNDARY(LBM3D_BASE):
     def updateBC(self, t):
         for func in self.UpdateBCfunc:
             func(self,t)
-    @ti.kernel
+    @ti.func
     def Boundary_condition_NEE(self):
         for j,k in ti.ndrange(self.ny,self.nz):            
             self.Boundary_condition_flow_NEE_0(0,j,k)
