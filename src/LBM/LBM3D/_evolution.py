@@ -10,7 +10,20 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
     """
     def step(self):
         self.updateBC(self.t)
-        self.step_kernel()
+        # self.step_kernel()
+        print("step begin")
+        self.collision_source_streaming() # f->F
+        if ti.static(self.boundary_condition_model==BC_MODEL.NEBB):
+            self.Boundary_condition_NEBB() # on F
+        print("after collision source and streaming")
+        self.macro()  # F->value f
+        
+        print("after macro")
+        if ti.static(self.boundary_condition_model==BC_MODEL.NEE):
+            self.Boundary_condition_NEE() # value changed for the boundary condition
+        if ti.static(self.boundary_condition_model==BC_MODEL.ES):
+            self.Boundary_condition_ES()
+        print("step end")
         self.tLattice += 1
         
     @ti.kernel
@@ -28,7 +41,7 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
         if ti.static(self.boundary_condition_model==BC_MODEL.ES):
             self.Boundary_condition_ES()
         print("step end")
-    @ti.func
+    @ti.kernel
     def collision_source_streaming(self):
         # collistion + source term + streaming : merged kernels
         for i in ti.grouped(self.rho):
@@ -119,7 +132,7 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                             if ti.static(self.TEMPERATURE):
                                 self.TS.G[i][self.LR[k]] = self.TS.g[i][k]
 
-    @ti.func
+    @ti.kernel
     def macro(self):# F F->f 计算宏观量 F为正确值
         for i in ti.grouped(self.rho):
             if self.solid[i]<1: # 流体/多孔介质区域
@@ -196,8 +209,8 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                         dH = self.TS.exchangeCoef[i]*self.TS.exchangeSurface[i]*(self.TF.physical_value(Tf)-self.TS.physical_value(Ts))*self.dt
                         self.TS.dS[i] += dH/self.TS.capacity_m(i)/self.rhos[i]/self.TS.v_scale
                         self.TF.dS[i] += -dH/self.TF.capacity_m(i)/self.rho[i]/self.TF.v_scale
-                    if ti.static(self.RADIATION):
-                        self.TS.dS[i] += self.TS.radiation(i)*self.dt/self.TS.capacity_m(i)/self.rhos[i]/self.TS.v_scale
+                        if ti.static(self.RADIATION):
+                            self.TS.dS[i] += self.TS.radiation(i)*self.dt/self.TS.capacity_m(i)/self.rhos[i]/self.TS.v_scale
 
     
     

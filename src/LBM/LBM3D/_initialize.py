@@ -19,7 +19,7 @@ class LBM3D_INITIALIZATION(LBM3D_BASE):
         self.init_kernel()
     def init_python(self):
         if self.CHEMISTRY:
-            self.reactions.dS = ti.Vector.field(len(self.species),dtype = float,shape=self.rho.shape)
+            self.reactions.dS = ti.Vector.field(len(self.species)+1,dtype = float,shape=self.rho.shape)
             self.reactions.specieNum = len(self.species)
         # handle exception
         ## mixture but no chemistry
@@ -30,6 +30,11 @@ class LBM3D_INITIALIZATION(LBM3D_BASE):
             if self.TF.conductivity_model == CONDUCTIVITY_MODEL.MIXTURE:
                 self.TF.conductivity_model = CONDUCTIVITY_MODEL.CONSTANT
                 print("Warning: No chemistry module enabled, but mixture fluid conductivity model selected. Switching to constant model.")
+        fixSpecieNum = 0
+        for specie in self.species:
+            if specie.FIX:
+                fixSpecieNum += 1
+        if (not self.CHEMISTRY or fixSpecieNum==0) and self.TEMPERATURE:
             if self.TS.capacity_model == THERMO_MODEL.MIXTURE:
                 self.TS.capacity_model = THERMO_MODEL.CONSTANT
                 print("Warning: No chemistry module enabled, but mixture solid capacity model selected. Switching to constant model.")
