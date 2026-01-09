@@ -10,7 +10,7 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
     """
     def step(self):
         self.updateBC(self.t)
-        # self.step_kernel()
+        self.step_kernel()
         self.tLattice += 1
         
     @ti.kernel
