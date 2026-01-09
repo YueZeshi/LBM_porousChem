@@ -14,7 +14,7 @@ You can either clone the public repository:
 
 .. code-block:: console
 
-    $ git clone git://github.com/lettucecfd/lettuce
+    $ git clone git://github.com/lettucecfd/
 
 Or download the `tarball`_:
 
@@ -27,6 +27,9 @@ Once you have a copy of the source, you can install it with:
 .. code-block:: console
 
     $ uv venv
+
+activate the virtual environment
+
     $ uv pip install -e .
 
 

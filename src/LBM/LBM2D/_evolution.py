@@ -60,7 +60,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         if ti.static(k<5):
                             for specie in ti.static(list(self.species)):
                                 if ti.static(not specie.FIX): # 气体物质更新
-                                    specie.g[i][k] += self.TF.geq5(k,specie.dS[i],i[0],i[1],i[2])
+                                    specie.g[i][k] += specie.geq5(k,specie.dS[i],i[0],i[1],i[2])
                                 else:
                                     if ti.static(k==0):
                                         specie.S[i] += specie.dS[i]
@@ -168,21 +168,21 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                             for s in ti.static(range(5)):
                                 specie.g[i][s] = specie.G[i][s] # 更新G
                                 specie.S[i] += specie.G[i][s]
-                            if specie.S[i]<0:
-                                specie.S[i]=0
+                            if specie.S[i]<-self.tol:
+                                specie.S[i]=-self.tol
                             Yall += specie.S[i]
                         else:
                             if ti.static(self.PORO): # 计算当前固体物质总密度
-                                self.rhos[i]+=specie.S[i]
+                                self.rhos[i] += specie.S[i]
                     for specie in ti.static(list(self.species)):
                         if ti.static(not specie.FIX): # 更新流体组分
                             specie.S[i] /= Yall # 归一化处理
                     # 化学反应
                     self.reactions.update_dS(i)
                     
-                if ti.static(self.PORO):
-                    if self.rho1[i] != 0 and self.rhos[i] != 0:
-                        self.solid[i] = self.rhos[i]/self.rho1[i] # 更新孔隙结构
+                # if ti.static(self.PORO):
+                #     if self.rho1[i] != 0 and self.rhos[i] != 0:
+                #         self.solid[i] = self.rhos[i]/self.rho1[i] # 更新孔隙结构
                 # 宏观恢复温度场 并计算源项
                 if ti.static(self.TEMPERATURE):
                     Tf = 0.0
@@ -196,10 +196,10 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                     self.TS.S[i] = Ts
                     if self.solid[i] > 0: # 有固体
                         dH = self.TS.exchangeCoef[i]*self.TS.exchangeSurface[i]*(self.TF.physical_value(Tf)-self.TS.physical_value(Ts))*self.dt
-                        self.TS.dS[i] += dH/self.TS.capacity_v(i)/self.TS.v_scale
-                        self.TF.dS[i] += -dH/self.TF.capacity_v(i)/self.TF.v_scale
+                        self.TS.dS[i] += dH/self.TS.capacity_m(i)/self.rhos[i]/self.TS.v_scale
+                        self.TF.dS[i] += -dH/self.TF.capacity_m(i)/self.rho[i]/self.TF.v_scale
                     if ti.static(self.RADIATION):
-                        self.TS.dS[i] += self.TS.radiation(i)*self.dt/self.TS.capacity_v(i)/self.TS.v_scale
+                        self.TS.dS[i] += self.TS.radiation(i)*self.dt/self.TS.capacity_m(i)/self.rhos[i]/self.TS.v_scale
 
     # 使用函数
     @ti.func
@@ -223,16 +223,21 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
         if self.EOS==FLUID_STATE_EQUATION.IDEAL_GAS:
             feqout = self.w9[s]*rho*(1.0+3.0*eu+4.5*eu*eu/(eps+1e-12)-1.5*uv/(eps+1e-12))
         return feqout
-    @ti.func
-    def feq5(self, k,s,i): #计算平衡分布函数 考虑多孔介质
-        u = self.v[i]
-        eu = self.e5[k].dot(u)
-        feqout = self.w5[k]*s*(1.0+3.0*eu)
-        return feqout
     
     @ti.func
-    def viscosity(self,i):
-        return 0.1
+    def viscosity(self,i): # in LU
+        visco = 0.1
+        if ti.static(self.viscosity_model==VISCOSITY_MODEL.CONSTANT):
+            visco = self.visco*self.dt/self.dx**2
+        elif ti.static(self.viscosity_model==VISCOSITY_MODEL.SUTHERLAND):
+            T = self.GetTF(i)
+            visco = self.sutherland_coef[0]*T**1.5/(T+self.sutherland_coef[1])*self.dt/self.dx**2
+        elif ti.static(self.viscosity_model == VISCOSITY_MODEL.MIXTURE):
+            if ti.static(self.CHEMISTRY):
+                for specie in ti.static(self.species):
+                    if ti.static(not specie.FIX):
+                        visco += specie.S[i]*specie.viscosity(i)
+        return visco
     @ti.func
     def kinetic_viscosity(self,i):
         nu = self.viscosity(i)
@@ -285,13 +290,26 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
         eps = 1.0-self.solid[i]
         term = 0.0
         if ti.static(self.EOS==FLUID_STATE_EQUATION.INCOMPRESSIBLE):
-            term = (1.0-1.0/2.0/tau)*self.w9[s]*(3.0*(self.e9[s]-u/eps).dot(F)\
+            term = (1.0-1.0/2.0/tau)*self.w9[s]*(3.0*ti.math.dot(self.e9[s]-u/eps,F)\
               +9.0*self.e9[s].dot(u)*self.e9[s].dot(F)/eps)
         elif ti.static(self.EOS==FLUID_STATE_EQUATION.IDEAL_GAS):
-            term = (1.0-1.0/2.0/tau)*rho*self.w9[s]*(3.0*(self.e9[s]-u/(eps+1e-12)).dot(F)\
+            term = (1.0-1.0/2.0/tau)*rho*self.w9[s]*(3.0*ti.math.dot(self.e9[s]-u/(eps+1e-12),F)\
               +9.0*self.e9[s].dot(u)*self.e9[s].dot(F)/(eps+1e-12))
         return term
     @ti.func
     def scalarCorrectionTerm(self,k,duS,tau):
         return (1.0-1.0/2.0/tau)*3.0*self.w5[k]*self.e5[k].dot(duS)
     
+    @ti.func
+    def GetTF(self,i):
+        TF = 273.15
+        if ti.static(self.TEMPERATURE):
+            TF = self.TF.physical_value(self.TF.S[i])
+        return TF
+    
+    @ti.func
+    def GetTS(self,i):
+        TS = 273.15
+        if ti.static(self.TEMPERATURE):
+            TS = self.TS.physical_value(self.TS.S[i])
+        return TS

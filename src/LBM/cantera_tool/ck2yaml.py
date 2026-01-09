@@ -171,7 +171,7 @@ class Species:
 class Nasa7:
     """
     Thermodynamic data parameterized as two seven-coefficient NASA
-    polynomials. See :ref:`sec-thermo-nasa7`.
+    polynomials. See  `sec-thermo-nasa7`.
     """
     def __init__(self, *, Tmin, Tmax, Tmid, low_coeffs, high_coeffs, note=''):
         self.Tmin = Tmin
@@ -201,7 +201,7 @@ class Nasa7:
 class Nasa9:
     """
     Thermodynamic data parameterized as any number of nine-coefficient NASA
-    polynomials. See :ref:`sec-thermo-nasa9`.
+    polynomials. See  `sec-thermo-nasa9`.
 
     :param data:
         List of polynomials, where each polynomial is written as
@@ -372,7 +372,6 @@ class Arrhenius:
 class ElementaryRate(KineticsModel):
     """
     A reaction rate described by a single Arrhenius expression.
-    See :ref:`sec-arrhenius-rate`.
 
     :param rate:
         The Arrhenius expression describing this reaction rate.
@@ -391,7 +390,6 @@ class ElementaryRate(KineticsModel):
 class SurfaceRate(KineticsModel):
     """
     An Arrhenius-like reaction occurring on a surface
-    See :ref:`sec-surface-rate`.
 
     :param rate:
         The Arrhenius expression describing this reaction rate.
@@ -438,7 +436,7 @@ class SurfaceRate(KineticsModel):
 class PDepArrhenius(KineticsModel):
     """
     A rate calculated by interpolating between Arrhenius expressions at
-    various pressures. See :ref:`sec-plog-rate`.
+    various pressures
 
     :param pressures:
         A list of pressures at which Arrhenius expressions are given.
@@ -467,7 +465,6 @@ class PDepArrhenius(KineticsModel):
 class Chebyshev(KineticsModel):
     """
     A rate calculated in terms of a bivariate Chebyshev polynomial.
-    See :ref:`sec-chebyshev-rate`.
 
     :param coeffs:
         Matrix of Chebyshev coefficients, dimension N_T by N_P
@@ -509,7 +506,7 @@ class Chebyshev(KineticsModel):
 class ThreeBody(KineticsModel):
     """
     A rate calculated for a reaction which includes a third-body collider.
-    See :ref:`sec-three-body-reaction`.
+    See  `sec-three-body-reaction`.
 
     :param high_rate:
         The Arrhenius kinetics (high-pressure limit)
@@ -538,7 +535,7 @@ class ThreeBody(KineticsModel):
 class Falloff(ThreeBody):
     """
     A rate for a pressure-dependent falloff reaction.
-    See :ref:`sec-falloff-rate`.
+    See  `sec-falloff-rate`.
 
     :param low_rate:
         The Arrhenius kinetics at the low-pressure limit
@@ -572,7 +569,7 @@ class Falloff(ThreeBody):
 class ChemicallyActivated(ThreeBody):
     """
     A rate for a chemically-activated reaction.
-    See :ref:`sec-chemically-activated-rate`.
+    See  `sec-chemically-activated-rate`.
 
     :param low_rate:
         The Arrhenius kinetics at the low-pressure limit
@@ -606,7 +603,7 @@ class ChemicallyActivated(ThreeBody):
 class Troe:
     """
     The Troe falloff function, described with either 3 or 4 parameters.
-    See :ref:`sec-troe-falloff`.
+    See  `sec-troe-falloff`.
     """
     def __init__(self, A=0.0, T3=0.0, T1=0.0, T2=None):
         self.A = A
@@ -624,7 +621,7 @@ class Troe:
 class Sri:
     """
     The SRI falloff function, described with either 3 or 5 parameters.
-    See :ref:`sec-sri-falloff`.
+    See  `sec-sri-falloff`.
     """
     def __init__(self, *, A, B, C, D=None, E=None):
         self.A = A
@@ -829,7 +826,7 @@ class Parser:
         the species, the thermodynamics model as a :class:`Nasa7` object, and
         the elemental composition of the species.
 
-        For more details on this format, see :ref:`sec-debugging-chemkin`.
+        For more details on this format, see  `sec-debugging-chemkin`.
         """
         identifier = lines[0][0:24].split(maxsplit=1)
         species = identifier[0].strip()

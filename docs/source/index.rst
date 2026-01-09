@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 lbm documentation
-=================
+==================
 
 
 .. toctree::
@@ -16,11 +16,16 @@ lbm documentation
    modules
    authors
    examples
+   boundary
+   algorithm
+   api/modules
+   contributing
+   history
 
 Indices and tables
 ==================
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-   
+
 

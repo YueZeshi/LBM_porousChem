@@ -10,6 +10,10 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
     """
     边界条件实现的时候还需要考虑外力的影响
     """
+    
+    def updateBC(self, t):
+        for func in self.UpdateBCfunc:
+            func(self,t)
     @ti.func
     def Boundary_condition_NEE(self):
         for j,k in ti.ndrange(self.ny,self.nz):            
@@ -52,29 +56,29 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
         if ti.static(self.bc_v[0]==BC.fixedValue):
             self.v[0,y,z] = self.v_bc_profile[0][0,y,z]
         elif ti.static(self.bc_v[0]==BC.zeroGradient):
-            self.v[0,y,z] = self.v[1,y,z]#2*self.v[1,y,z]-self.v[2,y,z]
+            self.v[0,y,z] = self.v[1,y,z]
         if ti.static(self.bc_rho[0]==BC.fixedValue):
             self.rho[0,y,z] = self.rho_bc_profile[0][0,y,z]
         elif ti.static(self.bc_rho[0]==BC.zeroGradient):
-            self.rho[0,y,z] = 2*self.rho[1,y,z]-self.rho[2,y,z]#self.rho[1,y,z]#2*self.rho[1,y,z]-self.rho[2,y,z]
+            self.rho[0,y,z] = self.rho[1,y,z]#2*self.rho[1,y,z]-self.rho[2,y,z]
         for s in ti.static(range(9)):
             self.f[0,y,z][s] = self.feq9(s,0,y,z)+(self.f[1,y,z][s]-self.feq9(s,1,y,z))
     @ti.func
     def Boundary_condition_flow_NEE_1(self,x,y,z):
         if ti.static(self.bc_v[1]==BC.fixedValue):
-            self.v[self.nx-1,y,z] = self.v_BC[1]
+            self.v[self.nx-1,y,z] = self.v_bc_profile[1][0,y,z]
         elif ti.static(self.bc_v[1]==BC.zeroGradient):
             self.v[self.nx-1,y,z] = self.v[self.nx-2,y,z]#2*self.v[self.nx-2,y,z]-self.v[self.nx-3,y,z]
         if ti.static(self.bc_rho[1]==BC.fixedValue):
             self.rho[self.nx-1,y,z] = self.rho_BC[1]
         elif ti.static(self.bc_rho[1]==BC.zeroGradient):
-            self.rho[self.nx-1,y,z] = 2*self.rho[self.nx-2,y,z]-self.rho[self.nx-3,y,z]#self.rho[self.nx-2,y,z]#
+            self.rho[self.nx-1,y,z] = self.rho[self.nx-2,y,z]#2*self.rho[self.nx-2,y,z]-self.rho[self.nx-3,y,z]#self.rho[self.nx-2,y,z]#
         for s in ti.static(range(9)):
             self.f[self.nx-1,y,z][s] = self.feq9(s,self.nx-1,y,z)+(self.f[self.nx-2,y,z][s]-self.feq9(s,self.nx-2,y,z))
     @ti.func
     def Boundary_condition_flow_NEE_2(self,x,y,z):
         if ti.static(self.bc_v[2]==BC.fixedValue):
-            self.v[x,0,z] = self.v_BC[2]
+            self.v[x,0,z] = self.v_bc_profile[2][x,0,z]
         elif ti.static(self.bc_v[2]==BC.zeroGradient):
             self.v[x,0,z] = self.v[x,1,z]#2*self.v[x,1,z]-self.v[x,2,z]
         if ti.static(self.bc_rho[2]==BC.fixedValue):
@@ -86,7 +90,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
     @ti.func
     def Boundary_condition_flow_NEE_3(self,x,y,z):
         if ti.static(self.bc_v[3]==BC.fixedValue):
-            self.v[x,self.ny-1,z] = self.v_BC[3]
+            self.v[x,self.ny-1,z] = self.v_bc_profile[3][x,0,z]
         elif ti.static(self.bc_v[3]==BC.zeroGradient):
             self.v[x,self.ny-1,z] = self.v[x,self.ny-2,z]#2*self.v[x,self.ny-2,z]-self.v[x,self.ny-3,z]
         if ti.static(self.bc_rho[3]==BC.fixedValue):
@@ -323,7 +327,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
             for j,k in ti.ndrange(self.ny,self.nz):
                 flow0 += self.rho[0,j,k]*self.v[0,j,k][0]
             coef = self.flow_BC[0]/flow0
-            a = .1
+            a = .01
             for j,k in ti.ndrange(self.ny,self.nz):
                 self.v_bc_profile[0][0,j,k] = (a*coef+1-a)*self.v[1,j,k]
                 self.rho_bc_profile[0][0,j,k] = self.rho[1,j,k]

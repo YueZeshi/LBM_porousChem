@@ -1,26 +1,30 @@
-from typing import Literal
 import taichi as ti
 import numpy as np
 from ..util.flag import *
 from ._thermal import TemperatureFluid,TemperatureSolid
 from ._chemical import Specie,Reaction,Reactions
-from ._info import INFO
-from ..vtk_tool.paraview import PVDWriter
+from ..visualization_tool.PVD import PVDWriter
 @ti.data_oriented
 class LBM2D_BASE:
-    def __init__(self, X, Y ,dx = 0.001,dt = 0.001,name="LBM",isThermal = False,isChemical = False,isPoro = False,isRadiation = False):
+    """LBM2D base class
+    """
+    def __init__(self, X, Y,Z,dx = 0.001,dt = 0.001,name="LBM",isThermal = False,isChemical = False,isPoro = False,isRadiation = False):
         self.name = name
         self.t = 0.0
+        self.tol = 1e-6
         # 模型参数
         self.X = X
         self.Y = Y
-        self.Z = 1
+        self.Z = dx
         self.tLattice : int = 0
         self.dx,self.dt = dx,dt #格子尺度 步进时间
         self.nx=int(self.X/self.dx)
         self.ny=int(self.Y/self.dx)
         self.nz = 1 
         self.max_v=ti.field(float,shape=())
+        self.viscosity_model = VISCOSITY_MODEL.NONE
+        self.visco = 2e-5
+        self.sutherland_coef = [1.6e-6,170]
         self.source_term_model = SOURCE_TERM.NONE
         self.force_term_model = FORCE_TERM.NONE
         self.boundary_condition_model = BC_MODEL.NEE
@@ -71,7 +75,9 @@ class LBM2D_BASE:
         if self.TEMPERATURE:
             self.TF = TemperatureFluid("Temperature of Fluid",self)
             self.TS = TemperatureSolid("Temperature of Solid",self,isRadiation = self.RADIATION)
+            self.rhos = ti.field(float,shape=(self.nx,self.ny,self.nz))
             self.min_T = ti.field(float,shape=())
+            self.max_T = ti.field(float,shape=())
         if self.CHEMISTRY:
             self.specieName = []
             self.species:list[Specie] = []
@@ -80,8 +86,6 @@ class LBM2D_BASE:
             self.poro_model = PORO_MODEL.SPHERICAL # 使用的多孔介质模型 如球孔介质模型 Darcy Darcy-Forhheimer
             self.coefDarcy = ti.field(float,shape=(self.nx,self.ny,self.nz))
             self.coefForchheimer = ti.field(float,shape=(self.nx,self.ny,self.nz))
-            self.rhos = ti.field(float,shape=(self.nx,self.ny,self.nz))
-            self.rho1 = ti.field(float,shape=(self.nx,self.ny,self.nz))
         # default init all fields
         self.default_init()
         self.static_init_kernel()
@@ -100,10 +104,20 @@ class LBM2D_BASE:
         return self.__str__()
     def __call__(self):
         print(self)
-    def __str__(self):
-        return INFO
-    
-    def default_init():
+    @ti.func
+    def tau(self,i):
+        return 300
+    @ti.func
+    def viscosity(self,i):
+        return 300
+        
+    @ti.func
+    def GetTF(self,i):
+        return 300
+    @ti.func
+    def GetTS(self,i):
+        return 300
+    def default_init(self):
         pass
     @ti.kernel
     def static_init_kernel(self): # 初始化静态变量
@@ -121,5 +135,5 @@ class LBM2D_BASE:
     @ti.func 
     def Boundary_condition_ES(self):
         pass
-    def updateBC(self):
+    def updateBC(self,t):
         pass

@@ -55,18 +55,20 @@ class ScalarField:
                     self.G[i][k]=0.0 
     @ti.func
     def tau(self,i):
-        return 3*self.coefDiff(i)+.5      
+        return 3*self.coefDiff(i)+.5
     @ti.func
     def coefDiff(self,i):
         return 0.1
     # boundary condition
     def set_BC(self,index_boundary,BC):
-        self.BC[index_boundary]=BC
+        if not self.FIX:
+            self.BC[index_boundary]=BC
     def set_BCs(self,BCs):
-        self.BC = BCs
+        for i in range(4):
+            self.set_BC(i,BCs[i])
     def set_s_BC_value(self,index,s):
-        self.s_BC[index]=self.get_normalized_value(s)
-        print(self.s_BC[index],s)
+        if not self.FIX:
+            self.s_BC[index]=self.get_normalized_value(s)
     def set_s_BCs_value(self,s):
         for i in range(4):
             self.set_s_BC_value(i,s[i])

@@ -1,152 +1,63 @@
 API
 ===
 
-Simulation
-----------
-.. automodule:: lettuce.simulation
-    :noindex:
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Lattices
+Overview
 --------
-.. automodule:: lettuce.lattices
-    :noindex:
-    :members:
+本节包含库的 API 文档（按模块分组）。使用 :mod:`sphinx.ext.autodoc` 自动提取 docstrings。
+
+核心包
+------
+.. automodule:: LBM
     :undoc-members:
     :show-inheritance:
 
-
-Stencils
---------
-.. automodule:: lettuce.stencils
-    :noindex:
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Streaming
----------
-.. automodule:: lettuce.streaming
-    :noindex:
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Collision
----------
-.. automodule:: lettuce.collision
-    :noindex:
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Observables
------------
-.. automodule:: lettuce.observables
-    :noindex:
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Reporters
----------
-.. automodule:: lettuce.reporters
-    :noindex:
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Force
------
-.. automodule:: lettuce.force
-    :noindex:
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Equilibrium
------------
-.. automodule:: lettuce.equilibrium
-    :noindex:
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Boundary
---------
-.. automodule:: lettuce.boundary
-    :noindex:
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-
-Flows
------
-
-Couette
-^^^^^^^
-.. automodule:: lettuce.flows.couette
-    :noindex:
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-Poiseuille
-^^^^^^^^^^
-.. automodule:: lettuce.flows.poiseuille
-    :noindex:
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-Taylor-Green
-^^^^^^^^^^^^
-.. automodule:: lettuce.flows.taylorgreen
-    :noindex:
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-Decaying-Turbulence
-^^^^^^^^^^^^^^^^^^^
-.. automodule:: lettuce.flows.decayingturbulence
-    :noindex:
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-Obstacle
-^^^^^^^^
-.. automodule:: lettuce.flows.obstacle
-    :noindex:
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-Utility
+2D 模块
 -------
-.. automodule:: lettuce.util
+.. automodule:: LBM.LBM2D
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+3D 模块
+    3D 模块
+.. automodule:: LBM.LBM3D
+    :noindex:
+    :members:
+    :undoc-members:
+    :show-inheritance:
+几何工具
+-------
+    :noindex:
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+.. automodule:: LBM.util
+    :noindex:
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+命令行与应用入口
+---------------
+.. automodule:: LBM.cli
+    :noindex:
+    :members:
+命令行与应用入口
+    :show-inheritance:
+
+.. automodule:: LBM.app
+    :noindex:
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+外部工具绑定
+------------
+.. automodule:: LBM.cantera_tool
     :noindex:
     :members:
     :undoc-members:
     :show-inheritance:
 
 
-Command-Line Interface
-----------------------
-.. automodule:: lettuce.cli
-    :noindex:
-    :members:
-    :undoc-members:
-    :show-inheritance:

@@ -1,7 +1,7 @@
 import taichi as ti
+from ._core import LBM3D_BASE
 from ._chemical import Specie,Reaction
 from ._thermal import TemperatureFluid,TemperatureSolid
-from ._core import LBM3D_BASE
 from ..util.flag import *
 @ti.data_oriented
 class LBM3D_EVOLUTION(LBM3D_BASE):
@@ -25,11 +25,11 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
             self.Boundary_condition_ES()
     @ti.func
     def collision_source_streaming(self):
+        # collistion + source term + streaming : merged kernels
         for i in ti.grouped(self.rho):
-            # collision f
             if (self.solid[i] < 1):
                 for k in ti.static(range(19)):
-                    eps = 1-self.solid[i]
+                    # collision f
                     f =self.f[i][k]-1/self.tau(i)*(self.f[i][k]-self.feq19(k,i[0],i[1],i[2]))
                     self.f[i][k] =f
                     if ti.static(k<7):
@@ -114,10 +114,6 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                             if ti.static(self.TEMPERATURE):
                                 self.TS.G[i][self.LR[k]] = self.TS.g[i][k]
 
-    def updateBC(self,t):
-        for func in self.UpdateBCfunc:
-            func(self,t)
-
     @ti.func
     def macro(self):# F F->f 计算宏观量 F为正确值
         for i in ti.grouped(self.rho):
@@ -165,8 +161,8 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                             for s in ti.static(range(7)):
                                 specie.g[i][s] = specie.G[i][s] # 更新G
                                 specie.S[i] += specie.G[i][s]
-                            if specie.S[i]<0:
-                                specie.S[i]=0
+                            if specie.S[i]<-self.tol:
+                                specie.S[i]=-self.tol
                             Yall += specie.S[i]
                         else:
                             if ti.static(self.PORO): # 计算当前固体物质总密度
@@ -177,25 +173,26 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                     # 化学反应
                     self.reactions.update_dS(i)
                     
-                if ti.static(self.PORO):
-                    if self.rho1[i] != 0 and self.rhos[i] != 0:
-                        self.solid[i] = self.rhos[i]/self.rho1[i] # 更新孔隙结构
-                # 宏观恢复温度场 并计算源项
+                # if ti.static(self.PORO):
+                #     if self.rho1[i] != 0 and self.rhos[i] != 0:
+                #         self.solid[i] = self.rhos[i]/self.rho1[i] # 更新孔隙结构
+                # # 宏观恢复温度场 并计算源项
                 if ti.static(self.TEMPERATURE):
-                    self.TF.S[i] = 0.0
-                    self.TS.S[i] = 0.0
+                    Tf = 0.0
+                    Ts = 0.0
                     for s in ti.static(range(7)):
                         self.TF.g[i][s] = self.TF.G[i][s] # 更新G
                         self.TS.g[i][s] = self.TS.G[i][s] # 更新G
-                        self.TF.S[i] += self.TF.G[i][s] # 计算温度
-                        self.TS.S[i] += self.TS.G[i][s]
+                        Tf += self.TF.G[i][s] # 计算温度
+                        Ts += self.TS.G[i][s]
+                    self.TF.S[i] = Tf
+                    self.TS.S[i] = Ts
                     if self.solid[i] > 0: # 有固体
-                        dH = self.TS.exchangeCoef[i]*self.TS.exchangeSurface[i]*(self.TF.S[i]-self.TS.S[i])*self.dt
-                        self.TS.dS[i] += dH/self.TS.capacity_v(i)
-                        self.TF.dS[i] += -dH/self.TF.capacity_v(i)
-                        # print(dH,self.TS.S[i],self.TF.S[i])
+                        dH = self.TS.exchangeCoef[i]*self.TS.exchangeSurface[i]*(self.TF.physical_value(Tf)-self.TS.physical_value(Ts))*self.dt
+                        self.TS.dS[i] += dH/self.TS.capacity_m(i)/self.rhos[i]/self.TS.v_scale
+                        self.TF.dS[i] += -dH/self.TF.capacity_m(i)/self.rho[i]/self.TF.v_scale
                     if ti.static(self.RADIATION):
-                        self.TS.dS[i] += self.TS.radiation(i)*self.dt/self.TS.capacity_v(i)
+                        self.TS.dS[i] += self.TS.radiation(i)*self.dt/self.TS.capacity_m(i)/self.rhos[i]/self.TS.v_scale
 
     
     
@@ -211,6 +208,7 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
         if i[2]>self.nz-1:  iout[2] = 0
     
         return iout
+    
     @ti.func
     def feq19(self, s,i,j,k): #计算平衡分布函数 
         rho = self.rho[i,j,k]
@@ -226,8 +224,19 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
         return feqout
     
     @ti.func
-    def viscosity(self,i):
-        return 0.1
+    def viscosity(self,i): # in LU
+        visco = 0.1
+        if ti.static(self.viscosity_model==VISCOSITY_MODEL.CONSTANT):
+            visco = self.visco*self.dt/self.dx**2
+        elif ti.static(self.viscosity_model==VISCOSITY_MODEL.SUTHERLAND):
+            T = self.GetTF(i)
+            visco = self.sutherland_coef[0]*T**1.5/(T+self.sutherland_coef[1])*self.dt/self.dx**2
+        elif ti.static(self.viscosity_model == VISCOSITY_MODEL.MIXTURE):
+            if ti.static(self.CHEMISTRY):
+                for specie in ti.static(self.species):
+                    if ti.static(not specie.FIX):
+                        visco += specie.S[i]*specie.viscosity(i)
+        return visco
     @ti.func
     def kinetic_viscosity(self,i):
         nu = self.viscosity(i)
@@ -285,3 +294,17 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
     @ti.func
     def scalarCorrectionTerm(self,k,duS,tau):
         return (1.0-1.0/2.0/tau)*3.0*self.w7[k]*self.e7[k].dot(duS)
+    
+    @ti.func
+    def GetTF(self,i):
+        TF = 273.15
+        if ti.static(self.TEMPERATURE):
+            TF = self.TF.physical_value(self.TF.S[i])
+        return TF
+    
+    @ti.func
+    def GetTS(self,i):
+        TS = 273.15
+        if ti.static(self.TEMPERATURE):
+            TS = self.TS.physical_value(self.TS.S[i])
+        return TS
