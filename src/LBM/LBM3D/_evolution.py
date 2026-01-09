@@ -15,14 +15,19 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
         
     @ti.kernel
     def step_kernel(self):
+        print("step begin")
         self.collision_source_streaming() # f->F
         if ti.static(self.boundary_condition_model==BC_MODEL.NEBB):
             self.Boundary_condition_NEBB() # on F
+        print("after collision source and streaming")
         self.macro()  # F->value f
+        
+        print("after macro")
         if ti.static(self.boundary_condition_model==BC_MODEL.NEE):
             self.Boundary_condition_NEE() # value changed for the boundary condition
         if ti.static(self.boundary_condition_model==BC_MODEL.ES):
             self.Boundary_condition_ES()
+        print("step end")
     @ti.func
     def collision_source_streaming(self):
         # collistion + source term + streaming : merged kernels

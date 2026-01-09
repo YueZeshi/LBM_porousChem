@@ -45,6 +45,8 @@ class LBM2D_BASE:
         self.rho = ti.field(float, shape=(self.nx,self.ny,self.nz))
         self.v = ti.Vector.field(3,float, shape=(self.nx,self.ny,self.nz))
         self.solid = ti.field(float,shape = (self.nx,self.ny,self.nz))
+        
+        self.rhos = ti.field(float,shape=(self.nx,self.ny,self.nz))
         self.f = ti.Vector.field(9,float,shape=(self.nx,self.ny,self.nz))
         self.F = ti.Vector.field(9,float,shape=(self.nx,self.ny,self.nz))
 
@@ -75,7 +77,6 @@ class LBM2D_BASE:
         if self.TEMPERATURE:
             self.TF = TemperatureFluid("Temperature of Fluid",self)
             self.TS = TemperatureSolid("Temperature of Solid",self,isRadiation = self.RADIATION)
-            self.rhos = ti.field(float,shape=(self.nx,self.ny,self.nz))
             self.min_T = ti.field(float,shape=())
             self.max_T = ti.field(float,shape=())
         if self.CHEMISTRY:

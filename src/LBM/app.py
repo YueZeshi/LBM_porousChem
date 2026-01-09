@@ -559,8 +559,9 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
                     solid_fraction = (1-eps)*s
                     lb.add_solid(solid_fraction)
                     lb.add_rho_solid(rhos*s)
-                    lb.set_heat_exchange_surface(exchangeSurface*s)
-                    lb.set_heat_exchange_coef(exchangeCoef*s)
+                    if isThermal:
+                        lb.set_heat_exchange_surface(exchangeSurface*s)
+                        lb.set_heat_exchange_coef(exchangeCoef*s)
                     if isRadiation:
                         lb.init_field(lb.TS.radiation_surface,border)
                         lb.init_field(lb.TS.emissivity,border*emis)
