@@ -37,9 +37,9 @@ dependencies = [
 lbm = "LBM.cli:run"
 paraLbm = "LBM.cli:paralbm"
 pvLbm = "LBM.cli:pvlbm"
-ck2yaml = "LBM.cantera_tool.ck2yaml:main"
-cti2yaml = "LBM.cantera_tool.cti2yaml:main"
-cmtl2yaml = "LBM.cantera_tool.cmtl2yaml:main"
+ck2yaml = "cantera_tool.ck2yaml:main"
+cti2yaml = "cantera_tool.cti2yaml:main"
+cmtl2yaml = "cantera_tool.cmtl2yaml:main"
 
 
 # [project.urls]
@@ -47,7 +47,7 @@ cmtl2yaml = "LBM.cantera_tool.cmtl2yaml:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]  # 在 src 目录中查找
-include = ["LBM*"]  # 只包含 LBM 包
+include = ["LBM*","visualization_tool*","cantera_tool*"]  # 只包含 LBM 包
 
 [tool.uv]
 # 使用国内镜像

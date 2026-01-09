@@ -6,6 +6,7 @@ TGL     TANN    MOIST   ASH
 CELLA   HCE1    HCE2    LIGCC   LIGOH   LIG     ITANN
 CHAR    COH2S   CO2S    COS     CH3OHS  CH4S    C2H4S
 C6H5OHS CH2OS   H2S     C2H6S	LVGS	CHARO   COSTIFFS 
+  
 END
 
 REACTIONS    
@@ -61,5 +62,5 @@ COH2S + CO2 =>CHAR + CO2 + H2O                                                  
 
 COH2S + O2 => CO2 + H2O                                                                                                                                                                  2.860E+10  0.000  25250.0
 CH2OS + O2 => CO2 + H2O                                                                                                                                                                  2.860E+10  0.000  25250.0
-CH4S + O2 => CHAR + 2 H2O                                                                                                                                                               2.860E+10  0.000  25250.0
+CH4S  + O2 => CHAR + 2 H2O                                                                                                                                                               2.860E+10  0.000  25250.0
 END

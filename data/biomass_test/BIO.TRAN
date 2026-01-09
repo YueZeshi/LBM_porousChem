@@ -1822,15 +1822,15 @@ KHYBBENZ            2   783.800     6.640     0.000     0.000     1.000 ! LNLL
 RBBENZ              2   783.800     6.640     0.000     0.000     1.000 ! LNLL =c14h14
 ZBBENZ              2   783.800     6.640     0.000     0.000     1.000 ! LNLL  
 !
-IC5H11OH             2   503.072     5.339     1.67      8.88      1.000      !ESTD   pentanol-1         TogbË°êentanol
-C5H11OH             2   503.072     5.339     1.67      8.88      1.000      !ESTD   pentanol-1         TogbË Pentanol
-C5H9OH              2   482.146     5.008     1.66      6.74      1.000      !ESTD   pentenols          TogbË Pentanol
-RPENT1O             2   503.072     5.339     1.67      8.88      1.000      !ESTD   pentanol radicals  TogbË Pentanol
-RPENT1OHA           2   503.072     5.339     1.67      8.88      1.000      !ESTD                      TogbË Pentanol
-RPENT1OHB           2   503.072     5.339     1.67      8.88      1.000      !ESTD                      TogbË Pentanol
-RPENT1OHC           2   503.072     5.339     1.67      8.88      1.000      !ESTD                      TogbË Pentanol
-RPENT1OHD           2   503.072     5.339     1.67      8.88      1.000      !ESTD                      TogbË Pentanol
-RPENT1OHE           2   503.072     5.339     1.67      8.88      1.000      !ESTD                      TogbË Pentanol
+IC5H11OH             2   503.072     5.339     1.67      8.88      1.000      !ESTD   pentanol-1         Togb√®¬°¬êentanol
+C5H11OH             2   503.072     5.339     1.67      8.88      1.000      !ESTD   pentanol-1         Togb√® Pentanol
+C5H9OH              2   482.146     5.008     1.66      6.74      1.000      !ESTD   pentenols          Togb√® Pentanol
+RPENT1O             2   503.072     5.339     1.67      8.88      1.000      !ESTD   pentanol radicals  Togb√® Pentanol
+RPENT1OHA           2   503.072     5.339     1.67      8.88      1.000      !ESTD                      Togb√® Pentanol
+RPENT1OHB           2   503.072     5.339     1.67      8.88      1.000      !ESTD                      Togb√® Pentanol
+RPENT1OHC           2   503.072     5.339     1.67      8.88      1.000      !ESTD                      Togb√® Pentanol
+RPENT1OHD           2   503.072     5.339     1.67      8.88      1.000      !ESTD                      Togb√® Pentanol
+RPENT1OHE           2   503.072     5.339     1.67      8.88      1.000      !ESTD                      Togb√® Pentanol
 KEHYP1OH            2   524.200     5.649     1.67     10.42      1.000      !Heufer NUIG
 RPENT1OOX           2	  524.2       5.649     1.67     10.42      1.000      !Heufer NUIG
 QPENT1OOX           2	  524.2       5.649     1.67     10.42      1.000      !Heufer NUIG
@@ -1853,13 +1853,13 @@ ALDC6               2   476.0       5.778     2.6       0.0       1.0  !=C4H9CHO
 HEXENOL             2   482.146     5.008     1.66      6.74      1.000      !=HEXENOL
 RALD6X              2   476.000     5.778     2.600     0.000     1.000      !=C4H9CHO
 C6H13OH             2   503.072     5.339     1.67      8.88      1.000  !=PENTANOL. SAME FOR RADICALS
-RESAN1O             2   503.072     5.339     1.67      8.88      1.000      !ESTD   pentanol radicals  TogbË Pentanol
-RHEX1OHA           2   503.072     5.339     1.67      8.88      1.000      !ESTD                      TogbË Pentanol
-RHEX1OHB            2   503.072     5.339     1.67      8.88      1.000      !ESTD                      TogbË Pentanol
-RESAN1OHC           2   503.072     5.339     1.67      8.88      1.000      !ESTD                      TogbË Pentanol
-RESAN1OHD           2   503.072     5.339     1.67      8.88      1.000      !ESTD                      TogbË Pentanol
-RESAN1OHE           2   503.072     5.339     1.67      8.88      1.000      !ESTD                      TogbË Pentanol
-RESAN1OHF           2   503.072     5.339     1.67      8.88      1.000      !ESTD                      TogbË Pentanol
+RESAN1O             2   503.072     5.339     1.67      8.88      1.000      !ESTD   pentanol radicals  Togb√® Pentanol
+RHEX1OHA           2   503.072     5.339     1.67      8.88      1.000      !ESTD                      Togb√® Pentanol
+RHEX1OHB            2   503.072     5.339     1.67      8.88      1.000      !ESTD                      Togb√® Pentanol
+RESAN1OHC           2   503.072     5.339     1.67      8.88      1.000      !ESTD                      Togb√® Pentanol
+RESAN1OHD           2   503.072     5.339     1.67      8.88      1.000      !ESTD                      Togb√® Pentanol
+RESAN1OHE           2   503.072     5.339     1.67      8.88      1.000      !ESTD                      Togb√® Pentanol
+RESAN1OHF           2   503.072     5.339     1.67      8.88      1.000      !ESTD                      Togb√® Pentanol
 C3H5CHO             2   464.200     5.009     2.600     0.000     1.000  
 RNC3OHOOX           2   487.900     4.820     0.000     0.000     1.000                              
 QNC3OHOOX           2   487.900     4.820     0.000     0.000     1.000                              
