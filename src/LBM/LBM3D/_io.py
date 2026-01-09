@@ -566,7 +566,7 @@ class LBM3D_OUTPUT(LBM3D_BASE):
         if self.TEMPERATURE:
             self.min_T[None]= 1e10
             self.cal_min_T()
-            return self.min_T[None]
+            return self.TF.get_physical_value(self.min_T[None])
         else:
             return -1
     @ti.kernel

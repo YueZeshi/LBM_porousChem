@@ -19,6 +19,7 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
         if ti.static(self.boundary_condition_model==BC_MODEL.NEBB):
             self.Boundary_condition_NEBB() # on F
         self.macro()  # F->value f
+        
         if ti.static(self.boundary_condition_model==BC_MODEL.NEE):
             self.Boundary_condition_NEE() # value changed for the boundary condition
         if ti.static(self.boundary_condition_model==BC_MODEL.ES):
@@ -191,8 +192,8 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                         dH = self.TS.exchangeCoef[i]*self.TS.exchangeSurface[i]*(self.TF.physical_value(Tf)-self.TS.physical_value(Ts))*self.dt
                         self.TS.dS[i] += dH/self.TS.capacity_m(i)/self.rhos[i]/self.TS.v_scale
                         self.TF.dS[i] += -dH/self.TF.capacity_m(i)/self.rho[i]/self.TF.v_scale
-                    if ti.static(self.RADIATION):
-                        self.TS.dS[i] += self.TS.radiation(i)*self.dt/self.TS.capacity_m(i)/self.rhos[i]/self.TS.v_scale
+                        if ti.static(self.RADIATION):
+                            self.TS.dS[i] += self.TS.radiation(i)*self.dt/self.TS.capacity_m(i)/self.rhos[i]/self.TS.v_scale
 
     
     

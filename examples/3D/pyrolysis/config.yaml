@@ -3,24 +3,24 @@ basic:
   author    : Sylvain
   date      : 2026-01-08
   dimension : 3 # 2 or 3
-  arch      : cpu # cpu/gpu/vulkan/cuda .etc the platform
+  arch      : gpu # cpu/gpu/vulkan/cuda .etc the platform
   type      : configuration # configuration / snapshot(saved)
 
 module : 
   flow : true
   porous_media : true
-  temperature : false
-  chemistry : false
-  radiation : false # only mean temperature model
+  temperature : true
+  chemistry : true
+  radiation : true # only mean temperature model
 
 spaceControl:
   geometry : [0.1,0.1,0.1]
-  DX : 1e-2
+  DX : 1e-3
 
 timeControl:
   startTime : 0
-  endTime : 10
-  DT : 1e-2
+  endTime : 100
+  DT : 1e-3
 
 
 flowProperties:
@@ -65,35 +65,35 @@ thermalPropertiesFluid :
     #   -1088.45772, 5.45323129]
   # if mixture
 
-# thermalPropertiesSolid : 
-#   normalize:
-#    Trange: [300,500]
-#   thermalDiff :
-#     type : derived # constant/derived
-#     # # if constant
-#     # value : 1e-5
-#     # # if derived
-#   conductivity: 
-#     type: mixture # constant/polynomial/mixture
-#     # if constant
-#     # value : 4
-#     # if polynomial
-#     data : [4,1e-4,0,0,0] # max 5 order
-#     # # if mixture
-#   capacity : 
-#     type : mixture # constant/polynomial/NASA7/mixture
-#     # # if constant
-#     # value : 1000
-#     # # if polynomial
-#     # data : [1000,1,-1e6,0,0]
-#     # # if NASA7
-#     Trange : [200.0, 1000.0, 3500.0]
-#     data : 
-#     - [3.78245636, -2.99673416e-03, 9.84730201e-06, -9.68129509e-09, 3.24372837e-12,
-#       -1063.94356, 3.65767573]
-#     - [3.28253784, 1.48308754e-03, -7.57966669e-07, 2.09470555e-10, -2.16717794e-14,
-#       -1088.45772, 5.45323129]
-#     # if mixture
+thermalPropertiesSolid : 
+  normalize:
+   Trange: [300,500]
+  thermalDiff :
+    type : derived # constant/derived
+    # # if constant
+    # value : 1e-5
+    # # if derived
+  conductivity: 
+    type: mixture # constant/polynomial/mixture
+    # if constant
+    # value : 4
+    # if polynomial
+    data : [4,1e-4,0,0,0] # max 5 order
+    # # if mixture
+  capacity : 
+    type : mixture # constant/polynomial/NASA7/mixture
+    # # if constant
+    # value : 1000
+    # # if polynomial
+    # data : [1000,1,-1e6,0,0]
+    # # if NASA7
+    Trange : [200.0, 1000.0, 3500.0]
+    data : 
+    - [3.78245636, -2.99673416e-03, 9.84730201e-06, -9.68129509e-09, 3.24372837e-12,
+      -1063.94356, 3.65767573]
+    - [3.28253784, 1.48308754e-03, -7.57966669e-07, 2.09470555e-10, -2.16717794e-14,
+      -1088.45772, 5.45323129]
+    # if mixture
 
 radiationProperties:
   type : mean_temp # mean_temp/none
@@ -231,10 +231,10 @@ chemicalProperties:
 
 
 geometry:
-  # zone1:
-  #   type : sphere # sphere/cylinder/box/cone/stl
-  #   center : [0.05,0.05,0]
-  #   radius : 0.01
+  zone1:
+    type : sphere # sphere/cylinder/box/cone/stl
+    center : [0.05,0.05,0.05]
+    radius : 0.01
   # zone2 :
   #   type : cylinder
   #   center : [0.05,0.05,0]
@@ -259,34 +259,36 @@ geometry:
   #   rotate : [0,0,0]
 
 initialCondition:
-  # solid: # to specify the solid area (operation in order)
-  #   solid1:
-  #     zone : zone1 # the zones concerned
-  #     type : poro # concrete/poro/substract
-  #     rho : 400
-  #     # if concrete
-  #     # if substract
-  #     # if poro
-  #     porosity : 0.4
-  #     #   porosity : 0.4
-  #     porousModel : darcy # darcy/darcyforchheimer/ergun
-  #     #   # if darcy
-  #     darcy : 2.5e11
-  #     # # if darcyforchheimer
-  #     # darcy : 2.5e10
-  #     # forchheimer : 6e4
-  #     # if ergun    # solid2:
-  #     exchangeSurface : 1000
-  #     exchangeCoef : 10
-  #     emissivity : 0.6
-    #   zone : zone2
-    #   type : poro
-    #   rho : 400
-    #   porosity : 0.4
-    #   porousModel : darcy # darcy/darcyforchheimer/ergun
-    #   # if darcy
-    #   darcy : 2.5e11
+  solid: # to specify the solid area (operation in order)
+    solid1:
+      zone : zone1 # the zones concerned
+      type : poro # concrete/poro/substract
+      rho : 400
+      # if concrete
+      # if substract
+      # if poro
+      porosity : 0.4
+      #   porosity : 0.4
+      porousModel : darcy # darcy/darcyforchheimer/ergun
+      #   # if darcy
+      darcy : 2.5e9
       # # if darcyforchheimer
+      # darcy : 2.5e10
+      # forchheimer : 6e4
+      # if ergun    
+      exchangeSurface : 1000
+      exchangeCoef : 10
+      emissivity : 0.6
+      
+      # solid2:
+      # zone : zone2
+      # type : poro
+      # rho : 400
+      # porosity : 0.4
+      # porousModel : darcy # darcy/darcyforchheimer/ergun
+      # # if darcy
+      # darcy : 2.5e11
+      # if darcyforchheimer
       # darcy : 2.5e10
       # forchheimer : 6e4
       # if ergun

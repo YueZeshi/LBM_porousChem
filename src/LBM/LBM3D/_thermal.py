@@ -10,7 +10,7 @@ class TemperatureFluid(ScalarField):
         self.Pr = 0.71
         self.thermal_diff = 3e-5
         self.conductivity_model = CONDUCTIVITY_MODEL.CONSTANT
-        self.cond = 1000
+        self.cond = 0.1
         self.cond_poly = [0,0,0,0,0]
         self.capacity_model = THERMO_MODEL.CONSTANT
         self.cm = 1000

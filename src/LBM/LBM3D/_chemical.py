@@ -257,6 +257,7 @@ class Reactions:
 
     @ti.func
     def update_dS(self,i): # 计算所有化学反应带来的物质源项和能量源项
+        
         for j in ti.static(range(self.specieNum+1)):
             self.dS[i][j] = 0
         for r in ti.static(self.reactions):
@@ -265,6 +266,6 @@ class Reactions:
             self.LBM.species[j].dS[i] = self.dS[i][j]
         if ti.static(self.LBM.TEMPERATURE):
             if self.LBM.solid[i] > 0:
-                self.LBM.TS.dS[i] += self.dS[i][self.specieNum]/self.LBM.TS.capacity_m(i)/self.LBM.rhos[i]
+                self.LBM.TS.dS[i] += self.dS[i][self.specieNum]/self.LBM.TS.capacity_m(i)/self.LBM.rhos[i]/self.LBM.TS.v_scale
             else:
-                self.LBM.TF.dS[i] += self.dS[i][self.specieNum]/self.LBM.TF.capacity_m(i)/self.LBM.rho[i]
+                self.LBM.TF.dS[i] += self.dS[i][self.specieNum]/self.LBM.TF.capacity_m(i)/self.LBM.rho[i]/self.LBM.TF.v_scale

@@ -17,10 +17,26 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
         self.init_python()
         self.init_kernel()
     def init_python(self):
-        if ti.static(self.CHEMISTRY):
-            # initialize reactions class , knowing all species
+        # initialize reactions class , knowing all species
+        if self.CHEMISTRY:
             self.reactions.dS = ti.Vector.field(len(self.species)+1,dtype = float,shape=self.rho.shape) # specie num + 1
             self.reactions.specieNum = len(self.species)
+        
+        # handle exception
+        ## mixture but no chemistry
+        if not self.CHEMISTRY and self.TEMPERATURE:
+            if self.TF.capacity_model == THERMO_MODEL.MIXTURE:
+                self.TF.capacity_model = THERMO_MODEL.CONSTANT
+                print("Warning: No chemistry module enabled, but mixture fluid capacity model selected. Switching to constant model.")
+            if self.TF.conductivity_model == CONDUCTIVITY_MODEL.MIXTURE:
+                self.TF.conductivity_model = CONDUCTIVITY_MODEL.CONSTANT
+                print("Warning: No chemistry module enabled, but mixture fluid conductivity model selected. Switching to constant model.")
+            if self.TS.capacity_model == THERMO_MODEL.MIXTURE:
+                self.TS.capacity_model = THERMO_MODEL.CONSTANT
+                print("Warning: No chemistry module enabled, but mixture solid capacity model selected. Switching to constant model.")
+            if self.TS.conductivity_model == CONDUCTIVITY_MODEL.MIXTURE:
+                self.TS.conductivity_model = CONDUCTIVITY_MODEL.CONSTANT
+                print("Warning: No chemistry module enabled, but mixture solid conductivity model selected. Switching to constant model.")
     @ti.kernel
     def static_init_kernel(self): # 初始化静态变量
         self.e9[0] = ti.Vector([0,0,0])
