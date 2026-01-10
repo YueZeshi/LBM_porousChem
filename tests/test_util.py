@@ -3,7 +3,8 @@
 # test_util.py
 import numpy as np
 import pytest
-from LBM.util import math, path, constant, flag
+from LBM.util import math, constant, flag
+from visualization_tool import root_path
 
 def test_vectors_to_euler_identity():
     v = np.array([1, 0, 0])
@@ -22,12 +23,12 @@ def test_root_path_found(tmp_path, monkeypatch):
     root.mkdir()
     (root / "pyproject.toml").write_text("test")
     monkeypatch.chdir(root)
-    assert path.root_path() == str(root)
+    assert root_path.root_path() == str(root)
 
 def test_root_path_not_found(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     with pytest.raises(ValueError):
-        path.root_path()
+        root_path.root_path()
 
 def test_constant_values():
     assert constant.c > 1e8

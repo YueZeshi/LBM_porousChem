@@ -1,3 +1,4 @@
+from sympy import im
 import taichi as ti
 import numpy as np
 from ..util.flag import *
@@ -14,20 +15,21 @@ class LBM3D_BASE:
         self.t = 0.0
         self.tol = 1e-6
         # 模型参数
-        self.X = X
-        self.Y = Y
-        self.Z = Z
+        self.X = float(X)
+        self.Y = float(Y)
+        self.Z = float(Z)
         self.tLattice : int = 0
-        self.dx,self.dt = dx,dt #格子尺度 步进时间
-        self.nx = int(self.X/self.dx)
-        self.ny = int(self.Y/self.dx)
-        self.nz = int(self.Z/self.dx) # 模型大小
+        self.dx = float(dx) # 格子尺度 
+        self.dt = float(dt) # 步进时间
+        self.nx = np.round(self.X/self.dx).astype(int)
+        self.ny = np.round(self.Y/self.dx).astype(int)
+        self.nz = np.round(self.Z/self.dx).astype(int) # 模型大小
         self.max_v=ti.field(float,shape=())
-        self.viscosity_model = VISCOSITY_MODEL.NONE
-        self.visco = 2e-5
+        self.viscosity_model = VISCOSITY_MODEL.CONSTANT
+        self.visco = 1e-5
         self.sutherland_coef = [1.6e-6,170]
-        self.source_term_model = SOURCE_TERM.NONE
-        self.force_term_model = FORCE_TERM.NONE
+        self.source_term_model = SOURCE_TERM.MICRO
+        self.force_term_model = FORCE_TERM.GUO
         self.boundary_condition_model = BC_MODEL.NEE
         self.EOS = FLUID_STATE_EQUATION.IDEAL_GAS
         # LBM使用常量
@@ -113,6 +115,7 @@ class LBM3D_BASE:
     @ti.func
     def feq19(self,s,i,j,k):
         pass
+    @ti.kernel
     def default_init(self):
         pass
     @ti.func

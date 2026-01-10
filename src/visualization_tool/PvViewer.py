@@ -1,11 +1,10 @@
-import sys 
 import pyvista as pv
 import numpy as np
 import xml.etree.ElementTree as ET
 import os
 from pathlib import Path        
 from collections import OrderedDict
-from ..util.path import root_path
+from .root_path import root_path
 import ctypes
 
 class PvViewer:

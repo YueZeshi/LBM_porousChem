@@ -1,3 +1,4 @@
+from numpy import fix
 from ._core import LBM3D_BASE
 from ..util.flag import *
 import taichi as ti
@@ -8,15 +9,17 @@ class LBM3D_INITIALIZATION(LBM3D_BASE):
     @ti.kernel
     def default_init(self): # 创建时初始化
         for i in ti.ndrange(6):
-            self.rho_BC[i] = 0.0
-            self.v_BC[i] = ti.Vector([0,0,0])
+            self.rho_BC[i] = 1.0
+            self.v_BC[i] = ti.Vector([0.0,0.0,0.0])
         for i in ti.grouped(self.solid):
             self.solid[i] = 0.0
-            self.v[i] = ti.Vector([0,0,0])
+            self.v[i] = ti.Vector([0.0,0.0,0.0])
             self.rho[i] = 1.0
+
     def init_simulation(self):
         self.init_python()
         self.init_kernel()
+
     def init_python(self):
         if self.CHEMISTRY:
             self.reactions.dS = ti.Vector.field(len(self.species)+1,dtype = float,shape=self.rho.shape)
@@ -31,9 +34,11 @@ class LBM3D_INITIALIZATION(LBM3D_BASE):
                 self.TF.conductivity_model = CONDUCTIVITY_MODEL.CONSTANT
                 print("Warning: No chemistry module enabled, but mixture fluid conductivity model selected. Switching to constant model.")
         fixSpecieNum = 0
-        for specie in self.species:
-            if specie.FIX:
-                fixSpecieNum += 1
+        if self.CHEMISTRY: # 判断是否定义固体物种
+            fixSpecieNum = 0
+            for specie in self.species:
+                if specie.FIX:
+                    fixSpecieNum += 1
         if (not self.CHEMISTRY or fixSpecieNum==0) and self.TEMPERATURE:
             if self.TS.capacity_model == THERMO_MODEL.MIXTURE:
                 self.TS.capacity_model = THERMO_MODEL.CONSTANT
@@ -41,6 +46,7 @@ class LBM3D_INITIALIZATION(LBM3D_BASE):
             if self.TS.conductivity_model == CONDUCTIVITY_MODEL.MIXTURE:
                 self.TS.conductivity_model = CONDUCTIVITY_MODEL.CONSTANT
                 print("Warning: No chemistry module enabled, but mixture solid conductivity model selected. Switching to constant model.")
+    
     @ti.kernel
     def static_init_kernel(self): # 初始化静态变量
             self.e19[0] = ti.Vector([0,0,0])
@@ -94,6 +100,7 @@ class LBM3D_INITIALIZATION(LBM3D_BASE):
                     self.TS.g[i][s] = self.TS.geq7(s,self.TS.S[i],i[0],i[1],i[2])
                     self.TS.G[i][s] = self.TS.g[i][s]
         self.init_boundary()
+
     @ti.func
     def init_boundary(self): # 固定流量边界需要特殊初始化
         if ti.static(self.bc[0]==BC_FLOW.inlet_flow):

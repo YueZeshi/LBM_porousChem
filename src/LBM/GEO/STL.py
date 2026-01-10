@@ -11,7 +11,7 @@
 
 import os
 import numpy as np
-from ..util.path import root_path
+from visualization_tool.root_path import root_path
 import logging
 
 class StlGenerator:
@@ -209,7 +209,7 @@ class StlReader:
         sampled = grid.sample(voxels)
         
         # 5. 提取标量数据为数组
-        voxel_array = np.array(sampled['vtkValidPointMask'].reshape(grid.dimensions, order='F'),dtype = float)
+        voxel_array = np.array(sampled['vtkValidPointMask'].reshape(grid.dimensions, order='F')).astype(np.float32)
         voxelField = ti.field(float,shape = voxel_array.shape)
         surfaceField = ti.field(float,shape = voxel_array.shape)
         voxelField.from_numpy(voxel_array)

@@ -31,6 +31,13 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
             if self.TF.conductivity_model == CONDUCTIVITY_MODEL.MIXTURE:
                 self.TF.conductivity_model = CONDUCTIVITY_MODEL.CONSTANT
                 print("Warning: No chemistry module enabled, but mixture fluid conductivity model selected. Switching to constant model.")
+        fixSpecieNum = 0
+        if self.CHEMISTRY: # 判断是否定义固体物种
+            fixSpecieNum = 0
+            for specie in self.species:
+                if specie.FIX:
+                    fixSpecieNum += 1
+        if (not self.CHEMISTRY or fixSpecieNum==0) and self.TEMPERATURE:
             if self.TS.capacity_model == THERMO_MODEL.MIXTURE:
                 self.TS.capacity_model = THERMO_MODEL.CONSTANT
                 print("Warning: No chemistry module enabled, but mixture solid capacity model selected. Switching to constant model.")

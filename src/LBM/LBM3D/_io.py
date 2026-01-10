@@ -1,3 +1,4 @@
+import ast
 import taichi as ti
 import numpy as np
 import os
@@ -47,13 +48,14 @@ class LBM3D_INPUT(LBM3D_BASE):
             - ndarray：直接写入（需要形状匹配）。
         """
         if(type(param) in [float,int]):
-            data = param*np.ones(shape=(self.nx,self.ny,self.nz),dtype=np.float32) 
+            data = param*np.ones(shape=(self.nx,self.ny,self.nz),dtype=np.float32).astype(np.float32)
             field.from_numpy(data)
         if(type(param) is str):
             in_dat = np.loadtxt(param,dtype=np.float32)
-            in_dat = np.reshape(in_dat, (self.nx,self.ny,self.nz),order='F')
+            in_dat = np.reshape(in_dat, (self.nx,self.ny,self.nz),order='F').astype(np.float32)
             field.from_numpy(in_dat)
         if(type(param)==np.ndarray):
+            param = np.array(param).astype(np.float32)
             field.from_numpy(param)        
     def init_field2(self,field,param1,param2): 
         """用两组数据初始化双通道场，最后 axis=3 拼接。
@@ -66,19 +68,19 @@ class LBM3D_INPUT(LBM3D_BASE):
             支持常数、文件路径或 ndarray，均按 Fortran-order 对齐。
         """
         if(type(param1) in [float,int]):
-            dat1 = param1*np.ones(shape=(self.nx,self.ny,self.nz))   
+            dat1 = param1*np.ones(shape=(self.nx,self.ny,self.nz)).astype(np.float32) 
         if(type(param1) is str):
             dat1 = np.loadtxt(param1)
-            dat1 = np.reshape(dat1, (self.nx,self.ny,self.nz),order='F')
+            dat1 = np.reshape(dat1, (self.nx,self.ny,self.nz),order='F').astype(np.float32)
         if(type(param1)==np.ndarray):
-            dat1 = param1
+            dat1 = np.array(param1).astype(np.float32)
         if(type(param2) in [float,int]):
-            dat2 = param2*np.ones(shape=(self.nx,self.ny,self.nz))   
+            dat2 = param2*np.ones(shape=(self.nx,self.ny,self.nz)).astype(np.float32)  
         if(type(param2) is str):
             dat2 = np.loadtxt(param2)
-            dat2 = np.reshape(dat2, (self.nx,self.ny,self.nz),order='F')
+            dat2 = np.reshape(dat2, (self.nx,self.ny,self.nz),order='F').astype(np.float32)
         if(type(param2)==np.ndarray):
-            dat2 = param2
+            dat2 = np.array(param2).astype(np.float32)
         data = np.concatenate((dat1,dat2),axis = 3)
         field.from_numpy(data)   
     def init_field3(self,field,param1,param2,param3): 
@@ -92,26 +94,26 @@ class LBM3D_INPUT(LBM3D_BASE):
             支持常数、文件路径或 ndarray，均按 Fortran-order 对齐。
         """
         if(type(param1) in [float,int]):
-            dat1 = param1*np.ones(shape=(self.nx,self.ny,self.nz))   
+            dat1 = param1*np.ones(shape=(self.nx,self.ny,self.nz)).astype(np.float32)
         if(type(param1) is str):
             dat1 = np.loadtxt(param1)
-            dat1 = np.reshape(dat1, (self.nx,self.ny,self.nz),order='F')
+            dat1 = np.reshape(dat1, (self.nx,self.ny,self.nz),order='F').astype(np.float32)
         if(type(param1)==np.ndarray):
-            dat1 = param1
+            dat1 = np.array(param1).astype(np.float32)
         if(type(param2) in [float,int]):
-            dat2 = param2*np.ones(shape=(self.nx,self.ny,self.nz))   
+            dat2 = param2*np.ones(shape=(self.nx,self.ny,self.nz)).astype(np.float32)  
         if(type(param2) is str):
             dat2 = np.loadtxt(param2)
             dat2 = np.reshape(dat2, (self.nx,self.ny,self.nz),order='F')
         if(type(param2)==np.ndarray):
-            dat2 = param2
+            dat2 = np.array(param2).astype(np.float32)
         if(type(param3) in [float,int]):
-            dat3 = param3*np.ones(shape=(self.nx,self.ny,self.nz))   
+            dat3 = param3*np.ones(shape=(self.nx,self.ny,self.nz)).astype(np.float32)   
         if(type(param3) is str):
             dat3 = np.loadtxt(param3)
-            dat3 = np.reshape(dat3, (self.nx,self.ny,self.nz),order='F')
+            dat3 = np.reshape(dat3, (self.nx,self.ny,self.nz),order='F').astype(np.float32)
         if(type(param3)==np.ndarray):
-            dat3 = param3
+            dat3 = np.array(param3).astype(np.float32)
         dat1 = np.expand_dims(dat1,3)
         dat2 = np.expand_dims(dat2,3)
         dat3 = np.expand_dims(dat3,3)

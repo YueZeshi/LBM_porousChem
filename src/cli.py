@@ -2,7 +2,7 @@ import click
 import os
 from ruamel.yaml import YAML
 import shutil
-from .util.path import root_path
+from visualization_tool.root_path import root_path
 import logging
 import sys
 #
@@ -34,7 +34,7 @@ def run(config,verbose,clear):
         with open(config,'r',encoding="utf8") as f:
             logger.info(f"Loading {config} file")
             config = yaml.load(f)
-            from .app import application
+            from LBM.app import application
             application(config,logger)
     else:                
         dirs = os.listdir()

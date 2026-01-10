@@ -2,7 +2,7 @@
 
 # test_cantera_tool.py
 import pytest
-from LBM.cantera_tool import ck2yaml
+from cantera_tool import ck2yaml
 
 def test_flowmap_and_flowlist():
     m = ck2yaml.FlowMap(a=1, b=2)

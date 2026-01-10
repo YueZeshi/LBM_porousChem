@@ -31,12 +31,13 @@ dependencies = [
     "sphinx>=9.0.4",
     "cadquery>=2.6.1",
     "vtk>=9.2",
+    "ipykernel>=7.1.0",
 ]
 
 [project.scripts]
-lbm = "LBM.cli:run"
-paraLbm = "LBM.cli:paralbm"
-pvLbm = "LBM.cli:pvlbm"
+lbm = "cli:run"
+paraLbm = "cli:paralbm"
+pvLbm = "cli:pvlbm"
 ck2yaml = "cantera_tool.ck2yaml:main"
 cti2yaml = "cantera_tool.cti2yaml:main"
 cmtl2yaml = "cantera_tool.cmtl2yaml:main"
@@ -47,7 +48,7 @@ cmtl2yaml = "cantera_tool.cmtl2yaml:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]  # 在 src 目录中查找
-include = ["LBM*","visualization_tool*","cantera_tool*"]  # 只包含 LBM 包
+include = ["LBM*","visualization_tool*","cantera_tool*","cli"]  # 只包含 LBM 包
 
 [tool.uv]
 # 使用国内镜像

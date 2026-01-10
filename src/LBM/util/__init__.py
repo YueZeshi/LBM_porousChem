@@ -8,11 +8,9 @@
 """
 
 # 可选导出，便于快捷导入
-from .path import root_path
 from . import constant, flag, math
 
 __all__ = [
-	"root_path",
 	"constant",
 	"flag",
 	"math",
