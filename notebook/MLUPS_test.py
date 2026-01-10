@@ -12,7 +12,7 @@ def MLUPS(dx,verbose= False):
     time_list = []
     dt = dx
     nLattice = 0
-    ti.init(arch=ti.cpu)
+    ti.init(arch=ti.gpu)
     if verbose:
         print(ti.cfg.arch)
     lb = LBM3DSolver(X,Y,Z,dx,dt)
@@ -27,7 +27,7 @@ def MLUPS(dx,verbose= False):
     time_list.append(time.time())
     lb.step()
     time_list.append(time.time())
-    for i in range(5):
+    for i in range(10):
         time_list.append(time.time())
         for j in range(10000):
             lb.step()
@@ -52,4 +52,4 @@ if __name__=="__main__":
     for dx in np.logspace(-2,-4,100):
         for item in MLUPS(dx,verbose):
             print(item)
-        print("-----")
+        print("-----",flush=True)
