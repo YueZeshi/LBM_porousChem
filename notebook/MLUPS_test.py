@@ -13,7 +13,7 @@ def MLUPS(dx,verbose= False):
     dt = dx
     nLattice = 0
     ti.reset()
-    ti.init(arch=ti.gpu)
+    ti.init(arch=ti.cpu)
     if verbose:
         print(ti.cfg.arch) # type: ignore 
     lb = LBM3DSolver(X,Y,Z,dx,dt)
