@@ -23,6 +23,7 @@ def MLUPS(dx,verbose= False):
     lb.set_vtk_path("res")
     time_list.append(time.time())
     lb.init_simulation()
+    ti.sync()
     time_list.append(time.time())
     if verbose:
         print(lb.description())
