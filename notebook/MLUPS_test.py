@@ -3,7 +3,7 @@ import taichi as ti
 import time
 import numpy as np
 from LBM.LBM3D import LBM3DSolver
-from LBM.util.flag import *
+from LBM.util.flag import BC_FLOW
 
 X = 0.100
 Y = 0.111
