@@ -39,7 +39,6 @@ def MLUPS(dx,verbose= False):
             # lb.export_VTK_pyvista()
     if verbose:
         print(time_list)
-    # v = lb.v[lb.nx//2,lb.ny//2,lb.nz//2]
     nLattice = lb.nx*lb.ny*lb.nz
     time_init = time_list[1]-time_list[0]
     time_first = time_list[3]-time_list[2]
