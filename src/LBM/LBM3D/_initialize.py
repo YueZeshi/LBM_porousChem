@@ -1,7 +1,7 @@
-from numpy import fix
+import taichi as ti
+import os
 from ._core import LBM3D_BASE
 from ..util.flag import *
-import taichi as ti
 
 @ti.data_oriented
 class LBM3D_INITIALIZATION(LBM3D_BASE):
@@ -21,6 +21,8 @@ class LBM3D_INITIALIZATION(LBM3D_BASE):
         self.init_kernel()
 
     def init_python(self):
+        if not os.path.exists(self.exportPath):
+            os.mkdir(self.exportPath)
         if self.CHEMISTRY:
             self.reactions.dS = ti.Vector.field(len(self.species)+1,dtype = float,shape=self.rho.shape)
             self.reactions.specieNum = len(self.species)

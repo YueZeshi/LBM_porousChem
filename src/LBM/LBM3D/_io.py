@@ -617,52 +617,52 @@ class LBM3D_OUTPUT(LBM3D_BASE):
         "TEMPERATURE":self.TEMPERATURE,
         "RADIATION":self.RADIATION
         }
-        lbm_info["BASIC"]=basic_info
-        ## FLOW
-        flow_info = {}
-        flow_info["viscosity"] = {
-            "function":"uniform",
-            "value":1e-5
-            }
-        flow_BC = {}
-        for i in range(6):
-            flow_BC_side = {}
-            if self.bc[i]==BC_FLOW.periodic:
-                flow_BC_side["type"]="periodic"
-            elif self.bc[i]==BC_FLOW.inlet:
-                flow_BC_side["type"]="inlet"
-                flow_BC_side["velocity"] = list(self.v_BC[i])
-            elif self.bc[i]==BC_FLOW.outlet:
-                flow_BC_side["type"]="outlet"
-                flow_BC_side["rho"]= self.rho_BC[i]
-            elif self.bc[i]==BC_FLOW.wall:
-                flow_BC_side["type"]="wall"
-            elif self.bc[i]==BC_FLOW.symmetric:
-                flow_BC_side["type"]="symmetric"
-            flow_BC[self.sideName[i]]=flow_BC_side
-        flow_info["boundaryCondition"]=flow_BC
-        flow_info["f"]=self.f.to_numpy().tolist()
-        flow_info["v"] = self.v.to_numpy().tolist()
-        lbm_info["FLOW"] = flow_info
-        ## SOLID
-        solid = self.solid.to_numpy().tolist()
-        lbm_info["SOLID"]=solid
-        if self.TEMPERATURE:
-            ## TEMPERATURE FLUID
-            TF_info = {}
-            lbm_info["TEMPERATURE_FLUID"]=TF_info
-            ## TEMPERATURE SOLID
-            TS_info = {}
-            lbm_info["TEMPERATURE_SOLID"]=TS_info
-            ## RADIATION
-            if self.RADIATION:
-                radiation_info = {}
-                lbm_info["RADIATION"]=radiation_info
-        ## SPECIES
-        if self.CHEMISTRY:
-            species_info = {}
-        with open(path,"w") as f:
-            json.dump(lbm_info,f,indent=4)
+        # lbm_info["BASIC"]=basic_info
+        # ## FLOW
+        # flow_info = {}
+        # flow_info["viscosity"] = {
+        #     "function":"uniform",
+        #     "value":1e-5
+        #     }
+        # flow_BC = {}
+        # for i in range(6):
+        #     flow_BC_side = {}
+        #     if self.bc[i]==BC_FLOW.periodic:
+        #         flow_BC_side["type"]="periodic"
+        #     elif self.bc[i]==BC_FLOW.inlet:
+        #         flow_BC_side["type"]="inlet"
+        #         flow_BC_side["velocity"] = list(self.v_BC[i])
+        #     elif self.bc[i]==BC_FLOW.outlet:
+        #         flow_BC_side["type"]="outlet"
+        #         flow_BC_side["rho"]= self.rho_BC[i]
+        #     elif self.bc[i]==BC_FLOW.wall:
+        #         flow_BC_side["type"]="wall"
+        #     elif self.bc[i]==BC_FLOW.symmetric:
+        #         flow_BC_side["type"]="symmetric"
+        #     flow_BC[self.sideName[i]]=flow_BC_side
+        # flow_info["boundaryCondition"]=flow_BC
+        # flow_info["f"]=self.f.to_numpy().tolist()
+        # flow_info["v"] = self.v.to_numpy().tolist()
+        # lbm_info["FLOW"] = flow_info
+        # ## SOLID
+        # solid = self.solid.to_numpy().tolist()
+        # lbm_info["SOLID"]=solid
+        # if self.TEMPERATURE:
+        #     ## TEMPERATURE FLUID
+        #     TF_info = {}
+        #     lbm_info["TEMPERATURE_FLUID"]=TF_info
+        #     ## TEMPERATURE SOLID
+        #     TS_info = {}
+        #     lbm_info["TEMPERATURE_SOLID"]=TS_info
+        #     ## RADIATION
+        #     if self.RADIATION:
+        #         radiation_info = {}
+        #         lbm_info["RADIATION"]=radiation_info
+        # ## SPECIES
+        # if self.CHEMISTRY:
+        #     species_info = {}
+        # with open(path,"w") as f:
+        #     json.dump(lbm_info,f,indent=4)
    
 
     def export_VTK_pyevtk(self): # 导出为vtk 到指定文件夹中

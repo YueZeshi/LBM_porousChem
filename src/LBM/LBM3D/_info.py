@@ -87,8 +87,8 @@ class LBM3D_INFO(LBM3D_BASE):
     def description_BC(self)->str:
         des="Boundary condition model : "+ BC_MODEL(self.boundary_condition_model).name+"\n"
         des+="The boundary conditions of the flow field are set to :\n"
-        sideName = ["left","right","bottom","top"]
-        for i in range(4):
+        sideName = ["left","right","bottom","top","forward","back"]
+        for i in range(6):
             # des+=self.bc[i])
             if self.bc[i]==BC_FLOW.periodic:
                 des+="    "+sideName[i]+": PERIODIC\n"
