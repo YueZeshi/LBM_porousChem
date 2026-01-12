@@ -15,7 +15,7 @@ def MLUPS(dx,verbose= False):
     ti.reset()
     ti.init(arch=ti.gpu)
     if verbose:
-        print(ti.cfg.arch)
+        print(ti.cfg.arch) # type: ignore 
     lb = LBM3DSolver(X,Y,Z,dx,dt)
     lb.set_BCs([BC_FLOW.inlet, BC_FLOW.outlet, BC_FLOW.wall, BC_FLOW.wall, BC_FLOW.wall, BC_FLOW.wall])
     # lb.set_viscosity()
@@ -45,11 +45,14 @@ def MLUPS(dx,verbose= False):
     time_init = time_list[1]-time_list[0]
     time_first = time_list[3]-time_list[2]
     time_10000 = []
+    MLUPS_list = []
     for i in range(10):
-        time_10000.append(time_list[2*i+5]-time_list[2*i+4])
-    time_avg_10000 = np.array(time_10000).mean()
-    MLUPS = nLattice*10000/time_avg_10000/1e6
-    return nLattice,MLUPS,time_avg_10000,time_first,time_init,time_10000
+        exec_time = time_list[2*i+5]-time_list[2*i+4]
+        time_10000.append(exec_time)
+        MLUPS_list.append(nLattice*10000/exec_time/1e6)
+    avgMLUPS = np.mean(MLUPS_list)
+    stdMLUPS = np.std(MLUPS_list)
+    return nLattice,avgMLUPS,stdMLUPS,time_first,time_init,time_10000
 
 if __name__=="__main__":
     verbose = False
@@ -57,12 +60,15 @@ if __name__=="__main__":
         verbose = True
     i = 0
     nskip = 0
+    data_name = ["LatticeNumber","AvgMLUPS","StdMLUPS","CompileTime","InitTime","Exe10000Times"]
     for dx in np.logspace(-2,-4,100):
         if i < nskip:
             i += 1
             print("Skipping:", dx)
             continue
         info = MLUPS(dx,verbose)
+        k = 0
         for item in info:
-            print(item)
+            print(data_name[k],":",item)
+            k += 1
         print("-----",flush=True)
