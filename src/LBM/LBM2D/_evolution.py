@@ -13,6 +13,8 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
         self.updateBC(self.t)
         self.step_kernel()
         self.tLattice += 1
+        self.t += self.dt
+        ti.sync()
     @ti.kernel
     def step_kernel(self):
         self.collision_source_streaming() # f->F
@@ -290,8 +292,8 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
         eps = 1.0-self.solid[i]
         term = 0.0
         if ti.static(self.EOS==FLUID_STATE_EQUATION.INCOMPRESSIBLE):
-            term = (1.0-1.0/2.0/tau)*self.w9[s]*(3.0*ti.math.dot(self.e9[s]-u/eps,F)\
-              +9.0*self.e9[s].dot(u)*self.e9[s].dot(F)/eps)
+            term = (1.0-1.0/2.0/tau)*self.w9[s]*(3.0*ti.math.dot(self.e9[s]-u/(eps+1e-12),F)\
+              +9.0*self.e9[s].dot(u)*self.e9[s].dot(F)/(eps+1e-12))
         elif ti.static(self.EOS==FLUID_STATE_EQUATION.IDEAL_GAS):
             term = (1.0-1.0/2.0/tau)*rho*self.w9[s]*(3.0*ti.math.dot(self.e9[s]-u/(eps+1e-12),F)\
               +9.0*self.e9[s].dot(u)*self.e9[s].dot(F)/(eps+1e-12))

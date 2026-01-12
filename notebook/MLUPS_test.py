@@ -33,7 +33,6 @@ def MLUPS(dx,verbose= False):
         time_list.append(time.time())
         for j in range(10000):
             lb.step()
-            ti.sync()
         time_list.append(time.time())
         if verbose:
             print(lb.log_info())

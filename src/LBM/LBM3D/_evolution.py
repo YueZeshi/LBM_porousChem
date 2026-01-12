@@ -11,6 +11,7 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
     def step(self):
         self.updateBC(self.t)
         self.step_kernel()
+        ti.sync()
         self.tLattice += 1
         self.t += self.dt
         
@@ -287,10 +288,10 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
         eps = 1.0-self.solid[i]
         term = 0.0
         if ti.static(self.EOS==FLUID_STATE_EQUATION.INCOMPRESSIBLE):
-            term = (1.0-1.0/2.0/tau)*self.w19[s]*(3.0*(self.e19[s]-u/(eps+1e-12)).dot(F)\
+            term = (1.0-1.0/2.0/tau)*self.w19[s]*(3.0*ti.math.dot(self.e19[s]-u/(eps+1e-12),F)\
               +9.0*self.e19[s].dot(u)*self.e19[s].dot(F)/(eps+1e-12))
         elif ti.static(self.EOS==FLUID_STATE_EQUATION.IDEAL_GAS):
-            term = (1.0-1.0/2.0/tau)*rho*self.w19[s]*(3.0*(self.e19[s]-u/(eps+1e-12)).dot(F)\
+            term = (1.0-1.0/2.0/tau)*rho*self.w19[s]*(3.0*ti.math.dot(self.e19[s]-u/(eps+1e-12),F)\
               +9.0*self.e19[s].dot(u)*self.e19[s].dot(F)/(eps+1e-12))
         return term    
     @ti.func

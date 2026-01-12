@@ -676,7 +676,6 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
             last_print_time = time.time()
             logger.debug(lb.tLattice)
         lb.step()
-        ti.sync()
     logger.info("LBM finished.")
 
 
