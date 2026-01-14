@@ -49,22 +49,25 @@ class LBM3D_BASE:
         self.v = ti.Vector.field(3,float, shape=(self.nx,self.ny,self.nz))
         self.solid = ti.field(float,shape = (self.nx,self.ny,self.nz))
         self.rhos = ti.field(float,shape=(self.nx,self.ny,self.nz))
-        self.f = ti.Vector.field(19,float,shape=(self.nx,self.ny,self.nz))
-        self.F = ti.Vector.field(19,float,shape=(self.nx,self.ny,self.nz))
+        self.f = ti.Vector.field(19,float,shape=(self.nx,self.ny,self.nz)) # 分布函数
+        self.F = ti.Vector.field(19,float,shape=(self.nx,self.ny,self.nz)) # 分布函数，两个分布函数场交替使用提高并行性
 
         # 定义边界条件
-        self.bc = [BC_FLOW.periodic]*6
-        self.bc_v = [BC.periodic]*6
-        self.bc_rho = [BC.periodic]*6
+        self.bc = [BC_FLOW.periodic]*6 # 左右前后上下边界条件类型
+        self.bc_v = [BC.periodic]*6 # 左右前后上下速度边界条件类型
+        self.bc_rho = [BC.periodic]*6 # 左右前后上下密度边界条件类型
+        # 左右前后上下边界速度值/密度值/流量值
         self.v_BC = ti.Vector.field(3,float,shape = (6))
         self.rho_BC = ti.field(float,shape = (6))
         self.flow_BC = ti.field(float,shape = (6))
+        # 边界速度剖面
         self.v_bc_profile = [ti.Vector.field(3,float,shape = (1,self.ny,self.nz)),
                              ti.Vector.field(3,float,shape = (1,self.ny,self.nz)),
                              ti.Vector.field(3,float,shape = (self.nx,1,self.nz)),
                              ti.Vector.field(3,float,shape = (self.nx,1,self.nz)),
                              ti.Vector.field(3,float,shape = (self.nx,self.ny,1)),
                              ti.Vector.field(3,float,shape = (self.nx,self.ny,1)),]
+        # 边界密度剖面
         self.rho_bc_profile = [ti.field(float,shape = (1,self.ny,self.nz)),
                                ti.field(float,shape = (1,self.ny,self.nz)),
                                ti.field(float,shape = (self.nx,1,self.nz)),
@@ -73,8 +76,8 @@ class LBM3D_BASE:
                                ti.field(float,shape = (self.nx,self.ny,1)),] 
         
         self.sideName = ["left","right","front","back","bottom","top"]
-        self.UpdateBCfunc = [] # 可变边界条件
-        self.GetVariableFunc = [] # 获取观测量的函数
+        self.UpdateBCfunc:list[callable] = [] # 可变边界条件
+        self.GetVariableFunc:list[callable] = [] # 获取观测量的函数
         
         self.TEMPERATURE= isThermal
         self.CHEMISTRY = isChemical

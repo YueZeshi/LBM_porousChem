@@ -58,12 +58,13 @@ if __name__=="__main__":
     if len(sys.argv)>1:
         verbose = True
     i = 0
-    nskip = 0
+    nskip = 49
     data_name = ["LatticeNumber","AvgMLUPS","StdMLUPS","CompileTime","InitTime","Exe10000Times"]
     for dx in np.logspace(-2,-4,100):
         if i < nskip:
             i += 1
-            print("Skipping:", dx)
+            if verbose:
+                print("Skipping:", dx)
             continue
         info = MLUPS(dx,verbose)
         k = 0
