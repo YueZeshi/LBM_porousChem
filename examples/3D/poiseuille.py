@@ -5,7 +5,7 @@ import os
 import sys
 import numpy as np
 # 指定求解器
-from LBM.LBM2D import LBM2DSolver as lb3d
+from LBM.LBM2D import LBM2DSolver as LB3D
 from LBM.util.flag import *
 def main(DX,DT,variant):
     # 获取环境变量是否启用debug模式
@@ -32,7 +32,7 @@ def main(DX,DT,variant):
     else:
         ti.init(arch=ti.cpu, kernel_profiler=True, print_ir=False)
     # 初始化lbm模型
-    lb3d = lb3d(X,Y,dx=DX,dt=DT,isPoro=False,isChemical=False,isThermal=False,isRadiation=False)
+    lb3d = LB3D(X,Y,dx=DX,dt=DT,isPoro=False,isChemical=False,isThermal=False,isRadiation=False)
     # 基础设置
     # lb3d.source_term_model = SOURCE_TERM.MICRO
     # lb3d.force_term_model = FORCE_TERM.GUO
@@ -48,7 +48,7 @@ def main(DX,DT,variant):
     ## 初始化场 
     lb3d.init_field(lb3d.rho,1.0)
     def setVariables():
-        def v_center(lbm:lb3d):
+        def v_center(lbm:LB3D):
             v = lbm.v[int(X/DX/2),int(Y/DX/2),0][0]
             return "v", v
         lb3d.GetVariableFunc.append(v_center)

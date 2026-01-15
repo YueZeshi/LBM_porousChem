@@ -5,8 +5,8 @@ import os
 import sys
 import numpy as np
 # 指定求解器
-from LBM.LBM2D import LBM2DSolver as lb3d
-from LBM.GEO.G2D import Mesh2D
+from LBM.LBM2D import LBM2DSolver as LB3D
+from LBM.GEO.STL import StlGenerator
 from LBM.util.flag import *
 def main(DX,DT,variant):
     # 获取环境变量是否启用debug模式
@@ -32,7 +32,7 @@ def main(DX,DT,variant):
     else:
         ti.init(arch=ti.cpu, kernel_profiler=True, print_ir=False)
     # 初始化lbm模型
-    lb3d = lb3d(X,Y,dx=DX,dt=DT,isPoro=True,isChemical=False,isThermal=False,isRadiation=False)
+    lb3d = LB3D(X,Y,dx=DX,dt=DT,isPoro=True,isChemical=False,isThermal=False,isRadiation=False)
     # 基础设置
     # lb3d.source_term_model = SOURCE_TERM.MICRO
     Re  = 0.1
@@ -55,7 +55,7 @@ def main(DX,DT,variant):
     lb3d.set_rho_BCs_value([1,1,1,1])
     ## 初始化场 
     lb3d.init_field(lb3d.rho,1)
-    m2d = Mesh2D(lb3d.nx,lb3d.ny)
+    m2d = StlGenerator()
     m2d.CreateMesh2DRectangle(ti.Vector([40,-10,0]),ti.Vector([60,200,0]))
     s,l =m2d.export_numpy()
     lb3d.init_field(lb3d.solid,(1-eps)*s)
