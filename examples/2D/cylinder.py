@@ -1,4 +1,3 @@
-from re import T
 import time
 import taichi as ti
 import taichi.profiler as profiler
@@ -8,11 +7,10 @@ import numpy as np
 # 指定求解器
 from LBM.LBM2D import LBM2DSolver as LB2D
 from LBM.util.flag import *
-from LBM.GEO.G2D import Mesh2D
+from LBM.GEO.STL import StlGenerator
 def main(DX,DT,variant):
     # 获取环境变量是否启用debug模式
     # debug模式计算较少的步数 用于检验算例是否快速发散
-    print(os.getenv("DEBUG","false"))
     DEBUG = os.getenv("DEBUG","False").lower() == "true" # 默认非debug
     ARCH = os.getenv("ARCH","cpu").lower() # 默认CPU
     ## 用于获取运算时间信息
@@ -40,7 +38,7 @@ def main(DX,DT,variant):
     else:
         ti.init(arch=ti.cpu, kernel_profiler=True, print_ir=False)
     # 初始化lbm模型
-    lb2d = LB2D(X,Y,dx=DX,dt=DT,isPoro=False,isChemical=False,isThermal=False,isRadiation=False)
+    lb2d = LB2D(X,Y,1,dx=DX,dt=DT,isPoro=False,isChemical=False,isThermal=False,isRadiation=False)
     # 基础设置
     # lb2d.source_term_model = SOURCE_TERM.MICRO
     # lb2d.force_term_model = FORCE_TERM.GUO
@@ -51,18 +49,15 @@ def main(DX,DT,variant):
     lb2d.set_rho_BCs_value([1,1,1,1])
 
     ## 初始化场 
-    m2d = Mesh2D(X,Y)
-    m2d.CreateMesh2DCircle((locX,locY),R)
-    s,_ = m2d.export_numpy()
-    s = np.expand_dims(s,axis=2)
+    cylinder_path = StlGenerator().create_cylinder()
+    s,_ = lb2d.load_stl(cylinder_path,scale = R,translate = [locX,locY,0])
     lb2d.init_field(lb2d.solid,s)
     lb2d.init_field(lb2d.rho,1)
     lb2d.init_field3(lb2d.v,U,0,0)
     # lb2d.init_field(lb2d.solid,solid_file)
     # 初始化lbm
     lb2d.init_simulation()
-    lb2d.print_information()
-    # cal_allWood() # 计算总木材质量
+    print(lb2d.description())
 
     total_iteration =   100000
     export_interval = 50
@@ -91,19 +86,15 @@ def main(DX,DT,variant):
             print('----------Time between two outputs is %dh %dm %ds; elapsed time is %dh %dm %ds----------------------' %(h_diff, m_diff, s_diff,h_elap,m_elap,s_elap))
             print('The %dth iteration, Max Force = %f,  Min Temperature = %f\n\n ' %(iter, max_v,  min_T))            
         if (iter%int(export_interval/DT)==0):
-            if DEBUG:
-                lb2d.export_VTK(f"debug_{name}_{int(variant)}_{DX}",iter)
-                # lb2d.export_variable(f"simulation_{name}_{int(variant)}_{nx}_{int(T_exp)}",iter)
-            else:
-                lb2d.export_VTK(f"simulation_{name}_{int(variant)}_{DX}",iter)
-                lb2d.export_variable(f"simulation_{name}_{int(variant)}_{DX}",iter)
+                lb2d.export_VTK_pyevtk()
+                # lb2d.export_variable(f"simulation_{name}_{int(variant)}_{DX}",iter)
         lb2d.step()
 
 
     profiler.print_kernel_profiler_info()
     # profiler.print_memory_profiler_info()
 if __name__ == "__main__":
-    dx = sys.argv[1]
-    dt = sys.argv[2]
-    variant = sys.argv[3]
+    dx = sys.argv[1] if len(sys.argv)>1 else 1
+    dt = sys.argv[2] if len(sys.argv)>2 else 1
+    variant = sys.argv[3] if len(sys.argv)>3 else 0
     main(DX=float(dx),DT=float(dt),variant=variant)

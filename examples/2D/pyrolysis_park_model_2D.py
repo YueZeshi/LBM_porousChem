@@ -7,7 +7,7 @@ import numpy as np
 import sys
 # 指定求解器
 from LBM.LBM2D import LBM2DSolver
-from LBM.GEO.G2D import Mesh2D
+from LBM.GEO.STL import StlGenerator
 from LBM.util.flag import *
 def main(DX,DT,T_exp,variant="default"):
     # 获取环境变量是否启用debug模式
@@ -45,13 +45,13 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.force_term_model = FORCE_TERM.GUO
     lb2d.EOS = FLUID_STATE_EQUATION.IDEAL_GAS
     lb2d.set_viscosity(0.1)
-    lb2d.set_poro_Darcy(2.5e10,unit="SI")
     lb2d.set_radiation(RADIATION_MODEL.SURFACE_UNIFORM,T_exp)
     # 设置物质
     ## 物种及其状态
-    lb2d.set_specie("N2",False)
+    lb2d.set_specie("N2",False,28)
     lb2d.set_species(["wood(S)","intermSolid(S)","tar" ,"gas","char(S)"],
-                    [True     ,     True       ,False ,False,True     ])
+                    [True     ,     True       ,False ,False,True     ],
+                    [])
     # 设置边界条件
     lb2d.set_BCs([BC_FLOW.inlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall])
     lb2d.set_v_BCs_value([[0.01,0,0],[0,0,0],[0,0,0],[0,0,0]])
@@ -64,12 +64,12 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.set_specie_BCs_value("N2",[1]*4)
 
     # 添加化学反应
-    lb2d.add_reaction("w2t",[("wood(S)",1)],[("tar",1)],(1.08e10,0,148000,300,80000))
-    lb2d.add_reaction("w2syn",[("wood(S)",1)],[("gas",1)],(4.38e9,0,152700,300,80000))
-    lb2d.add_reaction("w2is",[("wood(S)",1)],[("intermSolid(S)",1)],(3.75e6,0,111700,300,80000))
-    lb2d.add_reaction("is2c",[("intermSolid(S)",1)],[("char(S)",1)],(1.38e10,0,161000,300,-300000))
-    lb2d.add_reaction("t2c",[("tar",1)],[("char(S)",1)],(1e5,0,108000,300,-42000))
-    lb2d.add_reaction("t2syn",[("tar",1)],[("gas",1)],(4.28e6,0,108000,300,-42000))
+    lb2d.add_reaction("wood(S)=tar",1.08e10,148000,0,300,80000)
+    lb2d.add_reaction("wood(S)=gas",4.38e9,152700,0,300,80000)
+    lb2d.add_reaction("wood(S)=intermSolid(S)",3.75e6,111700,0,300,80000)
+    lb2d.add_reaction("intermSolid(S)=char(S)",1.38e10,161000,0,300,-300000)
+    lb2d.add_reaction("tar=char(S)",1e5,108000,0,300,-42000)
+    lb2d.add_reaction("tar=gas",4.28e6,108000,0,300,-42000)
     # 设置物种物性
     ## 扩散
     lb2d.set_specie_diff("tar",1e-6,unit="SI")
@@ -100,7 +100,7 @@ def main(DX,DT,T_exp,variant="default"):
     def syngas_capacity(self,i):
         T = self.LBM.TF.S[i]
         return 770+0.629*T-1.91e-4*T**2
-    lb2d.set_specie_capacity_func("gas",syngas_capacity)
+    lb2d.set_specie_capacity("gas",syngas_capacity)
     lb2d.set_specie_capacity("N2",742)
     ## 热导
     lb2d.set_specie_conductivity("intermSolid(S)", 0.20487)
@@ -161,9 +161,9 @@ def main(DX,DT,T_exp,variant="default"):
     setVariables()
     ## 初始化场 
     lb2d.init_field(lb2d.rho,1)
-    m2d  = Mesh2D(lb2d.nx,lb2d.ny)
-    m2d.CreateMesh2DCircle(float(lb2d.nx)/2,float(lb2d.ny)/2,R/DX)
-    s,l = m2d.export_numpy()
+    cylinder  = StlGenerator().create_cylinder(2*R/DX,float(lb2d.ny)/2,float(lb2d.nx)/2, float(lb2d.ny)/2)
+    s,l = lb2d.load_stl(cylinder)
+    lb2d.set_poro_Darcy(s,2.5e10)
     lb2d.init_field(lb2d.solid,s*0.4)
     lb2d.init_field(lb2d.TF.S,T_init)
     lb2d.init_field(lb2d.TS.S,T_init)
@@ -175,6 +175,7 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.init_field(lb2d.TS.radiation_surface, l*0.6)# vague
     # 初始化lbm
     lb2d.init_simulation()
+    print(lb2d.description())
     lb2d.check_python()
     # cal_allWood() # 计算总木材质量
     total_iteration =   1000
@@ -209,24 +210,24 @@ def main(DX,DT,T_exp,variant="default"):
                 break          
         if (iter%int(export_interval/DT)==0):
             if DEBUG:
-                lb2d.export_VTK(f"debug_{name}_{variant}_{DX}",iter)
+                lb2d.export_VTK_pyvista()
                 # lb2d.export_variable(f"simulation_{name}_{int(variant)}_{nx}_{int(T_exp)}",iter)
             else:
-                lb2d.export_VTK(f"simulation_{name}_{variant}_{DX}",iter)
+                lb2d.export_VTK_pyvista()
         if (iter%int(measure_interval/DT)==0):
-                lb2d.export_variable(f"simulation_{name}_{variant}_{DX}",iter)
+                lb2d.export_variable()
         lb2d.step()
 
 
     profiler.print_kernel_profiler_info()
     # profiler.print_memory_profiler_info()
 if __name__=="__main__":
-    os.environ["ARCH"]="CPU"
-    DX = float(sys.argv[1])
-    DT = float(sys.argv[2])
-    T_exp = float(sys.argv[3])
-    variant = sys.argv[4]
+    os.environ["ARCH"] = "CPU"
+    dx = float(sys.argv[1]) if len(sys.argv) > 1 else 0.001
+    dt = float(sys.argv[2]) if len(sys.argv) > 2 else 0.001
+    T_exp = float(sys.argv[3]) if len(sys.argv) > 3 else 500
+    variant = sys.argv[4] if len(sys.argv) > 4 else "default"
     startTime = time.time()
-    main(DX,DT,T_exp,variant)
-    print("execution time: ", time.time()-startTime)
+    main(dx, dt, T_exp, variant)
+    print("execution time: ", time.time() - startTime)
     

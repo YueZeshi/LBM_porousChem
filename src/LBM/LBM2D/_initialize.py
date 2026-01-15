@@ -1,4 +1,5 @@
 import taichi as ti
+import os
 from ..util.flag import *
 from ._core import LBM2D_BASE
 @ti.data_oriented
@@ -21,7 +22,8 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
         if self.CHEMISTRY:
             self.reactions.dS = ti.Vector.field(len(self.species)+1,dtype = float,shape=self.rho.shape) # specie num + 1
             self.reactions.specieNum = len(self.species)
-        
+        # create export directory
+        os.makedirs(self.exportPath,exist_ok=True)
         # handle exception
         ## mixture but no chemistry
         if not self.CHEMISTRY and self.TEMPERATURE:

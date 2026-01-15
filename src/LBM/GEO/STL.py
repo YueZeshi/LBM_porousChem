@@ -22,8 +22,11 @@ class StlGenerator:
     logger : logging.Logger
         日志记录器，用于打印创建/复用信息。
     """
-    def __init__(self,logger:logging.Logger):
-        self.logger = logger
+    def __init__(self,logger:logging.Logger=None):
+        if logger:
+            self.logger = logger
+        else:
+            self.logger = logging.Logger("default")
         self.stl_repo = os.path.join(root_path(),"data","stl")
         if not os.path.exists(self.stl_repo):
             os.mkdir(self.stl_repo)

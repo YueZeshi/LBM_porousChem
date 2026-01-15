@@ -102,7 +102,7 @@ class LBM2D_BASE:
                 specie.default_init()
                 
         self.PVD = PVDWriter(name=self.name)
-        self.exportPath = "vtk"
+        self.exportPath = "result"
         self.snapshotPath = "snapshot.yaml"
     # 内置函数
     def __repr__(self):

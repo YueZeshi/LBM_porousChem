@@ -139,7 +139,7 @@ def pvlbm(data):
         else:
             print(f"Found {data} pvd file")
     print(f"Activating PvViewer to visualize {data}...")
-    from .visualization_tool.PvViewer import PvViewer
+    from visualization_tool.PvViewer import PvViewer
     pv = PvViewer(data)
     pv.show()
     

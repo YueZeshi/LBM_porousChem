@@ -16,7 +16,7 @@ class PVDWriter:
     name : str, default "default_name"
         集合文件名（不含扩展名）。实际输出为 `path/name.pvd`。
     """
-    def __init__(self,path="output",name="default_name"):
+    def __init__(self,path="result",name="default_name"):
         self.file_infos = []
         self.exportPath = path
         self.name = name

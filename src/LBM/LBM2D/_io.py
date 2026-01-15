@@ -492,7 +492,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         mesh and surface array
         """
         from ..GEO.STL import StlReader
-        stlReader = StlReader(self.X,self.Y,self.dx,self.dx,2,logger=kwargs["logger"])
+        stlReader = StlReader(self.X,self.Y,self.dx,self.dx,2,logger=kwargs.get("logger",None))
         return stlReader.voxel_stl(stl_path,scale,translate,rotate)
         
     
@@ -730,16 +730,17 @@ class LBM2D_OUTPUT(LBM2D_BASE):
                     data["d "+specie.name] = specie.dS.to_numpy()
         return data    
 
-    def export_variable(self, name,iter):
+    def export_variable(self):
         """将 `get_variable(iter*dt)` 的结果保存为 JSON 文件。
 
         文件路径：`result/{name}/{name}_{iter}.json`。
         若目录不存在会自动创建。
         """
-        path = os.path.join("result",name)
-        os.makedirs(path,exist_ok=True)
-        with open(os.path.join(path,name+"_"+str(iter)+".json"),'w') as f:
-            json.dump(self.get_variable(iter*self.dt),f)
+        pass
+        # path = os.path.join("result",name)
+        # os.makedirs(path,exist_ok=True)
+        # with open(os.path.join(path,name+"_"+str(iter)+".json"),'w') as f:
+        #     json.dump(self.get_variable(iter*self.dt),f)
     def get_variable(self,t):
         """收集用户注册的变量回调并返回字典。
 

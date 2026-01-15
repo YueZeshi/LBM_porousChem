@@ -62,7 +62,7 @@ class LBM2DSolver(LBM2D_EVOLUTION,LBM2D_BOUNDARY,LBM2D_INPUT,LBM2D_OUTPUT,LBM2D_
     The class aggregates evolution, boundary, IO, initialization and info
     mixins and uses Taichi ``@ti.data_oriented`` for performance.
     """
-    def __init__(self, X, Y, Z, dx=1, dt=1, name="default_LBM", isThermal=False, isChemical=False, isPoro=False, isRadiation=False):
+    def __init__(self, X, Y, Z=1, dx=1, dt=1, name="default_LBM", isThermal=False, isChemical=False, isPoro=False, isRadiation=False):
         """Initialize the solver.
 
         See the class docstring for detailed parameter descriptions.

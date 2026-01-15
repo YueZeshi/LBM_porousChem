@@ -105,7 +105,7 @@ def main(DX,DT,variant):
     profiler.print_kernel_profiler_info()
     # profiler.print_memory_profiler_info()
 if __name__ == "__main__":
-    DX = sys.argv[1]
-    DT = sys.argv[2]
-    variant = sys.argv[3]
-    main(float(DX),float(DT),variant)
+    dx = sys.argv[1] if len(sys.argv) > 1 else 1
+    dt = sys.argv[2] if len(sys.argv) > 2 else 1
+    variant = sys.argv[3] if len(sys.argv) > 3 else 0
+    main(float(dx), float(dt), variant)

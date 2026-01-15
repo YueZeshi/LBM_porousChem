@@ -636,7 +636,6 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
             shutil.rmtree(exportPath,ignore_errors=True)
         lb.exportPath = exportPath
         lb.PVD.exportPath = exportPath
-        os.makedirs(exportPath,exist_ok=True)
         snapshot = config["outputControl"]["snapshot"]
         interval = snapshot.get("interval",100)
         snapshotInterval = int(interval/lb.dt)

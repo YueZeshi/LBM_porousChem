@@ -65,12 +65,12 @@ def main(DX,DT,T_exp,variant="default"):
     lb3D.set_specie_BCs_value("N2",[1]*6)
 
     # 添加化学反应
-    # lb3D.add_reaction("w2t",[("wood(S)",1)],[("tar",1)],(1.08e10,0,148000,300,80000))
-    # lb3D.add_reaction("w2syn",[("wood(S)",1)],[("gas",1)],(4.38e9,0,152700,300,80000))
-    # lb3D.add_reaction("w2is",[("wood(S)",1)],[("intermSolid(S)",1)],(3.75e6,0,111700,300,80000))
-    # lb3D.add_reaction("is2c",[("intermSolid(S)",1)],[("char(S)",1)],(1.38e10,0,161000,300,-300000))
-    # lb3D.add_reaction("t2c",[("tar",1)],[("char(S)",1)],(1e5,0,108000,300,-42000))
-    # lb3D.add_reaction("t2syn",[("tar",1)],[("gas",1)],(4.28e6,0,108000,300,-42000))
+    lb3D.add_reaction("wood(S)=tar",1.08e10,148000,0,300,80000)
+    lb3D.add_reaction("wood(S)=gas",4.38e9,152700,0,300,80000)
+    lb3D.add_reaction("wood(S)=intermSolid(S)",3.75e6,111700,0,300,80000)
+    lb3D.add_reaction("intermSolid(S)=char(S)",1.38e10,161000,0,300,-300000)
+    lb3D.add_reaction("tar=char(S)",1e5,108000,0,300,-42000)
+    lb3D.add_reaction("tar=gas",4.28e6,108000,0,300,-42000)
     # 设置物种物性
     ## 扩散
     lb3D.set_specie_diff("tar",1e-6,unit="SI")
@@ -222,12 +222,12 @@ def main(DX,DT,T_exp,variant="default"):
     profiler.print_kernel_profiler_info()
     # profiler.print_memory_profiler_info()
 if __name__=="__main__":
-    os.environ["ARCH"]="CPU"
-    DX = float(sys.argv[1])
-    DT = float(sys.argv[2])
-    T_exp = float(sys.argv[3])
-    variant = sys.argv[4]
+    os.environ["ARCH"] = "CPU"
+    dx = float(sys.argv[1]) if len(sys.argv) > 1 else 1
+    dt = float(sys.argv[2]) if len(sys.argv) > 2 else 1
+    T_exp = float(sys.argv[3]) if len(sys.argv) > 3 else 300
+    variant = sys.argv[4] if len(sys.argv) > 4 else "default"
     startTime = time.time()
-    main(DX,DT,T_exp,variant)
-    print("execution time: ", time.time()-startTime)
+    main(dx, dt, T_exp, variant)
+    print("execution time: ", time.time() - startTime)
     

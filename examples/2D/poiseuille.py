@@ -1,4 +1,3 @@
-from re import T
 import time
 import taichi as ti
 import taichi.profiler as profiler
@@ -33,7 +32,7 @@ def main(DX,DT,variant):
     else:
         ti.init(arch=ti.cpu, kernel_profiler=True, print_ir=False)
     # 初始化lbm模型
-    lb2d = LB2D(X,Y,dx=DX,dt=DT,isPoro=False,isChemical=False,isThermal=False,isRadiation=False)
+    lb2d = LB2D(X,Y,1,dx=DX,dt=DT,isPoro=False,isChemical=False,isThermal=False,isRadiation=False)
     # 基础设置
     # lb2d.source_term_model = SOURCE_TERM.MICRO
     # lb2d.force_term_model = FORCE_TERM.GUO
@@ -58,7 +57,7 @@ def main(DX,DT,variant):
     # 初始化lbm
 
     lb2d.init_simulation()
-    lb2d.print_information()
+    print(lb2d.description())
 
     total_iteration =   1000
     export_interval = 1000
@@ -89,19 +88,19 @@ def main(DX,DT,variant):
             print('The %dth iteration, Max Force = %f,  Min Temperature = %f\n\n ' %(iter, max_v,  min_T))            
         if (iter%int(export_interval/DT)==0):
             if DEBUG:
-                lb2d.export_VTK(f"debug_{name}_{variant}_{DX}",iter)
+                lb2d.export_VTK_pyvista()
                 # lb2d.export_variable(f"simulation_{name}_{int(variant)}_{nx}_{int(T_exp)}",iter)
             else:
-                lb2d.export_VTK(f"simulation_{name}_{variant}_{DX}",iter)
+                lb2d.export_VTK_pyvista()
         if (iter%int(measure_interval/DT)==0):
-                lb2d.export_variable(f"simulation_{name}_{variant}_{DX}",iter)
+                lb2d.export_variable()
         lb2d.step()
 
 
     profiler.print_kernel_profiler_info()
     # profiler.print_memory_profiler_info()
 if __name__ == "__main__":
-    dx = sys.argv[1]
-    dt = sys.argv[2]
-    variant = sys.argv[3]
-    main(DX=float(dx),DT=float(dt),variant=variant)
+    dx = sys.argv[1] if len(sys.argv) > 1 else 1
+    dt = sys.argv[2] if len(sys.argv) > 2 else 1
+    variant = sys.argv[3] if len(sys.argv) > 3 else 0
+    main(DX=float(dx), DT=float(dt), variant=variant)
