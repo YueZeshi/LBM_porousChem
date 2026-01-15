@@ -44,14 +44,16 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.source_term_model = SOURCE_TERM.MICRO
     lb2d.force_term_model = FORCE_TERM.GUO
     lb2d.EOS = FLUID_STATE_EQUATION.IDEAL_GAS
-    lb2d.set_viscosity(0.1)
+    lb2d.set_viscosity_mixture()
+    lb2d.set_fluid_thermal_diff_derived()
+    lb2d.set_solid_thermal_diff_derived()
     lb2d.set_radiation(RADIATION_MODEL.SURFACE_UNIFORM,T_exp)
     # 设置物质
     ## 物种及其状态
     lb2d.set_specie("N2",False,28)
     lb2d.set_species(["wood(S)","intermSolid(S)","tar" ,"gas","char(S)"],
                     [True     ,     True       ,False ,False,True     ],
-                    [])
+                    [28,28,28,28,28])
     # 设置边界条件
     lb2d.set_BCs([BC_FLOW.inlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall])
     lb2d.set_v_BCs_value([[0.01,0,0],[0,0,0],[0,0,0],[0,0,0]])
@@ -72,9 +74,9 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.add_reaction("tar=gas",4.28e6,108000,0,300,-42000)
     # 设置物种物性
     ## 扩散
-    lb2d.set_specie_diff("tar",1e-6,unit="SI")
-    lb2d.set_specie_diff("gas",1e-5,unit="SI")
-    lb2d.set_specie_diff("N2",1e-5,unit="SI")
+    lb2d.set_specie_diff("tar",1e-6)
+    lb2d.set_specie_diff("gas",1e-5)
+    lb2d.set_specie_diff("N2",1e-5)
     ## 热容
     @ti.func
     def intermSolid_capacity(self,i):

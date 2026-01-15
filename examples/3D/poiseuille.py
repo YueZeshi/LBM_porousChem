@@ -5,7 +5,7 @@ import os
 import sys
 import numpy as np
 # 指定求解器
-from LBM.LBM2D import LBM2DSolver as LB2D
+from LBM.LBM2D import LBM2DSolver as lb3d
 from LBM.util.flag import *
 def main(DX,DT,variant):
     # 获取环境变量是否启用debug模式
@@ -32,32 +32,32 @@ def main(DX,DT,variant):
     else:
         ti.init(arch=ti.cpu, kernel_profiler=True, print_ir=False)
     # 初始化lbm模型
-    lb2d = LB2D(X,Y,dx=DX,dt=DT,isPoro=False,isChemical=False,isThermal=False,isRadiation=False)
+    lb3d = lb3d(X,Y,dx=DX,dt=DT,isPoro=False,isChemical=False,isThermal=False,isRadiation=False)
     # 基础设置
-    # lb2d.source_term_model = SOURCE_TERM.MICRO
-    # lb2d.force_term_model = FORCE_TERM.GUO
-    lb2d.boundary_condition_model = BC_MODEL.NEE
-    lb2d.EOS = FLUID_STATE_EQUATION.IDEAL_GAS
-    lb2d.set_viscosity(0.1)
+    # lb3d.source_term_model = SOURCE_TERM.MICRO
+    # lb3d.force_term_model = FORCE_TERM.GUO
+    lb3d.boundary_condition_model = BC_MODEL.NEE
+    lb3d.EOS = FLUID_STATE_EQUATION.IDEAL_GAS
+    lb3d.set_viscosity(0.1)
 
-    lb2d.set_BCs([BC_FLOW.inlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall])
-    lb2d.set_v_BCs_value([[0.01,0,0],[0,0,0],[0,0,0],[0,0,0]])
-    lb2d.set_rho_BCs_value([1,1,1,1])
-    # lb2d.set_BCs([BC_FLOW.outlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall])
-    # lb2d.set_rho_BCs_value([1.001,1.0,1.0,1.0])
+    lb3d.set_BCs([BC_FLOW.inlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall])
+    lb3d.set_v_BCs_value([[0.01,0,0],[0,0,0],[0,0,0],[0,0,0]])
+    lb3d.set_rho_BCs_value([1,1,1,1])
+    # lb3d.set_BCs([BC_FLOW.outlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall])
+    # lb3d.set_rho_BCs_value([1.001,1.0,1.0,1.0])
     ## 初始化场 
-    lb2d.init_field(lb2d.rho,1.0)
+    lb3d.init_field(lb3d.rho,1.0)
     def setVariables():
-        def v_center(lbm:LB2D):
+        def v_center(lbm:lb3d):
             v = lbm.v[int(X/DX/2),int(Y/DX/2),0][0]
             return "v", v
-        lb2d.GetVariableFunc.append(v_center)
+        lb3d.GetVariableFunc.append(v_center)
     setVariables()
-    # lb2d.init_field(lb2d.solid,solid_file)
+    # lb3d.init_field(lb3d.solid,solid_file)
     # 初始化lbm
 
-    lb2d.init_simulation()
-    lb2d.print_information()
+    lb3d.init_simulation()
+    lb3d.print_information()
 
     total_iteration =   1000
     export_interval = 1000
@@ -81,20 +81,20 @@ def main(DX,DT,variant):
             h_diff, m_diff = divmod(m_diff, 60)
             m_elap, s_elap = divmod(elap_time, 60)
             h_elap, m_elap = divmod(m_elap, 60)
-            max_v = lb2d.get_max_v()
-            min_T = lb2d.get_min_T()
+            max_v = lb3d.get_max_v()
+            min_T = lb3d.get_min_T()
             print(name,flush=True)
             print('----------Time between two outputs is %dh %dm %ds; elapsed time is %dh %dm %ds----------------------' %(h_diff, m_diff, s_diff,h_elap,m_elap,s_elap))
             print('The %dth iteration, Max Force = %f,  Min Temperature = %f\n\n ' %(iter, max_v,  min_T))            
         if (iter%int(export_interval/DT)==0):
             if DEBUG:
-                lb2d.export_VTK(f"debug_{name}_{variant}_{DX}",iter)
-                # lb2d.export_variable(f"simulation_{name}_{int(variant)}_{nx}_{int(T_exp)}",iter)
+                lb3d.export_VTK(f"debug_{name}_{variant}_{DX}",iter)
+                # lb3d.export_variable(f"simulation_{name}_{int(variant)}_{nx}_{int(T_exp)}",iter)
             else:
-                lb2d.export_VTK(f"simulation_{name}_{variant}_{DX}",iter)
+                lb3d.export_VTK(f"simulation_{name}_{variant}_{DX}",iter)
         if (iter%int(measure_interval/DT)==0):
-                lb2d.export_variable(f"simulation_{name}_{variant}_{DX}",iter)
-        lb2d.step()
+                lb3d.export_variable(f"simulation_{name}_{variant}_{DX}",iter)
+        lb3d.step()
 
 
     profiler.print_kernel_profiler_info()

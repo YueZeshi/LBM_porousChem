@@ -503,7 +503,7 @@ class LBM3D_INPUT(LBM3D_BASE):
             通过 ``kwargs['logger']`` 传入日志对象。
         """
         from ..GEO.STL import StlReader
-        stlReader = StlReader(self.X,self.Y,self.Z,self.dx,3,logger=kwargs["logger"])
+        stlReader = StlReader(self.X,self.Y,self.Z,self.dx,3,logger=kwargs.get("logger",None))
         return stlReader.voxel_stl(stl_path,scale,translate,rotate)
         
     

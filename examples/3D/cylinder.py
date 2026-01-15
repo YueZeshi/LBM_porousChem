@@ -6,9 +6,9 @@ import os
 import sys
 import numpy as np
 # 指定求解器
-from LBM.LBM2D import LBM2DSolver as LB2D
+from LBM.LBM3D import LBM3DSolver as LB3D
 from LBM.util.flag import *
-from LBM.GEO.G2D import Mesh2D
+from LBM.GEO.STL import StlGenerator
 def main(DX,DT,variant):
     # 获取环境变量是否启用debug模式
     # debug模式计算较少的步数 用于检验算例是否快速发散
@@ -24,9 +24,12 @@ def main(DX,DT,variant):
     # 定义计算域 SI
     X = 500
     Y = 100
+    Z = 100
     R = 10
     locX= 100
     locY=50
+    locZ= 50
+    height = 80
     U= 0.02
     Re = 100
     nu = U*R*2/Re
@@ -40,33 +43,27 @@ def main(DX,DT,variant):
     else:
         ti.init(arch=ti.cpu, kernel_profiler=True, print_ir=False)
     # 初始化lbm模型
-    lb2d = LB2D(X,Y,dx=DX,dt=DT,isPoro=False,isChemical=False,isThermal=False,isRadiation=False)
+    lb3d = LB3D(X,Y,Z,dx=DX,dt=DT,isPoro=False,isChemical=False,isThermal=False,isRadiation=False,name = name)
     # 基础设置
-    # lb2d.source_term_model = SOURCE_TERM.MICRO
-    # lb2d.force_term_model = FORCE_TERM.GUO
-    lb2d.set_viscosity(nu)
+    lb3d.set_viscosity(nu)
 
-    lb2d.set_BCs([BC_FLOW.inlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall])
-    lb2d.set_v_BCs_value([[U,0,0],[0,0,0],[0,0,0],[0,0,0]])
-    lb2d.set_rho_BCs_value([1,1,1,1])
+    lb3d.set_BCs([BC_FLOW.inlet,BC_FLOW.outlet,BC_FLOW.wall,BC_FLOW.wall,BC_FLOW.wall,BC_FLOW.wall])
+    lb3d.set_v_BCs_value([[U,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0],[0,0,0]])
+    lb3d.set_rho_BCs_value([1,1,1,1,1,1])
 
     ## 初始化场 
-    m2d = Mesh2D(X,Y)
-    m2d.CreateMesh2DCircle((locX,locY),R)
-    s,_ = m2d.export_numpy()
-    s = np.expand_dims(s,axis=2)
-    lb2d.init_field(lb2d.solid,s)
-    lb2d.init_field(lb2d.rho,1)
-    lb2d.init_field3(lb2d.v,U,0,0)
-    # lb2d.init_field(lb2d.solid,solid_file)
+    cylinder = StlGenerator().create_cylinder()
+    s,l = lb3d.load_stl(cylinder,scale = [2*R,2*R,height],translate = [locX,locY,locZ])
+    lb3d.init_field(lb3d.solid,s)
+    lb3d.init_field(lb3d.rho,1)
+    # lb3d.init_field3(lb3d.v,U,0,0)
     # 初始化lbm
-    lb2d.init_simulation()
-    lb2d.print_information()
-    # cal_allWood() # 计算总木材质量
+    lb3d.init_simulation()
+    print(lb3d.description())
 
-    total_iteration =   100000
+    total_iteration =   1000
     export_interval = 50
-    print_interval = 1000
+    print_interval = 10
     if DEBUG:
         total_iteration = 2
         export_interval = 1
@@ -85,19 +82,17 @@ def main(DX,DT,variant):
             h_diff, m_diff = divmod(m_diff, 60)
             m_elap, s_elap = divmod(elap_time, 60)
             h_elap, m_elap = divmod(m_elap, 60)
-            max_v = lb2d.get_max_v()
-            min_T = lb2d.get_min_T()
-            print(name,flush=True)
-            print('----------Time between two outputs is %dh %dm %ds; elapsed time is %dh %dm %ds----------------------' %(h_diff, m_diff, s_diff,h_elap,m_elap,s_elap))
-            print('The %dth iteration, Max Force = %f,  Min Temperature = %f\n\n ' %(iter, max_v,  min_T))            
+            max_v = lb3d.get_max_v()
+            min_T = lb3d.get_min_T()
+            print(lb3d.log_info(), flush=True)
         if (iter%int(export_interval/DT)==0):
             if DEBUG:
-                lb2d.export_VTK(f"debug_{name}_{int(variant)}_{DX}",iter)
-                # lb2d.export_variable(f"simulation_{name}_{int(variant)}_{nx}_{int(T_exp)}",iter)
+                lb3d.export_VTK_pyvista()
+                # lb3d.export_variable(f"simulation_{name}_{int(variant)}_{nx}_{int(T_exp)}",iter)
             else:
-                lb2d.export_VTK(f"simulation_{name}_{int(variant)}_{DX}",iter)
-                lb2d.export_variable(f"simulation_{name}_{int(variant)}_{DX}",iter)
-        lb2d.step()
+                lb3d.export_VTK_pyvista()
+                
+        lb3d.step()
 
 
     profiler.print_kernel_profiler_info()
