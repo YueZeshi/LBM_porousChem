@@ -57,12 +57,12 @@ initialCondition:
 
 outputControl:
   vtk:
-    interval : 0.1
+    interval : 10
     path : vtk
     LOD : 1
     clear : true
   log:
-    interval : 1
+    interval : 0.1
     LOD : 1
   snapshot:
     interval : 100

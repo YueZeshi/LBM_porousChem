@@ -50,13 +50,13 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                     self.v[idx] = v
 
                 # ----- 1.2 碰撞（BGK）+ 体力源项（GUO） -----
-                tau_local = self.tau(idx)
+                tau = self.tau(idx)
                 f_collided = ti.Vector([0.0] * 9)
                 # 碰撞
                 for q in ti.static(range(9)):
                     feq = self.feq9(q, idx[0], idx[1], idx[2])
                     # 标准 BGK: f_new = f_old - (f_old - f_eq) / tau
-                    fq = f_local[q] - (f_local[q] - feq) / tau_local
+                    fq = f_local[q] - (f_local[q] - feq) / tau
                     if ti.static(self.force_term_model == FORCE_TERM.GUO):
                         fq += self.forceTermGuo(q, idx)
                     f_collided[q] = fq
