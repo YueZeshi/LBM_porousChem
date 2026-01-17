@@ -48,7 +48,6 @@ class LBM2D_BASE:
         
         self.rhos = ti.field(float,shape=(self.nx,self.ny,self.nz))
         self.f = ti.Vector.field(9,float,shape=(self.nx,self.ny,self.nz)) # 分布函数
-        self.F = ti.Vector.field(9,float,shape=(self.nx,self.ny,self.nz)) # 分布函数，两个分布函数场交替使用提高并行性
 
         # 定义边界条件
         self.bc = [BC_FLOW.periodic]*4 # 左右上下边界条件类型
@@ -78,6 +77,8 @@ class LBM2D_BASE:
         self.CHEMISTRY = isChemical
         self.PORO = isPoro
         self.RADIATION = isRadiation and isThermal
+        # Esoteric Twist (ET) 单数组算法奇偶步标记：0=偶数步, 1=奇数步
+        self.even_step = ti.field(dtype=ti.i32, shape=())
         if self.TEMPERATURE:
             self.TF = TemperatureFluid("Temperature of Fluid",self)
             self.TS = TemperatureSolid("Temperature of Solid",self,isRadiation = self.RADIATION)
@@ -104,6 +105,8 @@ class LBM2D_BASE:
         self.PVD = PVDWriter(name=self.name)
         self.exportPath = "result"
         self.snapshotPath = "snapshot.yaml"
+        # 初始化ET步进标记
+        self.even_step[None] = 0
     # 内置函数
     def __repr__(self):
         return self.__str__()

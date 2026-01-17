@@ -15,17 +15,19 @@ module :
 
 
 spaceControl:
-  geometry : [5.0,5.0]
+  geometry : [1,1]
   DX : 1e-3
 
 
 timeControl:
   startTime : 0
-  endTime : 1000
+  endTime : 10
   DT : 1e-3
 
 flowProperties:
-  viscosity : 0.01
+  viscosity : 
+    type : constant
+    value : 0.01
 
 chemicalProperties:
   source : cantera
@@ -55,12 +57,12 @@ initialCondition:
 
 outputControl:
   vtk:
-    interval : 10
+    interval : 0.1
     path : vtk
     LOD : 1
     clear : true
   log:
-    interval : 10
+    interval : 1
     LOD : 1
   snapshot:
     interval : 100

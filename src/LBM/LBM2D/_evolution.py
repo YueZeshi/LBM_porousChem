@@ -11,10 +11,77 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
     """
     def step(self): # run one step
         self.updateBC(self.t)
-        self.step_kernel()
+        # 目前默认使用 AA 单数组步进，仅流体部分；
+        # 如需回退到原双数组算法，可改为调用 step_kernel。
+        self.step_AA_kernel()
         self.tLattice += 1
         self.t += self.dt
         ti.sync()
+    @ti.kernel
+    def step_AA_kernel(self):# 使用AA实现单数组步进（仅流体部分，周期/NEE/ES 边界）
+        even = self.even_step[None]
+
+        # ========== 1. AA 碰撞 + 迁移（单数组 self.f） ==========
+        for idx in ti.grouped(self.solid):
+            # 目前仅对流体 / 多孔介质区域做ET更新，纯固体区域留给原有算法
+            if self.solid[idx] < 1.0:
+                # ----- 1.1 读取阶段：偶数步从邻居读，奇数步从本格读 -----
+                f_local = ti.Vector([0.0] * 9)
+                # read
+                for q in ti.static(range(9)):
+                    e = self.e9[q]
+                    opp_q = self.LR[q]
+                    if even == 0:  # 偶数步：从邻居读取
+                        ip = self.periodic_index(idx - e)
+                        f_local[q] = self.f[ip][q]
+                    else:  # 奇数步：从本格读取
+                        f_local[q] = self.f[idx][opp_q]
+                # 宏观量
+                rho = 0.0
+                v = ti.Vector([0.0, 0.0, 0.0])
+                for q in ti.static(range(9)):
+                    fi = f_local[q]
+                    rho += fi
+                    v += self.e9[q] * fi
+                self.rho[idx] = rho
+                if self.EOS == FLUID_STATE_EQUATION.IDEAL_GAS:
+                    self.v[idx] = v / (rho + 1e-12)
+                else:
+                    self.v[idx] = v
+
+                # ----- 1.2 碰撞（BGK）+ 体力源项（GUO） -----
+                tau_local = self.tau(idx)
+                f_collided = ti.Vector([0.0] * 9)
+                # 碰撞
+                for q in ti.static(range(9)):
+                    feq = self.feq9(q, idx[0], idx[1], idx[2])
+                    # 标准 BGK: f_new = f_old - (f_old - f_eq) / tau
+                    fq = f_local[q] - (f_local[q] - feq) / tau_local
+                    if ti.static(self.force_term_model == FORCE_TERM.GUO):
+                        fq += self.forceTermGuo(q, idx)
+                    f_collided[q] = fq
+
+                # ----- 1.3 写入阶段（AA 迁移，写回 self.f） -----
+                for q in ti.static(range(9)):
+                    e = self.e9[q]
+                    opp_q = self.LR[q]
+                    if even == 0:  # 偶数步：写邻居
+                        ip = self.periodic_index(idx + e)
+                        self.f[ip][opp_q] = f_collided[q]
+                    else:  # 奇数步：写本地
+                        self.f[idx][q] = f_collided[q]
+
+        
+                
+                    
+        # ========== 3. 边界条件（仅 NEE / ES，基于 rho, v, f） ==========
+        if ti.static(self.boundary_condition_model == BC_MODEL.NEE):
+            self.Boundary_condition_NEE()
+        if ti.static(self.boundary_condition_model == BC_MODEL.ES):
+            self.Boundary_condition_ES()
+
+        # ========== 4. 更新 ET 奇偶步标记 ==========
+        self.even_step[None] = 1 - self.even_step[None]
     @ti.kernel
     def step_kernel(self):
         self.collision_source_streaming() # f->F
