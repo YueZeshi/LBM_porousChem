@@ -6,7 +6,7 @@ import sys
 import numpy as np
 # 指定求解器
 from LBM.LBM2D import LBM2DSolver as LB2D
-from LBM.GEO.G2D import Mesh2D
+from LBM.GEO.STL import Mesh2D
 from LBM.util.flag import *
 def main(DX,DT,variant):
     # 获取环境变量是否启用debug模式

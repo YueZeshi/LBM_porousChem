@@ -81,6 +81,8 @@ class LBM3D_INPUT(LBM3D_BASE):
             dat2 = np.reshape(dat2, (self.nx,self.ny,self.nz),order='F').astype(np.float32)
         if(type(param2)==np.ndarray):
             dat2 = np.array(param2).astype(np.float32)
+        dat1 = np.expand_dims(dat1,3)
+        dat2 = np.expand_dims(dat2,3)
         data = np.concatenate((dat1,dat2),axis = 3)
         field.from_numpy(data)   
     def init_field3(self,field,param1,param2,param3): 
