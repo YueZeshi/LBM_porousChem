@@ -20,7 +20,6 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
     @ti.kernel
     def step_AA_kernel(self):# 使用AA实现单数组步进（仅流体部分，周期/NEE/ES 边界）
         even = self.even_step[None]
-
         # ========== 1. AA 碰撞 + 迁移（单数组 self.f） ==========
         for idx in ti.grouped(self.solid):
             # 目前仅对流体 / 多孔介质区域做ET更新，纯固体区域留给原有算法
@@ -70,15 +69,13 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         self.f[ip][opp_q] = f_collided[q]
                     else:  # 奇数步：写本地
                         self.f[idx][q] = f_collided[q]
-
-        
                 
-                    
+
         # ========== 3. 边界条件（仅 NEE / ES，基于 rho, v, f） ==========
         if ti.static(self.boundary_condition_model == BC_MODEL.NEE):
             self.Boundary_condition_NEE()
         if ti.static(self.boundary_condition_model == BC_MODEL.ES):
-            self.Boundary_condition_ES()
+            self.Boundary_condition_ES() # not implemented
 
         # ========== 4. 更新 ET 奇偶步标记 ==========
         self.even_step[None] = 1 - self.even_step[None]

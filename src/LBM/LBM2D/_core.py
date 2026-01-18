@@ -27,7 +27,7 @@ class LBM2D_BASE:
         self.sutherland_coef = [1.6e-6,170]
         self.source_term_model = SOURCE_TERM.NONE
         self.force_term_model = FORCE_TERM.NONE
-        self.boundary_condition_model = BC_MODEL.NEE
+        self.boundary_condition_model = BC_MODEL.NEE # only NEE implemented
         self.EOS = FLUID_STATE_EQUATION.IDEAL_GAS
         # LBM使用常量
         self.e9 = ti.Vector.field(3,ti.i32, shape=(9)) # e 方向向量
