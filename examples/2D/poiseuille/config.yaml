@@ -15,7 +15,7 @@ module :
 
 
 spaceControl:
-  geometry : [1,1]
+  geometry : [0.1,0.1]
   DX : 1e-3
 
 
@@ -57,7 +57,7 @@ initialCondition:
 
 outputControl:
   vtk:
-    interval : 10
+    interval : 0.1
     path : vtk
     LOD : 1
     clear : true

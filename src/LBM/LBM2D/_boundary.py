@@ -50,7 +50,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
             if ti.static(self.TEMPERATURE):
                 self.TF.Boundary_condition_scalar_3(i,self.ny-1,k) # note: 后更新焓的边界条件，使用到的热容计算需要边界区域的物质浓度
                 self.TS.Boundary_condition_scalar_3(i,self.ny-1,k)
-
+    # AA pattern 奇数步本格，偶数步邻居格
     @ti.func
     def Boundary_condition_flow_NEE_0(self,x,y,z):
         if ti.static(self.bc_v[0]==BC.fixedValue):
@@ -61,8 +61,14 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
             self.rho[0,y,z] = self.rho_bc_profile[0][0,y,z]
         elif ti.static(self.bc_rho[0]==BC.zeroGradient):
             self.rho[0,y,z] = self.rho[1,y,z]#2*self.rho[1,y,z]-self.rho[2,y,z]
-        for s in ti.static(range(9)):
-            self.f[0,y,z][s] = self.feq9(s,0,y,z)+(self.f[1,y,z][s]-self.feq9(s,1,y,z))
+        if self.even_step[None]==0: # 偶数步
+            for s in ti.static(range(9)):
+                i_storage = self.periodic_index([0,y,z]+self.e9[s])
+                i_neighbor_storage = self.periodic_index([1,y,z]+self.e9[s])
+                self.f[i_storage][self.LR[s]] = self.feq9(s,0,y,z)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq9(s,1,y,z))
+        else:  # 奇数步
+            for s in ti.static(range(9)):
+                self.f[0,y,z][s] = self.feq9(s,0,y,z)+(self.f[1,y,z][s]-self.feq9(s,1,y,z))
     @ti.func
     def Boundary_condition_flow_NEE_1(self,x,y,z):
         if ti.static(self.bc_v[1]==BC.fixedValue):
@@ -73,8 +79,14 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
             self.rho[self.nx-1,y,z] = self.rho_BC[1]
         elif ti.static(self.bc_rho[1]==BC.zeroGradient):
             self.rho[self.nx-1,y,z] = self.rho[self.nx-2,y,z]#2*self.rho[self.nx-2,y,z]-self.rho[self.nx-3,y,z]#self.rho[self.nx-2,y,z]#
-        for s in ti.static(range(9)):
-            self.f[self.nx-1,y,z][s] = self.feq9(s,self.nx-1,y,z)+(self.f[self.nx-2,y,z][s]-self.feq9(s,self.nx-2,y,z))
+        if self.even_step[None]==0: # 偶数步
+            for s in ti.static(range(9)):
+                i_storage = self.periodic_index([self.nx-1,y,z]+self.e9[s])
+                i_neighbor_storage = self.periodic_index([self.nx-2,y,z]+self.e9[s])
+                self.f[i_storage][self.LR[s]] = self.feq9(s,self.nx-1,y,z)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq9(s,self.nx-2,y,z))
+        else:  # 奇数步
+            for s in ti.static(range(9)):
+                self.f[self.nx-1,y,z][s] = self.feq9(s,self.nx-1,y,z)+(self.f[self.nx-2,y,z][s]-self.feq9(s,self.nx-2,y,z))
     @ti.func
     def Boundary_condition_flow_NEE_2(self,x,y,z):
         if ti.static(self.bc_v[2]==BC.fixedValue):
@@ -85,8 +97,14 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
             self.rho[x,0,z] = self.rho_BC[2]
         elif ti.static(self.bc_rho[2]==BC.zeroGradient):
             self.rho[x,0,z] = self.rho[x,1,z]#2*self.rho[x,1,z]-self.rho[x,2,z]
-        for s in ti.static(range(9)):
-            self.f[x,0,z][s] = self.feq9(s,x,0,z)+(self.f[x,1,z][s]-self.feq9(s,x,1,z))
+        if self.even_step[None]==0: # 偶数步
+            for s in ti.static(range(9)):
+                i_storage = self.periodic_index([x,0,z]+self.e9[s])
+                i_neighbor_storage = self.periodic_index([x,1,z]+self.e9[s])
+                self.f[i_storage][self.LR[s]] = self.feq9(s,x,0,z)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq9(s,x,1,z))
+        else:  # 奇数步
+            for s in ti.static(range(9)):
+                self.f[x,0,z][s] = self.feq9(s,x,0,z)+(self.f[x,1,z][s]-self.feq9(s,x,1,z))
     @ti.func
     def Boundary_condition_flow_NEE_3(self,x,y,z):
         if ti.static(self.bc_v[3]==BC.fixedValue):
@@ -97,8 +115,14 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
             self.rho[x,self.ny-1,z] = self.rho_BC[3]
         elif ti.static(self.bc_rho[3]==BC.zeroGradient):
             self.rho[x,self.ny-1,z] = self.rho[x,self.ny-2,z]#2*self.rho[x,self.ny-2,z]-self.rho[x,self.ny-3,z]
-        for s in ti.static(range(9)):
-            self.f[x,self.ny-1,z][s] = self.feq9(s,x,self.ny-1,z)+(self.f[x,self.ny-2,z][s]-self.feq9(s,x,self.ny-2,z))
+        if self.even_step[None]==0: # 偶数步
+            for s in ti.static(range(9)):
+                i_storage = self.periodic_index([x,self.ny-1,z]+self.e9[s])
+                i_neighbor_storage = self.periodic_index([x,self.ny-2,z]+self.e9[s])
+                self.f[i_storage][self.LR[s]] = self.feq9(s,x,self.ny-1,z)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq9(s,x,self.ny-2,z))
+        else:  # 奇数步
+            for s in ti.static(range(9)):
+                self.f[x,self.ny-1,z][s] = self.feq9(s,x,self.ny-1,z)+(self.f[x,self.ny-2,z][s]-self.feq9(s,x,self.ny-2,z))
     """NEBB"""
     @ti.func
     def Boundary_condition_NEBB(self):
