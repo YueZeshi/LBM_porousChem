@@ -15,13 +15,13 @@ module :
 
 
 spaceControl:
-  geometry : [1.0,1.0]
+  geometry : [0.1,0.1]
   DX : 1e-3
 
 
 timeControl:
   startTime : 0
-  endTime : 1000
+  endTime : 10
   DT : 1e-3
 
 flowProperties:
@@ -57,7 +57,7 @@ initialCondition:
 
 outputControl:
   vtk:
-    interval : 1
+    interval : 0.1
     path : vtk
     LOD : 1
     clear : true
