@@ -534,6 +534,7 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
         else:
             for solid in solidIC.values():
                 solidType = solid.get("type")
+                s = np.zeros((lb.nx,lb.ny,lb.nz))
                 if isPoro and solidType=="poro":
                     eps = solid["porosity"]
                     zone =solid.get("zone")
@@ -542,7 +543,6 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
                     exchangeCoef = solid.get("exchangeCoef",1)
                     porousModel = solid.get("porousModel")
                     emis = solid.get("emisssivity",1.0)
-                    s = np.zeros((lb.nx,lb.ny,lb.nz))
                     border = np.zeros((lb.nx,lb.ny,lb.nz))
                     if zone =="ALL":
                         for geo_name,geo_data in geo_dict.items():

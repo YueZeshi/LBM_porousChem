@@ -207,7 +207,142 @@ chemicalProperties:
         value : 0.02
         # if polynomial
         # data : [0,0,0,0,0]
-
+    HO : 
+      composition : {H : 1,O : 1}
+      state : fluid
+      viscosity : 
+        type : constant # constant/sutherland
+        # # if constant
+        value : 1e-5
+        # # if sutherland
+        As : 1e-6
+        Ts : 170
+      thermodynamic :
+        type : NASA7 # constant/NASA7
+        # # if constant
+        # enthalpy : 100
+        # capacity : 1000
+        # if NASA7    
+        Trange: [200.0, 1000.0, 3500.0]
+        data:
+        - [4.19864056, -2.0364341e-03, 6.52040211e-06, -5.48797062e-09, 1.77197817e-12,
+          -3.02937267e+04, -0.849032208]
+        - [3.03399249, 2.17691804e-03, -1.64072518e-07, -9.7041987e-11, 1.68200992e-14,
+          -3.00042971e+04, 4.9667701]
+      diffusitivity:
+        type : constant # constant/Schmidt
+        # if constant
+        value : 1e-5
+        # # if Schmidt
+        # Sc : 1.0
+      conductivity : 
+        type: constant # constant/polynomial
+        # if constant
+        value : 0.02
+        # if polynomial
+        # data : [0,0,0,0,0]
+    H2O1 : 
+      composition : {H : 2,O : 1}
+      state : fluid
+      viscosity : 
+        type : constant # constant/sutherland
+        # # if constant
+        value : 1e-5
+        # # if sutherland
+        As : 1e-6
+        Ts : 170
+      thermodynamic :
+        type : NASA7 # constant/NASA7
+        # # if constant
+        # enthalpy : 100
+        # capacity : 1000
+        # if NASA7    
+        Trange: [200.0, 1000.0, 3500.0]
+        data:
+        - [4.19864056, -2.0364341e-03, 6.52040211e-06, -5.48797062e-09, 1.77197817e-12,
+          -3.02937267e+04, -0.849032208]
+        - [3.03399249, 2.17691804e-03, -1.64072518e-07, -9.7041987e-11, 1.68200992e-14,
+          -3.00042971e+04, 4.9667701]
+      diffusitivity:
+        type : constant # constant/Schmidt
+        # if constant
+        value : 1e-5
+        # # if Schmidt
+        # Sc : 1.0
+      conductivity : 
+        type: constant # constant/polynomial
+        # if constant
+        value : 0.02
+        # if polynomial
+        # data : [0,0,0,0,0]
+    H2O2: 
+      composition : {H : 2,O : 1}
+      state : fluid
+      viscosity : 
+        type : constant # constant/sutherland
+        # # if constant
+        value : 1e-5
+        # # if sutherland
+        As : 1e-6
+        Ts : 170
+      thermodynamic :
+        type : NASA7 # constant/NASA7
+        # # if constant
+        # enthalpy : 100
+        # capacity : 1000
+        # if NASA7    
+        Trange: [200.0, 1000.0, 3500.0]
+        data:
+        - [4.19864056, -2.0364341e-03, 6.52040211e-06, -5.48797062e-09, 1.77197817e-12,
+          -3.02937267e+04, -0.849032208]
+        - [3.03399249, 2.17691804e-03, -1.64072518e-07, -9.7041987e-11, 1.68200992e-14,
+          -3.00042971e+04, 4.9667701]
+      diffusitivity:
+        type : constant # constant/Schmidt
+        # if constant
+        value : 1e-5
+        # # if Schmidt
+        # Sc : 1.0
+      conductivity : 
+        type: constant # constant/polynomial
+        # if constant
+        value : 0.02
+        # if polynomial
+        # data : [0,0,0,0,0]
+    H2O3 : 
+      composition : {H : 2,O : 1}
+      state : fluid
+      viscosity : 
+        type : constant # constant/sutherland
+        # # if constant
+        value : 1e-5
+        # # if sutherland
+        As : 1e-6
+        Ts : 170
+      thermodynamic :
+        type : NASA7 # constant/NASA7
+        # # if constant
+        # enthalpy : 100
+        # capacity : 1000
+        # if NASA7    
+        Trange: [200.0, 1000.0, 3500.0]
+        data:
+        - [4.19864056, -2.0364341e-03, 6.52040211e-06, -5.48797062e-09, 1.77197817e-12,
+          -3.02937267e+04, -0.849032208]
+        - [3.03399249, 2.17691804e-03, -1.64072518e-07, -9.7041987e-11, 1.68200992e-14,
+          -3.00042971e+04, 4.9667701]
+      diffusitivity:
+        type : constant # constant/Schmidt
+        # if constant
+        value : 1e-5
+        # # if Schmidt
+        # Sc : 1.0
+      conductivity : 
+        type: constant # constant/polynomial
+        # if constant
+        value : 0.02
+        # if polynomial
+        # data : [0,0,0,0,0]
     # wood(S) :
     #   state : solid # solid phase has only thermodynamic properties
     #   thermodynamic :

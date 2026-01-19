@@ -17,11 +17,13 @@ spaceControl:
 
 timeControl:
   startTime : 0
-  endTime : 10000
+  endTime : 100
   DT : 1e-3
 
 flowProperties:
-  viscosity : 0.002
+  viscosity :
+    type : constant
+    value: 1e-5
 
 chemicalProperties:
   source : cantera
@@ -113,7 +115,7 @@ outputControl:
     interval : 1
     path : vtk
     LOD : 1
-    clear : false
+    clear : true
   log:
     interval : 1
     LOD : 1

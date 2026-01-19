@@ -74,7 +74,7 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
                 #     if self.rho1[i]==0:
                 #         self.rho1[i]=1.0
             for s in ti.static(range(9)):
-                self.f[i][s] = self.feq9(s,i[0],i[1],i[2])
+                self.f[i][s] = self.feq9_no_poro(s,i[0],i[1],i[2])
                 if ti.static(self.CHEMISTRY):
                     if s<5:
                         for specie in ti.static(list(self.species)):

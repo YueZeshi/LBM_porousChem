@@ -134,6 +134,9 @@ class LBM2D_BASE:
     def feq9(self,s,i,j,k):
         pass
     @ti.func
+    def feq9_no_poro(self,s,i,j,k):
+        pass
+    @ti.func
     def Boundary_condition_NEBB(self):
         pass
         

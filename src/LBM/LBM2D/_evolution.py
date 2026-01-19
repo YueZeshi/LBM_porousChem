@@ -22,7 +22,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
         even = self.even_step[None]
         # ========== 1. AA 碰撞 + 迁移（单数组 self.f） ==========
         for idx in ti.grouped(self.solid):
-            # 目前仅对流体 / 多孔介质区域做ET更新，纯固体区域留给原有算法
+            # 目前仅对流体 / 多孔介质区域更新，纯固体区域流场更新默认全程反弹边界（一阶精度）
             if self.solid[idx] < 1.0:
                 # ----- 1.1 读取阶段：偶数步从邻居读，奇数步从本格读 -----
                 f_local = ti.Vector([0.0] * 9)
@@ -56,8 +56,8 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                     feq = self.feq9(q, idx[0], idx[1], idx[2])
                     # 标准 BGK: f_new = f_old - (f_old - f_eq) / tau
                     fq = f_local[q] - (f_local[q] - feq) / tau
-                    if ti.static(self.force_term_model == FORCE_TERM.GUO):
-                        fq += self.forceTermGuo(q, idx)
+                    # if ti.static(self.force_term_model == FORCE_TERM.GUO):
+                    #     fq += self.forceTermGuo(q, idx)
                     f_collided[q] = fq
 
                 # ----- 1.3 写入阶段（AA 迁移，写回 self.f） -----
@@ -289,7 +289,18 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
         if self.EOS==FLUID_STATE_EQUATION.IDEAL_GAS:
             feqout = self.w9[s]*rho*(1.0+3.0*eu+4.5*eu*eu/(eps+1e-12)-1.5*uv/(eps+1e-12))
         return feqout
-    
+    @ti.func
+    def feq9_no_poro(self,s,i,j,k):# 计算平衡分布函数 无多孔介质修正 用于初始化固体格点的分布函数
+        rho = self.rho[i,j,k]
+        u = self.v[i,j,k]
+        eu = self.e9[s].dot(u)
+        uv = u.dot(u)
+        feqout = 1.0
+        if self.EOS==FLUID_STATE_EQUATION.INCOMPRESSIBLE:
+            feqout = self.w9[s]*(rho+3.0*eu+4.5*eu*eu-1.5*uv)        
+        if self.EOS==FLUID_STATE_EQUATION.IDEAL_GAS:
+            feqout = self.w9[s]*rho*(1.0+3.0*eu+4.5*eu*eu-1.5*uv)
+        return feqout
     @ti.func
     def viscosity(self,i): # in LU
         visco = 0.1
