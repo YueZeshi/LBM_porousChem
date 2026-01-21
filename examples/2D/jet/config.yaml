@@ -1,5 +1,5 @@
 basic:
-  name      : jet
+  name      : jet_rough
   author    : Sylvain
   date      : 2025-12-15
   dimension : 2
@@ -15,36 +15,36 @@ module :
 
 
 spaceControl:
-  geometry : [1,0.1]
-  DX : 1e-3
+  geometry : [1,1]
+  DX : 1e-2
 
 
 timeControl:
   startTime : 0
   endTime : 1000
-  DT : 1e-3
+  DT : 1e-2
 
 flowProperties:
   viscosity : 
     type : constant
-    value : 1e-5
+    value : 5e-5
 geometry:
   zone1:
     type : cylinder
-    center : [0,0.05,0]
-    radius : 0.01
-    height : 0.1
+    center : [0,0.5,0]
+    radius : 0.05 
+    height : 0.2
     axis : [1,0,0]
   zone2:
     type : cylinder
-    center : [0.0,0.05,0]
-    radius : 0.009
-    height : 0.1
+    center : [0.0,0.5,0]
+    radius : 0.04
+    height : 0.2
     axis : [1,0,0]
   zone3:
     type : cylinder
-    center : [0.0,0.05,0]
-    radius : 0.1
+    center : [0.0,0.5,0]
+    radius : 1
     height : 0.002
     axis : [1,0,0]
 
@@ -52,7 +52,7 @@ boundaryCondition:
   left:
     flow:
       type: inlet
-      velocity : [0.01,0,0]
+      velocity : [0.02,0,0]
       rho : 1
   right:
     flow:
@@ -83,7 +83,7 @@ outputControl:
     interval : 10
     path : vtk
     LOD : 1
-    clear : true
+    clear : False
   log:
     interval : 1
     LOD : 1
