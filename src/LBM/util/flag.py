@@ -5,8 +5,8 @@
 - 多孔介质、辐射、源项/外力项、流体状态方程
 - 通用与流场边界条件
 """
-from ast import Constant
 from enum import Enum
+from ssl import enum_certificates
 class VISCOSITY_MODEL(Enum):
     """黏度模型选择。"""
     NONE = 0
@@ -48,7 +48,7 @@ class THERMAL_DIFF_MODEL(Enum):
 class DIFF_MODEL(Enum):
     """物种扩散模型。"""
     NONE = 0
-    CONSANT = 1
+    CONSTANT = 1
     SCHMIDT = 2
 
 class SPECIE_UNIT(Enum):
@@ -60,6 +60,11 @@ class REACTION_TYPE(Enum):
     """反应速率类型（预留）。"""
     ARREHNIUS = 0 # power law
     LMH = 1 # langemuir--
+
+class REACTION_ENERGY_TYPE(Enum):
+    """反应能量类型（预留）。"""
+    CONSTANT = 0
+    DIFFERENCE = 1
 
 class FLUID_STATE_EQUATION(Enum):
     """流体状态方程类型。"""
@@ -74,18 +79,6 @@ class RADIATION_MODEL(Enum):
     REAL_RADIATION = 2 # baked radiation
     P1_APPROACH = 3 # not implemented
 
-class SOURCE_TERM(Enum):
-    """源项处理方案。"""
-    # the source term schema
-    NONE = 0
-    MICRO = 1 # 修改分布函数
-    MACRO = 2 # 修改宏观量
-class FORCE_TERM(Enum):
-    """外力项处理方案。"""
-    NONE = 0
-    GUO = 1 # 外力项
-    SHAN = 2 # 改变平衡速度
-    MACRO = 3 # 处理外力项太大的刚性问题
 class BC(Enum):
     """通用标量场边界条件类型。"""
     # the boundary condition for general field

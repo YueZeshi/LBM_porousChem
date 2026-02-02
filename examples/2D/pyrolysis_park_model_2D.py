@@ -78,6 +78,7 @@ def main(DX,DT,T_exp,variant="default"):
     lb2d.set_specie_diff("gas",1e-5)
     lb2d.set_specie_diff("N2",1e-5)
     ## 热容
+    lb2d.set_specie_capacity_poly()
     @ti.func
     def intermSolid_capacity(self,i):
         T = self.LBM.TS.S[i]

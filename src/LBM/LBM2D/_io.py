@@ -350,6 +350,11 @@ class LBM2D_INPUT(LBM2D_BASE):
         specie = self.species[self.specieName.index(specieName)]
         specie.thermo_model = THERMO_MODEL.CONSTANT
         specie.capa = capacity
+    def set_specie_capacity_poly(self,specieName,poly): # 质量热容
+        """指定物种：多项式质量比热容。"""
+        specie = self.species[self.specieName.index(specieName)]
+        specie.thermo_model = THERMO_MODEL.POLYNOMIAL
+        specie.capa_poly = list(poly)
 
     def set_specie_conductivity(self,name,lamb): # 传热系数
         specie = self.species[self.specieName.index(name)]

@@ -86,6 +86,8 @@ class Specie(ScalarField): # 物种质量分数场
             else:
                 capa = (((self.NASAcoef[1][4]*T+self.NASAcoef[1][3])*T+self.NASAcoef[1][2])*T+self.NASAcoef[1][1])*T+self.NASAcoef[1][0]
             capa *=constant.R
+        elif ti.static(self.thermo_model==THERMO_MODEL.POLYNOMIAL):
+            capa = (((self.capa_poly[4]*T+self.capa_poly[3])*T+self.capa_poly[2])*T+self.capa_poly[1])*T+self.capa_poly[0]
         return capa
     @ti.func
     def enthalpy_mole(self,T): 
