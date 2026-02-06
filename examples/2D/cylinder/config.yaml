@@ -21,7 +21,9 @@ timeControl:
   DT : 1e-3
 
 flowProperties:
-  viscosity : 0.002
+  viscosity :
+    type: constant
+    value: 1e-5
 
 chemicalProperties:
   source : cantera
