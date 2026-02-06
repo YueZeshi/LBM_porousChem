@@ -72,12 +72,12 @@ boundaryCondition:
 
 outputControl:
   vtk:
-    interval : 0.01
+    interval : 10
     path : vtk
     LOD : 1
     clear : false
   log:
-    interval : 0.01
+    interval : 0.1
     LOD : 1
   snapshot:
     interval : 100
