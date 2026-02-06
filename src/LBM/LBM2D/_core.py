@@ -17,9 +17,10 @@ class LBM2D_BASE:
         self.Y = Y
         self.Z = dx
         self.tLattice : int = 0
-        self.dx,self.dt = dx,dt #格子尺度 步进时间
-        self.nx=int(self.X/self.dx)
-        self.ny=int(self.Y/self.dx)
+        self.dx = float(dx) # 格子尺度 
+        self.dt = float(dt) # 步进时间
+        self.nx = np.round(self.X/self.dx).astype(int)
+        self.ny = np.round(self.Y/self.dx).astype(int)
         self.nz = 1 
         self.max_v=ti.field(float,shape=())
         self.viscosity_model = VISCOSITY_MODEL.NONE
@@ -143,6 +144,9 @@ class LBM2D_BASE:
         pass
     @ti.func 
     def Boundary_condition_ES(self):
+        pass
+    @ti.func
+    def Boundary_condition_NEE_AA(self):
         pass
     def updateBC(self,t):
         pass

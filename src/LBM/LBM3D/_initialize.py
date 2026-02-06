@@ -84,8 +84,7 @@ class LBM3D_INITIALIZATION(LBM3D_BASE):
                 #     if self.rho1[i]==0:
                 #         self.rho1[i]=1.0
             for s in ti.static(range(19)):
-                self.f[i][s] = self.feq19(s,i[0],i[1],i[2])
-                self.F[i][s] = self.f[i][s]
+                self.f[i][s] = self.feq19_no_poro(s,i[0],i[1],i[2])
             # if ti.static(self.TEMPERATURE):
             #     self.IE.uS[i] = self.IE.S[i]*self.v[i]
             for s in ti.static(range(7)):

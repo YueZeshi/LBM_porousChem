@@ -28,8 +28,6 @@ class LBM3D_BASE:
         self.viscosity_model = VISCOSITY_MODEL.CONSTANT
         self.visco = 1e-5
         self.sutherland_coef = [1.6e-6,170]
-        self.source_term_model = SOURCE_TERM.MICRO
-        self.force_term_model = FORCE_TERM.GUO
         self.boundary_condition_model = BC_MODEL.NEE
         self.EOS = FLUID_STATE_EQUATION.IDEAL_GAS
         # LBM使用常量
@@ -50,8 +48,7 @@ class LBM3D_BASE:
         self.solid = ti.field(float,shape = (self.nx,self.ny,self.nz))
         self.rhos = ti.field(float,shape=(self.nx,self.ny,self.nz))
         self.f = ti.Vector.field(19,float,shape=(self.nx,self.ny,self.nz)) # 分布函数
-        self.F = ti.Vector.field(19,float,shape=(self.nx,self.ny,self.nz)) # 分布函数，两个分布函数场交替使用提高并行性
-
+        self.F = ti.Vector.field(19,float,shape=(self.nx,self.ny,self.nz)) # 后碰撞分布函数
         # 定义边界条件
         self.bc = [BC_FLOW.periodic]*6 # 左右前后上下边界条件类型
         self.bc_v = [BC.periodic]*6 # 左右前后上下速度边界条件类型
@@ -84,6 +81,8 @@ class LBM3D_BASE:
         self.PORO = isPoro
         self.RADIATION = isRadiation and isThermal
 
+        # Esoteric Twist (ET) 单数组算法奇偶步标记：0=偶数步, 1=奇数步
+        self.even_step = ti.field(dtype=ti.i32, shape=())
         if self.TEMPERATURE:
             self.TF:TemperatureFluid = TemperatureFluid("Temperature of Fluid",self)
             self.TS:TemperatureSolid = TemperatureSolid("Temperature of Solid",self,isRadiation = self.RADIATION)
@@ -110,6 +109,8 @@ class LBM3D_BASE:
         self.PVD = PVDWriter(name=self.name)
         self.exportPath = "vtk"
         self.snapshotPath = "snapshot.yaml"
+        # 初始化ET步进标记
+        self.even_step[None] = 0
     # 内置函数
     def __repr__(self):
         return self.__str__()
@@ -117,6 +118,9 @@ class LBM3D_BASE:
         print(self)
     @ti.func
     def feq19(self,s,i,j,k):
+        pass
+    @ti.func
+    def feq19_no_poro(self,s,i,j,k):
         pass
     @ti.kernel
     def default_init(self):
@@ -153,6 +157,9 @@ class LBM3D_BASE:
         pass
     @ti.func 
     def Boundary_condition_ES(self):
+        pass
+    @ti.func
+    def Boundary_condition_NEE_AA(self):
         pass
     
     def updateBC(self,t):

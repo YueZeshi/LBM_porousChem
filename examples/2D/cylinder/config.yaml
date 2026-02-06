@@ -17,12 +17,12 @@ spaceControl:
 
 timeControl:
   startTime : 0
-  endTime : 100
+  endTime : 10000
   DT : 1e-3
 
 flowProperties:
   viscosity :
-    type : constant
+    type: constant
     value: 1e-5
 
 chemicalProperties:
@@ -115,7 +115,7 @@ outputControl:
     interval : 1
     path : vtk
     LOD : 1
-    clear : true
+    clear : false
   log:
     interval : 1
     LOD : 1
