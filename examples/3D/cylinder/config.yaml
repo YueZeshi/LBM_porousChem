@@ -12,24 +12,31 @@ module :
 
 spaceControl:
   geometry : [0.5,0.1,0.1]
-  DX : 4.8e-4
+  DX : 1e-3
 
 
 timeControl:
   startTime : 0
   endTime : 1000
-  DT : 4.8e-4
+  DT : 1e-3
 
 flowProperties:
-  viscosity : 0.01
+  viscosity : 
+    type : constant
+    value : 1e-5
 
 geometry:
-  zone2:
-    type : stl
-    path : stl/cylinder_test2.stl
-    scale : 1
-    translate : [0.2,0.05,0.05]
-    rotate : [0,90,0]
+  zone1:
+    type : cylinder
+    center : [0.1,0.05,0.05]
+    radius : 0.01
+    height : 0.05
+  # zone2:
+  #   type : stl
+  #   path : stl/cylinder_test2.stl
+  #   scale : 1
+  #   translate : [0.2,0.05,0.05]
+  #   rotate : [0,90,0]
 
 initialCondition:
   solid:
@@ -65,12 +72,12 @@ boundaryCondition:
 
 outputControl:
   vtk:
-    interval : 100
+    interval : 10
     path : vtk
     LOD : 1
-    clear : true
+    clear : false
   log:
-    interval : 1
+    interval : 0.1
     LOD : 1
   snapshot:
     interval : 100
