@@ -30,6 +30,7 @@ geometry:
     type : cylinder
     center : [0.1,0.05,0.05]
     radius : 0.01
+    height : 0.05
   # zone2:
   #   type : stl
   #   path : stl/cylinder_test2.stl
@@ -71,12 +72,12 @@ boundaryCondition:
 
 outputControl:
   vtk:
-    interval : 100
+    interval : 0.01
     path : vtk
     LOD : 1
-    clear : true
+    clear : false
   log:
-    interval : 0.1
+    interval : 0.01
     LOD : 1
   snapshot:
     interval : 100

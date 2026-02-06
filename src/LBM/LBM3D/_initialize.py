@@ -113,3 +113,13 @@ class LBM3D_INITIALIZATION(LBM3D_BASE):
         if ti.static(self.bc[0]==BC_FLOW.inlet):
             for j,k in ti.ndrange(self.ny,self.nz):
                 self.v_bc_profile[0][0,j,k] = self.v_BC[0]
+        
+        for j,k in ti.ndrange(self.ny,self.nz):
+            self.rho_bc_profile[0][0,j,k] = self.rho_BC[0]
+            self.rho_bc_profile[1][0,j,k] = self.rho_BC[1]
+        for i,k in ti.ndrange(self.nx,self.nz):
+            self.rho_bc_profile[2][i,0,k] = self.rho_BC[2]
+            self.rho_bc_profile[3][i,0,k] = self.rho_BC[3]
+        for i,j in ti.ndrange(self.nx,self.ny):
+            self.rho_bc_profile[4][i,j,0] = self.rho_BC[4]
+            self.rho_bc_profile[5][i,j,0] = self.rho_BC[5]
