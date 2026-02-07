@@ -100,9 +100,6 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
     # initial setting
     lb = lbm(x,y,z,dx,dt,name,isThermal,isChemical,isPoro,isRadiation)
     logger.info("LBM created")
-    lb.source_term_model = SOURCE_TERM.MICRO
-    lb.force_term_model = FORCE_TERM.GUO
-    
     # viscosity
     logger.info("Loading flowProperties...")
     flowProperties = config.get("flowProperties")

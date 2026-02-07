@@ -73,9 +73,9 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
 
         # ========== 3. 边界条件（仅 NEE / ES，基于 rho, v, f） ==========
         if ti.static(self.boundary_condition_model == BC_MODEL.NEE):
-            self.Boundary_condition_NEE()
+            self.Boundary_condition_NEE_AA()
         if ti.static(self.boundary_condition_model == BC_MODEL.ES):
-            self.Boundary_condition_ES() # not implemented
+            self.Boundary_condition_ES_AA() # not implemented
 
         # ========== 4. 更新 ET 奇偶步标记 ==========
         self.even_step[None] = 1 - self.even_step[None]

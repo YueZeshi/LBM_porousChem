@@ -10,17 +10,80 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
     """
     def step(self):
         self.updateBC(self.t)
-        self.step_kernel()
+        # 目前默认使用 AA 单数组步进，仅流体部分；
+        # 如需回退到原双数组算法，可改为调用 step_kernel。
+        self.step_AA_kernel()
         self.tLattice += 1
         self.t += self.dt
         ti.sync()
+    @ti.kernel
+    def step_AA_kernel(self):# 使用AA实现单数组步进（仅流体部分，周期/NEE/ES 边界）
+        even = self.even_step[None]
+        # ========== 1. AA 碰撞 + 迁移（单数组 self.f） ==========
+        for idx in ti.grouped(self.solid):
+            # 目前仅对流体 / 多孔介质区域更新，纯固体区域流场更新默认全程反弹边界（一阶精度）
+            if self.solid[idx] < 1.0:
+                # ----- 1.1 读取阶段：偶数步从邻居读，奇数步从本格读 -----
+                f_local = ti.Vector([0.0] * 19)
+                # read
+                for q in ti.static(range(19)):
+                    e = self.e19[q]
+                    opp_q = self.LR[q]
+                    if even == 0:  # 偶数步：从邻居读取
+                        ip = self.periodic_index(idx - e)
+                        f_local[q] = self.f[ip][q]
+                    else:  # 奇数步：从本格读取
+                        f_local[q] = self.f[idx][opp_q]
+                # 宏观量
+                rho = 0.0
+                v = ti.Vector([0.0, 0.0, 0.0])
+                for q in ti.static(range(19)):
+                    fi = f_local[q]
+                    rho += fi
+                    v += self.e19[q] * fi
+                self.rho[idx] = rho
+                if self.EOS == FLUID_STATE_EQUATION.IDEAL_GAS:
+                    self.v[idx] = v / (rho + 1e-12)
+                else:
+                    self.v[idx] = v
+
+                # ----- 1.2 碰撞（BGK）+ 体力源项（GUO） -----
+                tau = self.tau(idx)
+                f_collided = ti.Vector([0.0] * 19)
+                # 碰撞
+                for q in ti.static(range(19)):
+                    feq = self.feq19(q, idx[0], idx[1], idx[2])
+                    # 标准 BGK: f_new = f_old - (f_old - f_eq) / tau
+                    fq = f_local[q] - (f_local[q] - feq) / tau
+                    # if ti.static(self.force_term_model == FORCE_TERM.GUO):
+                    #     fq += self.forceTermGuo(q, idx)
+                    f_collided[q] = fq
+
+                # ----- 1.3 写入阶段（AA 迁移，写回 self.f） -----
+                for q in ti.static(range(19)):
+                    e = self.e19[q]
+                    opp_q = self.LR[q]
+                    if even == 0:  # 偶数步：写邻居
+                        ip = self.periodic_index(idx + e)
+                        self.f[ip][opp_q] = f_collided[q]
+                    else:  # 奇数步：写本地
+                        self.f[idx][q] = f_collided[q]
+                
+
+        # ========== 3. 边界条件（仅 NEE / ES，基于 rho, v, f） ==========
+        if ti.static(self.boundary_condition_model == BC_MODEL.NEE):
+            self.Boundary_condition_NEE_AA()
+        if ti.static(self.boundary_condition_model == BC_MODEL.ES):
+            self.Boundary_condition_ES_AA() # not implemented
+
+        # ========== 4. 更新 ET 奇偶步标记 ==========
+        self.even_step[None] = 1 - self.even_step[None]
     @ti.kernel
     def step_kernel(self):
         self.collision_source_streaming() # f->F
         if ti.static(self.boundary_condition_model==BC_MODEL.NEBB):
             self.Boundary_condition_NEBB() # on F
         self.macro()  # F->value f
-        
         if ti.static(self.boundary_condition_model==BC_MODEL.NEE):
             self.Boundary_condition_NEE() # value changed for the boundary condition
         if ti.static(self.boundary_condition_model==BC_MODEL.ES):
@@ -50,8 +113,7 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
 
                     # source term f # 将预先计算好的源项施加到各个分布函数分量当中 (化学反应 体积热源（辐射）)
                     ## force term for fluid flow: volume force like gravity, darcy drag force
-                    if ti.static(self.force_term_model==FORCE_TERM.GUO): # GUO 力模型
-                        self.f[i][k] += self.forceTermGuo(k,i)
+                    self.f[i][k] += self.forceTermGuo(k,i)
                     ## source term microscopic of scalar field
                     if ti.static(self.TEMPERATURE):
                         if ti.static(k<7):
@@ -225,6 +287,18 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
             feqout = self.w19[s]*rho*(1.0+3.0*eu+4.5*eu*eu/(eps+1e-12)-1.5*uv/(eps+1e-12))
         return feqout
     
+    @ti.func
+    def feq19_no_poro(self, s,i,j,k): #计算平衡分布函数 
+        rho = self.rho[i,j,k]
+        u = self.v[i,j,k]
+        eu = self.e19[s].dot(u)
+        uv = u.dot(u)
+        feqout = 1.0
+        if self.EOS==FLUID_STATE_EQUATION.INCOMPRESSIBLE:
+            feqout = self.w19[s]*(rho+3.0*eu+4.5*eu*eu-1.5*uv)        
+        if self.EOS==FLUID_STATE_EQUATION.IDEAL_GAS:
+            feqout = self.w19[s]*rho*(1.0+3.0*eu+4.5*eu*eu-1.5*uv)
+        return feqout
     @ti.func
     def viscosity(self,i): # in LU
         visco = 0.1
