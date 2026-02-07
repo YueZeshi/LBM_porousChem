@@ -22,7 +22,7 @@ timeControl:
 
 flowProperties:
   viscosity :
-    type : constant
+    type: constant
     value: 1e-5
 
 chemicalProperties:

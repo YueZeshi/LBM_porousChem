@@ -25,7 +25,7 @@ flowProperties:
 
 thermalPropertiesFluid : 
   normalize:
-    Trange : [390,600] # [a,b] means [0,1] will be mapped to [0,1]
+    Trange : [400,600] # [a,b] means [0,1] will be mapped to [0,1]
   thermalDiff :
     type : derived # constant/Prandtl/derived
     # if constant
@@ -87,144 +87,21 @@ thermalPropertiesSolid :
 
 radiationProperties:
   type : mean_temp # mean_temp/none
-  Tambient : 400 
+  Tambient : 500 
 
 chemicalProperties:
-  type : input # cantera/input
+  type : cantera # cantera/input
   # # if cantera
-  # path : YOUR_CANTERA_FILE.yaml
+  path : ./mech/pyro.yaml
   # if input
-  species :
-    H2 : 
-      composition : {H : 2}
-      state : fluid
-      viscosity : 
-        type : constant # constant/sutherland
-        # # if constant
-        value : 1e-5
-        # # if sutherland
-        As : 1e-7
-        Ts : 170
-      thermodynamic :
-        type : NASA7 # constant/NASA7
-        # if constant
-        # enthalpy : 100
-        # capacity : 1000
-        # if NASA7
-        Trange: [200.0, 1000.0, 3500.0]
-        data:
-        - [2.34433112, 7.98052075e-03, -1.9478151e-05, 2.01572094e-08, -7.37611761e-12,
-          -917.935173, 0.683010238]
-        - [3.3372792, -4.94024731e-05, 4.99456778e-07, -1.79566394e-10, 2.00255376e-14,
-          -950.158922, -3.20502331]
-      diffusitivity:
-        type : constant # constant/Schmidt
-        # if constant
-        value : 1e-5
-        # # if Schmidt
-        Sc : 1.0
-      conductivity : 
-        type: constant # constant/polynomial
-        # if constant
-        value : 0.01
-        # # if polynomial
-        # data : [0,0,0,0,0]
-    O2 : 
-      composition : {O : 2}
-      state : fluid
-      viscosity : 
-        type : constant # constant/sutherland
-        # # if constant
-        value : 1e-5
-        # # if sutherland
-        As : 1e-6
-        Ts : 170
-      thermodynamic :
-        type : NASA7 # constant/NASA7
-        # # if constant
-        # enthalpy : 100
-        # capacity : 1000
-        # if NASA7    
-        Trange: [200.0, 1000.0, 3500.0]
-        data:
-        - [3.78245636, -2.99673416e-03, 9.84730201e-06, -9.68129509e-09, 3.24372837e-12,
-          -1063.94356, 3.65767573]
-        - [3.28253784, 1.48308754e-03, -7.57966669e-07, 2.09470555e-10, -2.16717794e-14,
-          -1088.45772, 5.45323129]
-      diffusitivity:
-        type : constant # constant/Schmidt
-        # if constant
-        value : 1e-5
-        # # if Schmidt
-        # Sc : 1.0
-      conductivity : 
-        type: constant # constant/polynomial
-        # if constant
-        value : 0.01
-        # if polynomial
-        # data : [0,0,0,0,0]
-    H2O : 
-      composition : {H : 2,O : 1}
-      state : fluid
-      viscosity : 
-        type : constant # constant/sutherland
-        # # if constant
-        value : 1e-5
-        # # if sutherland
-        As : 1e-6
-        Ts : 170
-      thermodynamic :
-        type : NASA7 # constant/NASA7
-        # # if constant
-        # enthalpy : 100
-        # capacity : 1000
-        # if NASA7    
-        Trange: [200.0, 1000.0, 3500.0]
-        data:
-        - [4.19864056, -2.0364341e-03, 6.52040211e-06, -5.48797062e-09, 1.77197817e-12,
-          -3.02937267e+04, -0.849032208]
-        - [3.03399249, 2.17691804e-03, -1.64072518e-07, -9.7041987e-11, 1.68200992e-14,
-          -3.00042971e+04, 4.9667701]
-      diffusitivity:
-        type : constant # constant/Schmidt
-        # if constant
-        value : 1e-5
-        # # if Schmidt
-        # Sc : 1.0
-      conductivity : 
-        type: constant # constant/polynomial
-        # if constant
-        value : 0.02
-        # if polynomial
-        # data : [0,0,0,0,0]
-
-    # wood(S) :
-    #   state : solid # solid phase has only thermodynamic properties
-    #   thermodynamic :
-    #     type : constant # constant/NASA7
-    #     # if constant
-    #     enthalpy : 100
-    #     capacity : 1000
-    #     # # if NASA7
-    #     # Trange : [0,0,0]
-    #     # data : [[0,0,0,0,0,0,0],[0,0,0,0,0,0,0]]
-    #   conductivity:
-    #     type:   polynomial # constant/polynomial
-    #     # if constant
-    #     # value : 12
-    #     # if polynomial
-    #     data : [1,1e-6,0,0,0]
-  reactions:
-    - equation: 2 H2 + O2 <=> 2 H2O 
-      rate-constant: {A: 1e-5, b: 0.0, Ea: 0.0}
 
 
 
 geometry:
-  # zone1:
-  #   type : sphere # sphere/cylinder/box/cone/stl
-  #   center : [0.05,0.05,0]
-  #   radius : 0.01
+  zone1:
+    type : sphere # sphere/cylinder/box/cone/stl
+    center : [0.05,0.05,0]
+    radius : 0.01
   # zone2 :
   #   type : cylinder
   #   center : [0.05,0.05,0]
@@ -249,26 +126,26 @@ geometry:
   #   rotate : [0,0,0]
 
 initialCondition:
-  # solid: # to specify the solid area (operation in order)
-  #   solid1:
-  #     zone : zone1 # the zones concerned
-  #     type : poro # concrete/poro/substract
-  #     rho : 400
-  #     # if concrete
-  #     # if substract
-  #     # if poro
-  #     porosity : 0.4
-  #     #   porosity : 0.4
-  #     porousModel : darcy # darcy/darcyforchheimer/ergun
-  #     #   # if darcy
-  #     darcy : 2.5e11
-  #     # # if darcyforchheimer
-  #     # darcy : 2.5e10
-  #     # forchheimer : 6e4
-  #     # if ergun    # solid2:
-  #     exchangeSurface : 1000
-  #     exchangeCoef : 10
-  #     emissivity : 0.6
+  solid: # to specify the solid area (operation in order)
+    solid1:
+      zone : zone1 # the zones concerned
+      type : poro # concrete/poro/substract
+      rho : 400
+      # if concrete
+      # if substract
+      # if poro
+      porosity : 0.4
+      #   porosity : 0.4
+      porousModel : darcy # darcy/darcyforchheimer/ergun
+      #   # if darcy
+      darcy : 2.5e11
+      # # if darcyforchheimer
+      # darcy : 2.5e10
+      # forchheimer : 6e4
+      # if ergun    # solid2:
+      exchangeSurface : 1000
+      exchangeCoef : 10
+      emissivity : 0.6
     #   zone : zone2
     #   type : poro
     #   rho : 400
@@ -284,16 +161,16 @@ initialCondition:
     rho : 1
     velocity : [0,0,0] # initial velocity of non-solid volume (to avoid numerical instablity)
   thermal: # initial condition of temperature
-    T : 200
+    T : 300
     # TS : 500
     # TF : 300
   chemical:
-    H2 : 
-      zone : ALL
-      value : 0.0
-    O2 : 
+    N2 : 
       zone : ALL
       value : 1.0
+    WOOD(S) : 
+      zone : zone1
+      value : 400
     # wood(S):
     #   zone : zone1
     #   value : 400
@@ -313,8 +190,7 @@ boundaryCondition:
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
     chemical:
       type: fixedValue
-      O2 : 0.5
-      H2 : 0.5
+      N2 : 1.0
   right:
     flow:
       type: outlet
@@ -350,7 +226,7 @@ boundaryCondition:
   
   
 spaceControl:
-  geometry : [1,0.1]
+  geometry : [0.1,0.1]
   DX : 1e-3
 
 timeControl:
@@ -360,12 +236,12 @@ timeControl:
 
 outputControl:
   vtk:
-    interval : 10 # the interval of vtk output
+    interval : 1 # the interval of vtk output
     path : vtk # the relative path of the output folder
     LOD : 1
     clear : true # true to clear all the existing output in the folder
   log:
-    interval : 10
+    interval : 1
     LOD : 1 # 
   snapshot: # resume from the snapshot
     interval : 100 # the interval of snapshot

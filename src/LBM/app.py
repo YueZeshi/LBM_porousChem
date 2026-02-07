@@ -234,7 +234,7 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
         if chemicalType == "cantera":
             # load chemical mechanism
             logger.info("Cantera loading...")
-            cantera_file = config["chemicalProperties"]["canteraFile"]
+            cantera_file = config["chemicalProperties"]["path"]
             lb.load_cantera(cantera_file)
             logger.info("Cantera loaded.")
         elif chemicalType == "input":
@@ -576,6 +576,7 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
                         pass
                         
                 elif solidType=="concrete":
+                    s = np.zeros((lb.nx,lb.ny,lb.nz))
                     if solid["zone"]=="ALL":
                         for geo_name,geo_data in geo_dict.items():
                             s += geo_data[0]
@@ -653,6 +654,7 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
     lb.init_simulation()
     logger.info("Simulation initialized.")
     logger.info(lb.description())
+    # lb.check_python()
     logger.info("Simulation running...")
     logger.info("(The first step will take long time because of the compilation time)")
     while lb.tLattice<=endTimeLattice:

@@ -9,7 +9,7 @@ class Specie(ScalarField): # 物种质量分数场
         super().__init__(name,lb,FIX)
         self.molemass = Mmass/1000
         if not FIX:
-            self.viscosity_type = VISCOSITY_MODEL.NONE
+            self.viscosity_type = VISCOSITY_MODEL.CONSTANT
             self.visco = 1e-5
             self.coefSutherland = [0.0,0.0]
             self.diff_model = DIFF_MODEL.CONSANT
@@ -224,7 +224,7 @@ class Reaction:
                         if ti.static(not self.LBM.species[j].FIX):
                             kr *= (self.LBM.species[j].S[i]*self.LBM.rho[i]/self.LBM.species[j].molemass)**self.coefRate[j] # 气态反应物 该物质对反应的贡献 可以不贡献
                         else:
-                            kr *= (self.LBM.species[j].S[i]/self.LBM.species.molemass)**self.coefRate[j] # 固态反应物 该物质对反应的贡献 可以不贡献
+                            kr *= (self.LBM.species[j].S[i]/self.LBM.species[j].molemass)**self.coefRate[j] # 固态反应物 该物质对反应的贡献 可以不贡献
                         # elif ti.static(self.unit==SPECIE_UNIT.MOLE): # mole表示的化学反应需要按照摩尔质量修正因为物种信息存储的是密度信息
                         #     kr *= (specie.S[i]/specie.molemass)**self.coefRate[j] # 该物质对反应的贡献 可以不贡献
                 else: # no reaction including absence of catalyst

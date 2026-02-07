@@ -127,6 +127,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         """向固相掩膜累加布尔/数值场，用于逐步添加固体区域。"""
         s = self.solid.to_numpy()
         s += solid
+        s = np.where(s>0,s,0.0)
         self.init_field(self.solid,s)
     def add_rho_solid(self,rhos):
         """向固相密度场累加数值，用于叠加固体密度。"""
@@ -514,7 +515,8 @@ class LBM2D_INPUT(LBM2D_BASE):
         yaml = YAML()
         with open(file,"r") as f:
             data = yaml.load(f)
-            for specie_info in data["species"]:
+            specie_infos = data.get("species",[])
+            for specie_info in specie_infos:
                 name = specie_info["name"]
                 mmass = 0.0
                 for elem,number in specie_info["composition"].items():
@@ -524,13 +526,12 @@ class LBM2D_INPUT(LBM2D_BASE):
                 else:
                     self.set_specie(name,Fix = False,molemass=mmass)
                 self.set_specie_NASA7(name,specie_info["thermo"]["temperature-ranges"],specie_info["thermo"]["data"])
-                
-            for reaction_info in data["reactions"]:
+            reaction_infos = data.get("reactions",[])
+            for reaction_info in reaction_infos:
                 A = reaction_info["rate-constant"]["A"]
-                Ea = reaction_info["rate-constant"]["Ea"]
+                Ea = reaction_info["rate-constant"]["Ea"]*4.184 # 转为 J/mol
                 b = reaction_info["rate-constant"]["b"]
                 self.add_reaction(reaction_info["equation"],A,Ea,b,unit = SPECIE_UNIT.MOLE,fixDH = False)
-    
     
 # 输出 可视化
 @ti.data_oriented
@@ -773,7 +774,7 @@ class LBM2D_OUTPUT(LBM2D_BASE):
         s1 = [int(0),int(self.ny/2),int(self.nz/2)]
         # print(self.species[0].coefDiff(s1))
         # print(self.tau(s1),self.TF.coefDiff(s1),self.TF.capacity_m(s1),self.TF.conductivity(s1),self.viscosity(s1),self.TS.conductivity(s1),self.TS.capacity_m(s1),self.rhos[s1],self.reactions.dS[0][s1],self.reactions.reactions[0].reaction(s1))
-        print(self.reactions.reactions[0].Arrehnius(s1))
+        print(self.TF.tau(s1))
         # rad = 0.0
         # rad_surface = 0.0
         # for i in ti.grouped(self.rho):

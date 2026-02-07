@@ -1,0 +1,92 @@
+basic:
+  name      : jet_rough
+  author    : Sylvain
+  date      : 2025-12-15
+  dimension : 2
+  arch      : cpu
+  type      : configuration 
+
+module : 
+  flow : true
+  chemistry : false
+  temperature : false
+  porous_media : false
+  radiation : false
+
+
+spaceControl:
+  geometry : [1,1]
+  DX : 1e-2
+
+
+timeControl:
+  startTime : 0
+  endTime : 1000
+  DT : 1e-2
+
+flowProperties:
+  viscosity : 
+    type : constant
+    value : 5e-5
+geometry:
+  zone1:
+    type : cylinder
+    center : [0,0.5,0]
+    radius : 0.05 
+    height : 0.2
+    axis : [1,0,0]
+  zone2:
+    type : cylinder
+    center : [0.0,0.5,0]
+    radius : 0.04
+    height : 0.2
+    axis : [1,0,0]
+  zone3:
+    type : cylinder
+    center : [0.0,0.5,0]
+    radius : 1
+    height : 0.002
+    axis : [1,0,0]
+
+boundaryCondition:
+  left:
+    flow:
+      type: inlet
+      velocity : [0.02,0,0]
+      rho : 1
+  right:
+    flow:
+      type: outlet
+      rho: 1
+  down:
+    flow:
+      type: wall
+  up:
+    flow:
+      type : wall
+  
+initialCondition:
+  flow:
+    rho : 1
+    velocity : [0,0,0]
+  solid:
+    solid1:
+      zone : [zone1,zone3]
+      type : concrete
+    solid2:
+      zone : zone2
+      type : substract
+  
+
+outputControl:
+  vtk:
+    interval : 10
+    path : vtk
+    LOD : 1
+    clear : False
+  log:
+    interval : 1
+    LOD : 1
+  snapshot:
+    interval : 100
+    path : snapshot.yaml
