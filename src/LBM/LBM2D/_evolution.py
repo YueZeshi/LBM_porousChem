@@ -51,13 +51,13 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                 # ----- 1.2 碰撞（BGK）+ 体力源项（GUO） -----
                 tau = self.tau(idx)
                 f_collided = ti.Vector([0.0] * 9)
+                F = self.force(idx) # 计算体积力
                 # 碰撞
                 for q in ti.static(range(9)):
                     feq = self.feq9(q, idx[0], idx[1], idx[2])
                     # 标准 BGK: f_new = f_old - (f_old - f_eq) / tau
                     fq = f_local[q] - (f_local[q] - feq) / tau
-                    # if ti.static(self.force_term_model == FORCE_TERM.GUO):
-                    #     fq += self.forceTermGuo(q, idx)
+                    fq += self.forceTermGuo(q, idx,F)
                     f_collided[q] = fq
 
                 # ----- 1.3 写入阶段（AA 迁移，写回 self.f） -----
@@ -94,6 +94,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
         # collistion + source term + streaming : merge kernels
         for i in ti.grouped(self.rho):
             if (self.solid[i] < 1): # 流体和多孔介质区域 流体 物种 流体温度
+                F = self.force(i)
                 for k in ti.static(range(9)):
                     # collision f
                     f = self.f[i][k]-1/self.tau(i)*(self.f[i][k]-self.feq9(k,i[0],i[1],i[2]))
@@ -114,8 +115,8 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
 
                     # source term f # 将预先计算好的源项施加到各个分布函数分量当中 (化学反应 体积热源（辐射）)
                     ## force term for fluid flow: volume force like gravity, darcy drag force
-                    if ti.static(self.force_term_model==FORCE_TERM.GUO): # GUO 力模型
-                        self.f[i][k] +=self.forceTermGuo(k,i)
+                    # F = self.force(i)                                                                        
+                    self.f[i][k] +=self.forceTermGuo(k,i,F)
                     ## microscopic source term of scalar field
                     if ti.static(self.TEMPERATURE):
                         if ti.static(k<5):
@@ -359,10 +360,9 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                     # F += (ti.exp(-eps*self.kinetic_viscosity(i)*self.coefDarcy[i])-1)*self.v[i]
         return F
     @ti.func
-    def forceTermGuo(self,s,i): # 将力转化为分布函数源项 Guo Zhao 实际上是动量变化量
+    def forceTermGuo(self,s,i,F): # 将力转化为分布函数源项 Guo Zhao 实际上是动量变化量
         rho = self.rho[i]
         u = self.v[i]
-        F = self.force(i)
         tau = self.tau(i)
         eps = 1.0-self.solid[i]
         term = 0.0

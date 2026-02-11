@@ -192,6 +192,7 @@ class StlReader:
         mesh.rotate_x(rotate[0],inplace = True)
         # mesh.rotate(Rotation.from_euler('ZYX',rotate[::-1],degrees=True),inplace = True)
         mesh.translate(translate,inplace = True)
+        print(mesh)
         # 2. 创建体素网格
         voxels = pv.DataSetFilters.voxelize(mesh) # 先变换再体素化，体素化之后再变换会使得网格错位，规则网格无法正确采样
         # 3. 转换为规则网格

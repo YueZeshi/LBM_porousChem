@@ -58,7 +58,7 @@ if __name__=="__main__":
     if len(sys.argv)>1:
         verbose = True
     i = 0
-    nskip = 49
+    nskip = 0
     data_name = ["LatticeNumber","AvgMLUPS","StdMLUPS","CompileTime","InitTime","Exe10000Times"]
     for dx in np.logspace(-2,-4,100):
         if i < nskip:

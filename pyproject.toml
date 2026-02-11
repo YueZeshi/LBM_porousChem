@@ -32,6 +32,7 @@ dependencies = [
     "cadquery>=2.6.1",
     "vtk>=9.2",
     "ipykernel>=7.1.0",
+    "meshio>=5.3.5",
 ]
 
 [project.scripts]

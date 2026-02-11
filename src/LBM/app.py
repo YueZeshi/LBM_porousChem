@@ -422,11 +422,18 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
             translate = [0,0,0]
             rotate = [0,0,0]
             scale = [1,1,1]
+            # 2D 2 3D
+            if shape == "circle":
+                shape = "cylinder"
+            elif shape == "rectangle":
+                shape = "box"
             if shape == "sphere":
                 from .GEO.STL import StlGenerator
                 stl_generator = StlGenerator(logger)
                 path = stl_generator.create_sphere()
                 translate = geo_infos[geo_name].get("center",[0,0,0])
+                if len(translate)==2:
+                    translate.append(0)
                 scale = geo_infos[geo_name].get("radius",[0.5,0.5,0.5])*2
             elif shape == "cylinder":
                 from .GEO.STL import StlGenerator
@@ -434,6 +441,8 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
                 path = stl_generator.create_cylinder()
                 height = geo_infos[geo_name].get("height",1)
                 center = geo_infos[geo_name].get("center",[0,0,0])
+                if len(center)==2:
+                    center.append(0)
                 radius = geo_infos[geo_name].get("radius",0.5)
                 axis = geo_infos[geo_name].get("axis",[0,0,1])
                 from .util.math import vectors_to_euler
@@ -445,6 +454,8 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
                 stl_generator = StlGenerator(logger)
                 path = stl_generator.create_cone()
                 center = geo_infos[geo_name].get("center",[0,0,0])
+                if len(center)==2:
+                    center.append(0)
                 height = geo_infos[geo_name].get("height",1)
                 radius = geo_infos[geo_name].get("radius",0.5)
                 axis = geo_infos[geo_name].get("axis",[0,0,1])
@@ -458,7 +469,10 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
                 path = stl_generator.create_box()
                 scale = geo_infos[geo_name].get("size",[1,1,1])
                 center = geo_infos[geo_name].get("center",[0,0,0])
+                if len(center)==2:
+                    center.append(0)
                 translate = center
+                rotate = geo_infos[geo_name].get("rotate")
             elif shape == "stl":
                 # read stl
                 path = geo_infos[geo_name].get("path")
@@ -467,6 +481,7 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
                 scale = geo_infos[geo_name].get("scale",[1,1,1])
             else:
                 logger.warning(f"Geometry {shape} not valid.")
+                raise ValueError(f"Geometry {shape} not valid.")
             mesh,surface = lb.load_stl(path,scale,translate,rotate,logger=logger)
             if np.shape(mesh)[0]!=0:
                 geo_dict[geo_name]=mesh,surface
