@@ -78,7 +78,7 @@ class OutConv(nn.Module):
         return x
 
 class SRUNet3D(nn.Module):
-    def __init__(self,SR_depth,Unet_depth,size_input, bilinear=False,base_channels=64):
+    def __init__(self,SR_depth,Unet_depth, bilinear=False,base_channels=64):
         super(SRUNet3D, self).__init__()
         self.bilinear = bilinear
         self.SR_depth = SR_depth
@@ -113,7 +113,7 @@ class SRUNet3D(nn.Module):
         return output
 
 if __name__ == "__main__":
-    model = SRUNet3D(SR_depth=1,Unet_depth=2,size_input=256)
+    model = SRUNet3D(SR_depth=2,Unet_depth=4)
     
     x_pop = torch.randn(1,19,128,128,128)
     x_geo = torch.randn(1,1,512,512,512)
