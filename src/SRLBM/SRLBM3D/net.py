@@ -78,7 +78,7 @@ class OutConv(nn.Module):
         return x
 
 class SRUNet3D(nn.Module):
-    def __init__(self,SR_depth,Unet_depth, bilinear=False,base_channels=64):
+    def __init__(self,SR_depth,Unet_depth, bilinear=False,base_channels=16):
         super(SRUNet3D, self).__init__()
         self.bilinear = bilinear
         self.SR_depth = SR_depth
@@ -115,19 +115,17 @@ class SRUNet3D(nn.Module):
 if __name__ == "__main__":
     model = SRUNet3D(SR_depth=2,Unet_depth=4)
     
-    x_pop = torch.randn(1,19,128,128,128)
-    x_geo = torch.randn(1,1,512,512,512)
-    start_time = time.time()
-    output = model(x_pop,x_geo)
-    end_time = time.time()
-    print(f"计算时间: {end_time - start_time:.4f} 秒")
+    x_pop = torch.randn(1,19,24,24,24)
+    x_geo = torch.randn(1,1,96,96,96)
 
-    # 准备输入
-    x_pop = torch.randn(1, 19, 32, 32, 32)
-    x_geo = torch.randn(1, 1, 64, 64, 64)
 
     # 最简形式 - 直接打印总参数量
     print(f"总参数量: {sum(p.numel() for p in model.parameters()):,}")
 
     # 带可训练参数
-    print(f"可训练参数量: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
+    print(f"可训练参数量: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")    
+    start_time = time.time()    
+    output = model(x_pop,x_geo)
+    end_time = time.time()
+    print(f"计算时间: {end_time - start_time:.4f} 秒")
+
