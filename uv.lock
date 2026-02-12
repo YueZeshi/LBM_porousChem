@@ -423,6 +423,15 @@ wheels = [
 ]
 
 [[package]]
+name = "graphviz"
+version = "0.21"
+source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/f8/b3/3ac91e9be6b761a4b30d66ff165e54439dcd48b83f4e20d644867215f6ca/graphviz-0.21.tar.gz", hash = "sha256:20743e7183be82aaaa8ad6c93f8893c923bd6658a04c32ee115edb3c8a835f78" }
+wheels = [
+    { url = "https://mirrors.aliyun.com/pypi/packages/91/4c/e0ce1ef95d4000ebc1c11801f9b944fa5910ecc15b5e351865763d8657f8/graphviz-0.21-py3-none-any.whl", hash = "sha256:54f33de9f4f911d7e84e4191749cac8cc5653f815b06738c54db9a15ab8b1e42" },
+]
+
+[[package]]
 name = "idna"
 version = "3.11"
 source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
@@ -602,6 +611,7 @@ dependencies = [
     { name = "sphinx" },
     { name = "taichi" },
     { name = "torch" },
+    { name = "torchview" },
     { name = "torchvision" },
     { name = "typing-extensions" },
     { name = "vtk" },
@@ -626,6 +636,7 @@ requires-dist = [
     { name = "sphinx", specifier = ">=9.0.4" },
     { name = "taichi" },
     { name = "torch", specifier = ">=2.9.1" },
+    { name = "torchview", specifier = ">=0.2.7" },
     { name = "torchvision", specifier = ">=0.24.1" },
     { name = "typing-extensions", specifier = ">=4.15.0" },
     { name = "vtk", specifier = ">=9.2" },
@@ -1559,6 +1570,18 @@ wheels = [
     { url = "https://mirrors.aliyun.com/pypi/packages/19/17/e377a460603132b00760511299fceba4102bd95db1a0ee788da21298ccff/torch-2.9.1-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:27331cd902fb4322252657f3902adf1c4f6acad9dcad81d8df3ae14c7c4f07c4" },
     { url = "https://mirrors.aliyun.com/pypi/packages/b1/1a/64f5769025db846a82567fa5b7d21dba4558a7234ee631712ee4771c436c/torch-2.9.1-cp312-cp312-win_amd64.whl", hash = "sha256:81a285002d7b8cfd3fdf1b98aa8df138d41f1a8334fd9ea37511517cedf43083" },
     { url = "https://mirrors.aliyun.com/pypi/packages/6e/ab/07739fd776618e5882661d04c43f5b5586323e2f6a2d7d84aac20d8f20bd/torch-2.9.1-cp312-none-macosx_11_0_arm64.whl", hash = "sha256:c0d25d1d8e531b8343bea0ed811d5d528958f1dcbd37e7245bc686273177ad7e" },
+]
+
+[[package]]
+name = "torchview"
+version = "0.2.7"
+source = { registry = "https://mirrors.aliyun.com/pypi/simple/" }
+dependencies = [
+    { name = "graphviz" },
+]
+sdist = { url = "https://mirrors.aliyun.com/pypi/packages/f0/45/f76ac5a2a49f3a5831ddde2e7e6b58fe423b434075e812559976a2122560/torchview-0.2.7.tar.gz", hash = "sha256:c5898fd03d256333c9827000c1f83e1052fbcfc1066032d86b30d429dd942f7c" }
+wheels = [
+    { url = "https://mirrors.aliyun.com/pypi/packages/17/66/b87d835f664f0f99a0bf1e2e294c45d286545fed35b96f2c99e700915dd9/torchview-0.2.7-py3-none-any.whl", hash = "sha256:c7f3a9d16138c20b606900ecbf46d01489f2b8c77ed97e71293883bc606c2be0" },
 ]
 
 [[package]]

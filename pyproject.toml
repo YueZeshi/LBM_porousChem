@@ -33,6 +33,7 @@ dependencies = [
     "vtk>=9.2",
     "ipykernel>=7.1.0",
     "meshio>=5.3.5",
+    "torchview>=0.2.7",
 ]
 
 [project.scripts]
