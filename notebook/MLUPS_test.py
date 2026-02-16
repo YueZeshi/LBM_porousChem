@@ -1,7 +1,9 @@
 import sys
+import os
 import taichi as ti
 import time
 import numpy as np
+import cli 
 from LBM.LBM3D import LBM3DSolver
 from LBM.util.flag import BC_FLOW
 
@@ -128,9 +130,9 @@ if __name__=="__main__":
     i = 0
     nskip = 0
     data_name = ["LatticeNumber","AvgMLUPS","StdMLUPS","CompileTime","InitTime","Exe100Times"]
-    nlattice_list = parse_log_v2("log\\YZS_legion_cuda_AA_all.log")[0]
+    nlattice_list = [] # parse_log_v2("log\\YZS_legion_cuda_AA_all.log")[0]
 
-    for dx in np.logspace(-2,-4,1000000):
+    for dx in np.logspace(-2,-5,100):
         if i < nskip:
             i += 1
             if verbose:
@@ -146,3 +148,4 @@ if __name__=="__main__":
                 print(data_name[k],":",item)
                 k += 1
             print("-----",flush=True)
+    
