@@ -6,7 +6,6 @@
 - 通用与流场边界条件
 """
 from enum import Enum
-from ssl import enum_certificates
 class VISCOSITY_MODEL(Enum):
     """黏度模型选择。"""
     NONE = 0
