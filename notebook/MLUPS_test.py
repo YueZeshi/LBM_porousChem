@@ -140,7 +140,11 @@ if __name__=="__main__":
             continue
         else:
             i += 1
-        info = MLUPS(dx,verbose,debug)
+        try:
+            info = MLUPS(dx,verbose,debug)
+        except RuntimeError as e:
+            print("Error in MLUPS for dx =", dx, ":", e,flush=True)
+            break
         if info is not None:
             nlattice_list.append(int(info[0]))
             k = 0
