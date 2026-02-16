@@ -48,7 +48,6 @@ class LBM3D_BASE:
         self.solid = ti.field(float,shape = (self.nx,self.ny,self.nz))
         self.rhos = ti.field(float,shape=(self.nx,self.ny,self.nz))
         self.f = ti.Vector.field(19,float,shape=(self.nx,self.ny,self.nz)) # 分布函数
-        self.F = ti.Vector.field(19,float,shape=(self.nx,self.ny,self.nz)) # 后碰撞分布函数
         # 定义边界条件
         self.bc = [BC_FLOW.periodic]*6 # 左右前后上下边界条件类型
         self.bc_v = [BC.periodic]*6 # 左右前后上下速度边界条件类型
