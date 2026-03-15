@@ -9,8 +9,8 @@ basic:
 module : 
   flow : true
   porous_media : true
-  temperature : true
-  chemistry : true
+  temperature : false
+  chemistry : false
   radiation : false # only mean temperature model
 
 flowProperties:

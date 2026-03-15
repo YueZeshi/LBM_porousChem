@@ -23,7 +23,7 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
     basic = config.get("basic")
     if basic is None:
         logger.error("basic missing")
-        # raise ValueError("Basic is none")  
+        raise ValueError("Basic is none")  
     else:
         for key,value in basic.items():
             logger.info(f"{key} : {value}")
@@ -35,7 +35,7 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
             from .LBM3D import LBM3DSolver as lbm
         else:
             logger.error("The dimension value in the configuration file is invalid. Please set it to 2 or 3 depending on your case.")
-            # raise ValueError("dim")
+            raise ValueError("dim")
         
         ARCH = basic.get("arch","cpu")
         ti.reset()

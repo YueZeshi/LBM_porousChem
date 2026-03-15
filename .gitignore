@@ -8,6 +8,7 @@ data/stl/*.stl
 __pycache__/
 *.py[codz]
 *$py.class
+*.npz
 
 # C extensions
 *.so
