@@ -10,17 +10,12 @@ class LBM2D_INFO(LBM2D_BASE):
 
     def description(self):
         des = "\n------------------------------------------\n"        
-        des += self.description_basic()
-        des += "\n"
-        des += self.description_flow()
-        des += "\n"
-        des += self.description_porous()
-        des += "\n"
-        des += self.description_thermal()
-        des += "\n"
-        des += self.description_chemical()
-        des += "\n"
-        des += self.description_BC()
+        des += self.description_basic()+"\n"
+        des += self.description_flow()+"\n"
+        des += self.description_porous()+"\n"
+        des += self.description_thermal()+"\n"
+        des += self.description_chemical()+"\n"
+        des += self.description_BC()+"\n"
         des += "------------------------------------------\n\n"
         return des
     def description_flow(self):
@@ -97,3 +92,12 @@ class LBM2D_INFO(LBM2D_BASE):
             if self.bc[i]==BC_FLOW.inlet_flow:
                 des+="    "+sideName[i]+": INLET FLOW\n"
         return des
+    def log_info(self):
+        """生成当前步简要日志字符串。
+
+        内容包括 `t(LU)`、`max|v|`，在启用温度时附带 `T_min/T_max (K)`。
+        """
+        p = f"    t(s):{self.tLattice*self.dt} t(LU)={self.tLattice} : Max velocity magnitude (LU) : {self.get_max_v():.7f}, "
+        if self.TEMPERATURE:
+            p +=f"Min temperature: {self.get_min_T():.7f} K, Max temperature : {self.get_max_T():.7f}"
+        return p

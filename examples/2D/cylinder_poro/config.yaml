@@ -15,7 +15,7 @@ module :
 
 
 spaceControl:
-  geometry : [1,0.1]
+  geometry : [0.3,0.1]
   DX : 1e-3
 
 
@@ -27,14 +27,14 @@ timeControl:
 flowProperties:
   viscosity : 
     type: constant
-    value: 0.002
+    value: 1e-5
 
 chemicalProperties:
   source : cantera
 
 geometry:
   zone1:
-    type : circle
+    type : sphere
     center : [0.1,0.05]
     radius : 0.01
   # zone2:
@@ -106,7 +106,7 @@ outputControl:
     LOD : 1
     clear : true
   log:
-    interval : 10
+    interval : 1
     LOD : 1
   snapshot:
     interval : 100

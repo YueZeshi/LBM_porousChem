@@ -17,7 +17,7 @@ spaceControl:
 
 timeControl:
   startTime : 0
-  endTime : 10000
+  endTime : 1000
   DT : 1e-3
 
 flowProperties:
@@ -33,37 +33,12 @@ geometry:
     type : sphere
     center : [0.1,0.05,0]
     radius : 0.01
-  zone2 :
-    type : cylinder
-    center : [0.2,0.05,0]
-    radius : 0.02
-    height : 0.01
-    axis : [0,1,0]
-  zone3 :
-    type : box
-    center : [0.3,0.05,0]
-    size : [0.02,0.01,0.01]
-  zone4 : 
-    type : cone
-    center : [0.4,0.05,0]
-    height : 0.1
-    radius : 0.02
-    axis : [0,0.5,0.5]
-  zone5:
-    type : stl
-    path : stl/cylinder_test2.stl
-    scale : 1
-    translate : [0.6,0.05,0]
-    rotate : [0,0,0]
 
 initialCondition:
   solid:
     solid1:
       zone : ALL
       type : concrete
-    # solid2:
-    #   zone : zone2
-    #   type : substract
   flow:
     rho : 1
     velocity : [0,0,0]
@@ -75,7 +50,7 @@ initialCondition:
       value : 1
     wood(S):
       zone : zone1
-      vaue : 400
+      value : 400
 
 boundaryCondition:
   left:
@@ -112,10 +87,10 @@ boundaryCondition:
 
 outputControl:
   vtk:
-    interval : 1
+    interval : 10
     path : vtk
     LOD : 1
-    clear : false
+    clear : true
   log:
     interval : 1
     LOD : 1

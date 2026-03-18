@@ -585,15 +585,6 @@ class LBM2D_OUTPUT(LBM2D_BASE):
         """内部 Taichi kernel：计算最小温度（LU）。"""
         for I in ti.grouped(self.rho):
             ti.atomic_min(self.min_T[None], self.TF.S[I])
-    def log_info(self):
-        """生成当前步简要日志字符串。
-
-        内容包括 `t(LU)`、`max|v|`，在启用温度时附带 `T_min/T_max (K)`。
-        """
-        p = f"    t(LU)={self.tLattice} : Max velocity magnitude (LU) : {self.get_max_v():.7f}, "
-        if self.TEMPERATURE:
-            p +=f"Min temperature: {self.get_min_T():.7f} K, Max temperature : {self.get_max_T():.7f}"
-        return p
     def export_snapshot(self,config):
         """导出快照（预留接口）。
 
@@ -770,11 +761,15 @@ class LBM2D_OUTPUT(LBM2D_BASE):
     @ti.func
     def check(self):
         """内部调试函数：示例性打印/计算，供开发时验证。"""
-        s1 = [int(0),int(self.ny/2),int(self.nz/2)]
+        idx = [int(self.nx/3),int(self.ny/2),int(self.nz/2)]
         # print(self.species[0].coefDiff(s1))
         # print(self.tau(s1),self.TF.coefDiff(s1),self.TF.capacity_m(s1),self.TF.conductivity(s1),self.viscosity(s1),self.TS.conductivity(s1),self.TS.capacity_m(s1),self.rhos[s1],self.reactions.dS[0][s1],self.reactions.reactions[0].reaction(s1))
-        print(self.reactions.reactions[0].Arrehnius(s1))
-        # rad = 0.0
+        # print(self.TF.capacity_m(idx),self.TF.conductivity(idx),self.viscosity(idx),self.TS.conductivity(idx),self.TS.capacity_m(idx),self.rhos[idx])
+        dH = self.TS.exchangeCoef[idx]*self.TS.exchangeSurface[idx]*(self.TF.physical_value(self.TF.S[idx])-self.TS.physical_value(self.TS.S[idx]))*self.dt
+        dSS = dH/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale
+        dSF = -dH/self.TF.capacity_m(idx)/self.rho[idx]/self.TF.v_scale
+        print(dSF,dSS,self.TS.v_scale,self.TS.exchangeCoef[idx],self.TS.exchangeSurface[idx],self.TF.physical_value(self.TF.S[idx]),self.TS.physical_value(self.TS.S[idx]),self.TS.capacity_m(idx),self.rhos[idx],self.TF.capacity_m(idx),self.rho[idx])
+        #  rad = 0.0
         # rad_surface = 0.0
         # for i in ti.grouped(self.rho):
         #     rad_surface +=self.radiation_surface[i]*self.dx
