@@ -15,7 +15,7 @@ module :
 
 
 spaceControl:
-  geometry : [1,0.1]
+  geometry : [0.3,0.1]
   DX : 1e-3
 
 
@@ -25,14 +25,16 @@ timeControl:
   DT : 1e-3
 
 flowProperties:
-  viscosity : 0.002
+  viscosity : 
+    type: constant
+    value: 1e-5
 
 chemicalProperties:
   source : cantera
 
 geometry:
   zone1:
-    type : circle
+    type : sphere
     center : [0.1,0.05]
     radius : 0.01
   # zone2:
@@ -44,11 +46,11 @@ initialCondition:
   solid:
     solid1:
       zone : [zone1] # 区域 可不加[] 
-      type : porous # 类型 porous/concrete
-      porosity : 0.6 # 孔隙率 type==porous时访问
+      type : poro # 类型 poro/concrete
+      porosity : 0.6 # 孔隙率 type==poro时访问
       model : Darcy # ergun/darcy/darcyforchheimer
-      darcy : 2.5e10 # 达西系数 type==porous model==darcy/darcyforchheimer时访问
-      forchheimer : 0.0 # Forchheimer系数 type==porous model==darcy/darcyforchheimer时访问
+      darcy : 2.5e10 # 达西系数 type==poro model==darcy/darcyforchheimer时访问
+      forchheimer : 0.0 # Forchheimer系数 type==poro model==darcy/darcyforchheimer时访问
       
 
   flow:
@@ -104,7 +106,7 @@ outputControl:
     LOD : 1
     clear : true
   log:
-    interval : 10
+    interval : 1
     LOD : 1
   snapshot:
     interval : 100

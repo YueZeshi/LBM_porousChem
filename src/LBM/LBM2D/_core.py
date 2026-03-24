@@ -31,16 +31,16 @@ class LBM2D_BASE:
         # LBM使用常量
         self.e9 = ti.Vector.field(3,ti.i32, shape=(9)) # e 方向向量
         self.w9 = ti.field(float, shape=(9)) # 权重
-        self.LR = [0,3,4,1,2,7,8,5,6] #对称索引
+        self.LR = [0,3,4,1,2,7,8,5,6] #对称索引 D2Q9 D2Q5通用
         self.e5 = ti.Vector.field(3,ti.i32, shape=(5)) # e 方向向量
         self.w5 = ti.field(float, shape=(5)) # 权重
+        # 网格信息
         self.x = np.linspace(0, self.X, self.nx)
         self.y = np.linspace(0, self.Y, self.ny)
         self.z = np.linspace(0, self.Z, self.nz)
-        self.ext_f = ti.Vector.field(3,float,shape=()) # 外部力
-        
         self.meshX, self.meshY, self.meshZ = np.meshgrid(self.x, self.y, self.z, indexing='ij')
         # 声明物理场
+        
         self.rho = ti.field(float, shape=(self.nx,self.ny,self.nz))
         self.v = ti.Vector.field(3,float, shape=(self.nx,self.ny,self.nz))
         self.solid = ti.field(float,shape = (self.nx,self.ny,self.nz))
@@ -48,6 +48,7 @@ class LBM2D_BASE:
         self.rhos = ti.field(float,shape=(self.nx,self.ny,self.nz))
         self.f = ti.Vector.field(9,float,shape=(self.nx,self.ny,self.nz)) # 分布函数
 
+        self.ext_f = ti.Vector.field(3,float,shape=()) # 外部力
         # 定义边界条件
         self.bc = [BC_FLOW.periodic]*4 # 左右上下边界条件类型
         self.bc_v = [BC.periodic]*4 # 左右上下速度边界条件类型

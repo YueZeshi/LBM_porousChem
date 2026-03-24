@@ -21,6 +21,7 @@ lbm documentation
    api/modules
    contributing
    history
+   todoList
 
 Indices and tables
 ==================

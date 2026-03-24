@@ -32,6 +32,7 @@ dependencies = [
     "cadquery>=2.6.1",
     "vtk>=9.2",
     "ipykernel>=7.1.0",
+    "meshio>=5.3.5",
 ]
 
 [project.scripts]
@@ -47,8 +48,11 @@ cmtl2yaml = "cantera_tool.cmtl2yaml:main"
 # Homepage = "https://github.com/lettucecfd/lettuce"
 
 [tool.setuptools.packages.find]
-where = ["src"]  # 在 src 目录中查找
-include = ["LBM*","visualization_tool*","cantera_tool*","cli"]  # 只包含 LBM 包
+where = ["src"]  # 指定源代码目录
+include = ["LBM*","cantera_tool*","visualization_tool*"]  # 只包含 LBM 包
+
+[tool.setuptools]
+py-modules = ["cli"]  # 包含单个 Python 文件
 
 [tool.uv]
 # 使用国内镜像

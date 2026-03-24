@@ -5,7 +5,7 @@ import shutil
 from visualization_tool.root_path import root_path
 import logging
 import sys
-#
+
 @click.command()
 @click.option('--config','-c',default ='config.yaml',help = 'the configuration of simulation case')
 @click.option('--verbose','-v',default=1,help = "log level 0:warning;1:info;2:debug")

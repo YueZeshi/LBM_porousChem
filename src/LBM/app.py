@@ -23,7 +23,7 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
     basic = config.get("basic")
     if basic is None:
         logger.error("basic missing")
-        # raise ValueError("Basic is none")  
+        raise ValueError("Basic is none")  
     else:
         for key,value in basic.items():
             logger.info(f"{key} : {value}")
@@ -35,7 +35,7 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
             from .LBM3D import LBM3DSolver as lbm
         else:
             logger.error("The dimension value in the configuration file is invalid. Please set it to 2 or 3 depending on your case.")
-            # raise ValueError("dim")
+            raise ValueError("dim")
         
         ARCH = basic.get("arch","cpu")
         ti.reset()
@@ -275,16 +275,29 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
                             if thermodynamicProperty is not None:
                                 thermodynamicType = thermodynamicProperty.get("type")
                                 if thermodynamicType=="constant":
+                                    unit = thermodynamicProperty.get("unit","mole-based")
+                                    if unit.startswith("mole"):
+                                        unit = UNIT.MOLE
+                                    elif unit.startswith("mass"):
+                                        unit = UNIT.MASS
                                     capa = thermodynamicProperty.get("capacity")
-                                    lb.set_specie_capacity(specie,capa)
+                                    lb.set_specie_capacity(specie,capa,unit)
                                     enthalpy = thermodynamicProperty.get("enthalpy")
-                                    lb.set_specie_enthalpy(specie,enthalpy)
+                                    lb.set_specie_enthalpy(specie,enthalpy,unit)
                                 elif thermodynamicType=="NASA7":
                                     Trange = thermodynamicProperty.get("Trange")
                                     data = thermodynamicProperty.get("data")
                                     lb.set_specie_NASA7(specie,Trange,data)
+                                elif thermodynamicType=="polynomial":
+                                    data = thermodynamicProperty.get("data")
+                                    unit = thermodynamicProperty.get("unit","mole-based")
+                                    if unit.startswith("mole"):
+                                        unit = UNIT.MOLE
+                                    elif unit.startswith("mass"):
+                                        unit = UNIT.MASS
+                                    lb.set_specie_capacity_poly(specie,data,unit)
                                 else: 
-                                    logger.warning("ss")
+                                    logger.warning(f"Specie {specie} thermodynamic type {thermodynamicType} not valid. The valid value : constant|NASA7")
                             condProperty = species[specie].get("conductivity")
                             if condProperty is not None:
                                 condType = condProperty.get("type")
@@ -302,15 +315,28 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
                                 thermodynamicType = thermodynamicProperty.get("type")
                                 if thermodynamicType=="constant":
                                     capa = thermodynamicProperty.get("capacity")
-                                    lb.set_specie_capacity(specie,capa)
+                                    unit = thermodynamicProperty.get("unit","mole-based")
+                                    if unit.startswith("mole"):
+                                        unit = UNIT.MOLE
+                                    elif unit.startswith("mass"):
+                                        unit = UNIT.MASS
+                                    lb.set_specie_capacity(specie,capa,unit)
                                     enthalpy = thermodynamicProperty.get("enthalpy")
-                                    lb.set_specie_enthalpy(specie,enthalpy)
+                                    lb.set_specie_enthalpy(specie,enthalpy,unit)
                                 elif thermodynamicType=="NASA7":
                                     Trange = thermodynamicProperty.get("Trange")
                                     data = thermodynamicProperty.get("data")
                                     lb.set_specie_NASA7(specie,Trange,data)
+                                elif thermodynamicType=="polynomial":
+                                    data = thermodynamicProperty.get("data")
+                                    unit = thermodynamicProperty.get("unit","mole-based")
+                                    if unit.startswith("mole"):
+                                        unit = UNIT.MOLE
+                                    elif unit.startswith("mass"):
+                                        unit = UNIT.MASS
+                                    lb.set_specie_capacity_poly(specie,data,unit)
                                 else: 
-                                    logger.warning("ss")
+                                    logger.warning(f"Specie {specie} thermodynamic type {thermodynamicType} not valid. The valid value : constant|NASA7")
                             condProperty = species[specie].get("conductivity")
                             if condProperty is not None:
                                 condType = condProperty.get("type")
@@ -325,8 +351,22 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
             reactions = chemicalProperties.get("reactions")
             if reactions is not None:
                 for reaction in reactions:
+                    name = reaction.get("name")
                     coefRate = reaction["rate-constant"]
-                    lb.add_reaction(reaction["equation"],coefRate["A"],coefRate["Ea"],coefRate["b"])
+                    unit = reaction.get("unit","mole-based")
+                    dH = reaction.get("deltaH",None)
+                    fixDH = False
+                    if dH is not None:
+                        fixDH = True
+                    else:
+                        dH = 0.0
+                    if unit.startswith("mole"):
+                        unit = UNIT.MOLE
+                    elif unit.startswith("mass"):
+                        unit = UNIT.MASS
+                    else:
+                        unit = UNIT.NONE
+                    lb.add_reaction(reaction["equation"],coefRate["A"],coefRate["Ea"],coefRate["b"],name=name,fixDH=fixDH,deltaH=dH,unit=unit)
 
         else:
             logger.warning(f"Chemical type {chemicalType} of chemicalProperties not valid. The valid type : cantera|input")
@@ -422,11 +462,18 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
             translate = [0,0,0]
             rotate = [0,0,0]
             scale = [1,1,1]
+            # 2D 2 3D
+            if shape == "circle":
+                shape = "cylinder"
+            elif shape == "rectangle":
+                shape = "box"
             if shape == "sphere":
                 from .GEO.STL import StlGenerator
                 stl_generator = StlGenerator(logger)
                 path = stl_generator.create_sphere()
                 translate = geo_infos[geo_name].get("center",[0,0,0])
+                if len(translate)==2:
+                    translate.append(0)
                 scale = geo_infos[geo_name].get("radius",[0.5,0.5,0.5])*2
             elif shape == "cylinder":
                 from .GEO.STL import StlGenerator
@@ -434,6 +481,8 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
                 path = stl_generator.create_cylinder()
                 height = geo_infos[geo_name].get("height",1)
                 center = geo_infos[geo_name].get("center",[0,0,0])
+                if len(center)==2:
+                    center.append(0)
                 radius = geo_infos[geo_name].get("radius",0.5)
                 axis = geo_infos[geo_name].get("axis",[0,0,1])
                 from .util.math import vectors_to_euler
@@ -445,6 +494,8 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
                 stl_generator = StlGenerator(logger)
                 path = stl_generator.create_cone()
                 center = geo_infos[geo_name].get("center",[0,0,0])
+                if len(center)==2:
+                    center.append(0)
                 height = geo_infos[geo_name].get("height",1)
                 radius = geo_infos[geo_name].get("radius",0.5)
                 axis = geo_infos[geo_name].get("axis",[0,0,1])
@@ -458,7 +509,10 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
                 path = stl_generator.create_box()
                 scale = geo_infos[geo_name].get("size",[1,1,1])
                 center = geo_infos[geo_name].get("center",[0,0,0])
+                if len(center)==2:
+                    center.append(0)
                 translate = center
+                rotate = geo_infos[geo_name].get("rotate")
             elif shape == "stl":
                 # read stl
                 path = geo_infos[geo_name].get("path")
@@ -467,6 +521,7 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
                 scale = geo_infos[geo_name].get("scale",[1,1,1])
             else:
                 logger.warning(f"Geometry {shape} not valid.")
+                raise ValueError(f"Geometry {shape} not valid.")
             mesh,surface = lb.load_stl(path,scale,translate,rotate,logger=logger)
             if np.shape(mesh)[0]!=0:
                 geo_dict[geo_name]=mesh,surface
