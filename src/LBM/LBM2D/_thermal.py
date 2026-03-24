@@ -103,7 +103,7 @@ class TemperatureFluid(ScalarField):
                 T = self.physical_value(self.S[i])
                 for specie in ti.static(list(self.LBM.species)):
                     if ti.static(not specie.FIX):
-                        cm += specie.capacity_m(i)*specie.S[i]
+                        cm += specie.capacity_m(T)*specie.S[i]
         return cm
 
 @ti.data_oriented

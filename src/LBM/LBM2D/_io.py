@@ -306,6 +306,7 @@ class LBM2D_INPUT(LBM2D_BASE):
     def set_specie_NASA7(self,specieName:str,TRange:list[float],coef:list):
         """为指定物种设置 NASA7 热容模型。"""
         specie = self.species[self.specieName.index(specieName)]
+        specie.thermo_model = THERMO_MODEL.NASA7
         specie.Trange = TRange
         specie.NASAcoef = coef
     def set_species(self,species,FIX=None,molemass = None):# 登记所有物质
@@ -333,28 +334,31 @@ class LBM2D_INPUT(LBM2D_BASE):
     def set_specie_diff(self,specieName,diff):
         """指定物种：常数扩散系数。"""
         specie = self.species[self.specieName.index(specieName)]
-        specie.diff_model = DIFF_MODEL.CONSANT
+        specie.diff_model = DIFF_MODEL.CONSTANT
         specie.diff = diff
     def set_specie_diff_Schmidt(self,specieName,Sc):
         """指定物种：通过 Schmidt 数设置扩散。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.diff_model=DIFF_MODEL.SCHMIDT
         specie.Sc = Sc
-    def set_specie_enthalpy(self,specieName,enthalpy):
+    def set_specie_enthalpy(self,specieName,enthalpy,unit=UNIT.MOLE):
         """指定物种：常数焓。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.thermo_model = THERMO_MODEL.CONSTANT
         specie.enthalpy = enthalpy
-    def set_specie_capacity(self,specieName,capacity): # 质量热容
+        specie.enthalpy_unit = unit
+    def set_specie_capacity(self,specieName,capacity,unit=UNIT.MOLE): # 质量热容
         """指定物种：常数质量比热容。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.thermo_model = THERMO_MODEL.CONSTANT
         specie.capa = capacity
-    def set_specie_capacity_poly(self,specieName,poly): # 质量热容
+        specie.capa_unit = unit
+    def set_specie_capacity_poly(self,specieName,poly,unit=UNIT.MOLE): # 质量热容
         """指定物种：多项式质量比热容。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.thermo_model = THERMO_MODEL.POLYNOMIAL
         specie.capa_poly = list(poly)
+        specie.capa_unit = unit
 
     def set_specie_conductivity(self,name,lamb): # 传热系数
         specie = self.species[self.specieName.index(name)]
@@ -367,7 +371,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         specie.cond_poly = list(poly)
     
     # 定义化学反应
-    def add_reaction(self,formula,A,Ea,b = 0,Tmin = 0,deltaH = 0,name="unnamed",unit=SPECIE_UNIT.MASS,fixDH = True):
+    def add_reaction(self,formula,A,Ea,b = 0,Tmin = 0,deltaH = 0,name="unnamed",unit=UNIT.MOLE,fixDH = True):
         """登记单条化学反应。
 
         Parameters
@@ -382,7 +386,7 @@ class LBM2D_INPUT(LBM2D_BASE):
             反应焓变。
         name : str
             反应名称。
-        unit : SPECIE_UNIT
+        unit : UNIT
             质量或摩尔基准。
         fixDH : bool
             是否固定焓项。
@@ -529,7 +533,7 @@ class LBM2D_INPUT(LBM2D_BASE):
                 A = reaction_info["rate-constant"]["A"]
                 Ea = reaction_info["rate-constant"]["Ea"]
                 b = reaction_info["rate-constant"]["b"]
-                self.add_reaction(reaction_info["equation"],A,Ea,b,unit = SPECIE_UNIT.MOLE,fixDH = False)
+                self.add_reaction(reaction_info["equation"],A,Ea,b,unit = UNIT.MOLE,fixDH = False)
     
     
 # 输出 可视化
@@ -674,6 +678,7 @@ class LBM2D_OUTPUT(LBM2D_BASE):
             for specie in self.species:
                 if specie.FIX and not specie.name.endswith("(S)"):
                     data[specie.name+"(S)"]=specie.S.to_numpy().ravel(order="F")
+                    data["d "+specie.name+"(S)"] = specie.dS.to_numpy().ravel(order="F")
                 else:
                     data[specie.name]=specie.S.to_numpy().ravel(order="F")
                     data["d "+specie.name] = specie.dS.to_numpy().ravel(order="F")
@@ -768,7 +773,7 @@ class LBM2D_OUTPUT(LBM2D_BASE):
         dH = self.TS.exchangeCoef[idx]*self.TS.exchangeSurface[idx]*(self.TF.physical_value(self.TF.S[idx])-self.TS.physical_value(self.TS.S[idx]))*self.dt
         dSS = dH/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale
         dSF = -dH/self.TF.capacity_m(idx)/self.rho[idx]/self.TF.v_scale
-        print(dSF,dSS,self.TS.v_scale,self.TS.exchangeCoef[idx],self.TS.exchangeSurface[idx],self.TF.physical_value(self.TF.S[idx]),self.TS.physical_value(self.TS.S[idx]),self.TS.capacity_m(idx),self.rhos[idx],self.TF.capacity_m(idx),self.rho[idx])
+        print(self.species[3].S[idx],self.species[3].dS[idx])
         #  rad = 0.0
         # rad_surface = 0.0
         # for i in ti.grouped(self.rho):

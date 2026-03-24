@@ -227,7 +227,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         self.TS.dS[idx] += self.TS.radiation(idx)*self.dt/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale
             ## 化学反应源项
             if ti.static(self.CHEMISTRY):
-                self.reactions.update_dS()
+                self.reactions.update_dS(idx)
         # ========== 3. 边界条件（仅 NEE / ES，基于 rho, v, f） ==========
         if ti.static(self.boundary_condition_model == BC_MODEL.NEE):
             self.Boundary_condition_NEE_AA()

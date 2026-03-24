@@ -6,7 +6,12 @@
 - 通用与流场边界条件
 """
 from enum import Enum
-from ssl import enum_certificates
+from pickle import NONE
+class UNIT(Enum):
+    """物理量单位类型。"""
+    MASS = 1
+    MOLE = 2
+    NONE = 0
 class VISCOSITY_MODEL(Enum):
     """黏度模型选择。"""
     NONE = 0
@@ -50,11 +55,6 @@ class DIFF_MODEL(Enum):
     NONE = 0
     CONSTANT = 1
     SCHMIDT = 2
-
-class SPECIE_UNIT(Enum):
-    """物种数量单位（质量/摩尔）。"""
-    MASS = 1
-    MOLE = 2
 
 class REACTION_TYPE(Enum):
     """反应速率类型（预留）。"""

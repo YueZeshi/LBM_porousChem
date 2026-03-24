@@ -275,16 +275,29 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
                             if thermodynamicProperty is not None:
                                 thermodynamicType = thermodynamicProperty.get("type")
                                 if thermodynamicType=="constant":
+                                    unit = thermodynamicProperty.get("unit","mole-based")
+                                    if unit.startswith("mole"):
+                                        unit = UNIT.MOLE
+                                    elif unit.startswith("mass"):
+                                        unit = UNIT.MASS
                                     capa = thermodynamicProperty.get("capacity")
-                                    lb.set_specie_capacity(specie,capa)
+                                    lb.set_specie_capacity(specie,capa,unit)
                                     enthalpy = thermodynamicProperty.get("enthalpy")
-                                    lb.set_specie_enthalpy(specie,enthalpy)
+                                    lb.set_specie_enthalpy(specie,enthalpy,unit)
                                 elif thermodynamicType=="NASA7":
                                     Trange = thermodynamicProperty.get("Trange")
                                     data = thermodynamicProperty.get("data")
                                     lb.set_specie_NASA7(specie,Trange,data)
+                                elif thermodynamicType=="polynomial":
+                                    data = thermodynamicProperty.get("data")
+                                    unit = thermodynamicProperty.get("unit","mole-based")
+                                    if unit.startswith("mole"):
+                                        unit = UNIT.MOLE
+                                    elif unit.startswith("mass"):
+                                        unit = UNIT.MASS
+                                    lb.set_specie_capacity_poly(specie,data,unit)
                                 else: 
-                                    logger.warning("ss")
+                                    logger.warning(f"Specie {specie} thermodynamic type {thermodynamicType} not valid. The valid value : constant|NASA7")
                             condProperty = species[specie].get("conductivity")
                             if condProperty is not None:
                                 condType = condProperty.get("type")
@@ -302,15 +315,28 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
                                 thermodynamicType = thermodynamicProperty.get("type")
                                 if thermodynamicType=="constant":
                                     capa = thermodynamicProperty.get("capacity")
-                                    lb.set_specie_capacity(specie,capa)
+                                    unit = thermodynamicProperty.get("unit","mole-based")
+                                    if unit.startswith("mole"):
+                                        unit = UNIT.MOLE
+                                    elif unit.startswith("mass"):
+                                        unit = UNIT.MASS
+                                    lb.set_specie_capacity(specie,capa,unit)
                                     enthalpy = thermodynamicProperty.get("enthalpy")
-                                    lb.set_specie_enthalpy(specie,enthalpy)
+                                    lb.set_specie_enthalpy(specie,enthalpy,unit)
                                 elif thermodynamicType=="NASA7":
                                     Trange = thermodynamicProperty.get("Trange")
                                     data = thermodynamicProperty.get("data")
                                     lb.set_specie_NASA7(specie,Trange,data)
+                                elif thermodynamicType=="polynomial":
+                                    data = thermodynamicProperty.get("data")
+                                    unit = thermodynamicProperty.get("unit","mole-based")
+                                    if unit.startswith("mole"):
+                                        unit = UNIT.MOLE
+                                    elif unit.startswith("mass"):
+                                        unit = UNIT.MASS
+                                    lb.set_specie_capacity_poly(specie,data,unit)
                                 else: 
-                                    logger.warning("ss")
+                                    logger.warning(f"Specie {specie} thermodynamic type {thermodynamicType} not valid. The valid value : constant|NASA7")
                             condProperty = species[specie].get("conductivity")
                             if condProperty is not None:
                                 condType = condProperty.get("type")
@@ -325,8 +351,22 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
             reactions = chemicalProperties.get("reactions")
             if reactions is not None:
                 for reaction in reactions:
+                    name = reaction.get("name")
                     coefRate = reaction["rate-constant"]
-                    lb.add_reaction(reaction["equation"],coefRate["A"],coefRate["Ea"],coefRate["b"])
+                    unit = reaction.get("unit","mole-based")
+                    dH = reaction.get("deltaH",None)
+                    fixDH = False
+                    if dH is not None:
+                        fixDH = True
+                    else:
+                        dH = 0.0
+                    if unit.startswith("mole"):
+                        unit = UNIT.MOLE
+                    elif unit.startswith("mass"):
+                        unit = UNIT.MASS
+                    else:
+                        unit = UNIT.NONE
+                    lb.add_reaction(reaction["equation"],coefRate["A"],coefRate["Ea"],coefRate["b"],name=name,fixDH=fixDH,deltaH=dH,unit=unit)
 
         else:
             logger.warning(f"Chemical type {chemicalType} of chemicalProperties not valid. The valid type : cantera|input")
