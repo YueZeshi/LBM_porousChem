@@ -122,6 +122,8 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
     logger.info("Loading thermalPropertiesFluid...")
     thermalPropertiesFluid = config.get("thermalPropertiesFluid")
     if isThermal and (thermalPropertiesFluid is not None):
+        TF_delay = thermalPropertiesFluid.get("delay",0)
+        lb.set_TF_delay(TF_delay)
         normalize = thermalPropertiesFluid.get("normalize")
         if normalize is not None:
             Trange = normalize.get("Trange",[0,1])
@@ -171,6 +173,8 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
     logger.info("Loading thermalPropertiesSolid...")
     thermalPropertiesSolid = config.get("thermalPropertiesSolid")
     if isThermal and (thermalPropertiesSolid is not None):
+        TS_delay = thermalPropertiesSolid.get("delay",0)
+        lb.set_TS_delay(TS_delay)
         normalize = thermalPropertiesSolid.get("normalize")
         if normalize is not None:
             Trange = normalize.get("Trange",[0,1])

@@ -175,6 +175,8 @@ class LBM2D_INPUT(LBM2D_BASE):
         self.init_field(self.coefForchheimer,coefForchheimer*s)
     
     ## 温度场
+    def set_TF_delay(self,delay):
+        self.TF_delay[None] = delay
     def set_fluid_thermal_diff(self,diff):
         """流体：设定常数热扩散系数。"""
         self.TF.thermal_diff_model = THERMAL_DIFF_MODEL.CONSTANT
@@ -218,7 +220,8 @@ class LBM2D_INPUT(LBM2D_BASE):
         """流体：设置参考温度区间 ``[T_ref, T_max]`` 以归一化。"""
         self.TF.v_ref = Trange[0]
         self.TF.v_scale = Trange[1]-Trange[0]
-        
+    def set_TS_delay(self,delay):
+        self.TS_delay[None] = delay
     def set_solid_thermal_diff(self,diff):
         """固体：设定常数热扩散系数。"""
         self.TS.thermal_diff_model = THERMAL_DIFF_MODEL.CONSTANT
@@ -444,7 +447,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         """批量设置流量边界数值。"""
         for i in range(4):
             self.set_flow_BC_value(i,fs[i])
-
+    
     def set_TS_BC(self,i,BC):
         """固体温度场：设置边界类型。"""
         self.TS.set_BC(i,BC)

@@ -286,25 +286,26 @@ class Reaction:
         # print(kr)
         # 计算物种浓度变化和焓变
         # kr mol/m3/s
+        dH = 0.0 # 物种变化带来的焓变以及反应焓变
+        for j in ti.static(range(len(self.LBM.species))):
+            coef = -self.coefReactant[j]+self.coefProduct[j] # 物质生成或者消耗
+            if coef != 0.:
+                if ti.static(self.unit==UNIT.MASS):
+                    ds = kr*coef*self.LBM.dt # 物种的生成和消失
+                    dS[j] = ds # d\rho
+                    if ti.static(not self.isFixDH and self.LBM.TEMPERATURE):
+                        dH += coef*self.LBM.species[j].enthalpy_m(i)
+                else:
+                    ds = kr*coef*self.LBM.dt*self.LBM.species[j].molemass # 摩尔质量修正到密度
+                    dS[j] = ds # d\rho
+                    if ti.static(not self.isFixDH and self.LBM.TEMPERATURE):
+                        dH += coef*self.LBM.species[j].enthalpy_mole(i)
         if ti.static(self.LBM.TEMPERATURE):
-            dH = 0.0 # 物种变化带来的焓变以及反应焓变
             if ti.static(self.isFixDH):
-                dH += self.deltaH*kr*self.LBM.dt # 反应热效应
-            else:
-                for j in ti.static(range(len(self.LBM.species))):
-                    coef = -self.coefReactant[j]+self.coefProduct[j] # 物质生成或者消耗
-                    if coef != 0.:
-                        if ti.static(self.unit==UNIT.MASS):
-                            ds = kr*coef*self.LBM.dt # 物种的生成和消失
-                            dS[j] = ds # d\rho
-                            dH += coef*self.LBM.species[j].enthalpy_m(i)
-                        else:
-                            ds = kr*coef*self.LBM.dt*self.LBM.species[j].molemass # 摩尔质量修正到密度
-                            dS[j] = ds # d\rho
-                            dH += coef*self.LBM.species[j].enthalpy_mole(i)
+                dH += self.deltaH # 反应热效应
                         # # 物质的生成和消失会影响焓变                    
                         # # dh += ds*self.LBM.Temperature.S[i]*specie.capacity_m(i) # 物种生成和消失带来的焓变
-            # 反应热效应
+            # 反应热效应    
             dH *= -kr*self.LBM.dt # 注意保证kr deltaH的单位匹配。是质量都是质量，是摩尔数都是摩尔数。
             dS[self.specieNum]= dH # J
         return dS
@@ -336,6 +337,6 @@ class Reactions:
             self.LBM.species[j].dS[i] = self.dS[i][j]
         if ti.static(self.LBM.TEMPERATURE):
             if self.LBM.solid[i] > 0:
-                self.LBM.TS.dS[i] += self.dS[i][self.specieNum]/self.LBM.TS.capacity_m(i)/self.LBM.rhos[i]
+                self.LBM.TS.dS[i] += self.dS[i][self.specieNum]/self.LBM.TS.capacity_m(i)/self.LBM.rhos[i]/self.LBM.TS.v_scale # 化学反应带来的能量变化转换为温度变化 注意温度变化量归一化
             else:
-                self.LBM.TF.dS[i] += self.dS[i][self.specieNum]/self.LBM.TF.capacity_m(i)/self.LBM.rho[i]
+                self.LBM.TF.dS[i] += self.dS[i][self.specieNum]/self.LBM.TF.capacity_m(i)/self.LBM.rho[i]/self.LBM.TF.v_scale # 化学反应带来的能量变化转换为温度变化 注意温度变化量归一化

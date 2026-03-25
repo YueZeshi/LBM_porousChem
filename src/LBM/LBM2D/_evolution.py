@@ -15,7 +15,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
         # 如需回退到原双数组算法，可改为调用 step_kernel。
         self.step_AA_kernel()
         self.tLattice += 1
-        self.t += self.dt
+        self.t[None] += self.dt
         # self.check_kernel()
         ti.sync()
     @ti.kernel
@@ -101,7 +101,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
             tau_local = 0.0
             # 温度场更新
             ## 流体温度场
-            if ti.static(self.TEMPERATURE):
+            if ti.static(self.TEMPERATURE) and self.t[None] > self.TF_delay[None]:
                 if self.solid[idx]<1:
                     # 读取离散速度分量
                     for q in ti.static(range(5)):
@@ -135,7 +135,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         else:  # 奇数步：写本地
                             self.TF.g[idx][q] = g_collided[q]
             ## 固体温度场
-            if ti.static(self.TEMPERATURE):
+            if ti.static(self.TEMPERATURE) and self.t[None] > self.TS_delay[None]:
                 if self.solid[idx]>0:
                     # 读取离散速度分量
                     for q in ti.static(range(5)):
@@ -169,7 +169,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         else:  # 奇数步：写本地
                             self.TS.g[idx][q] = g_collided[q]
             # 浓度场更新
-            if ti.static(self.CHEMISTRY):
+            if ti.static(self.CHEMISTRY) and self.t[None] > self.chemistry_field_delay[None]:
                 self.rhos[idx] = 0.0 # 更新固相密度场
                 for specie in ti.static(list(self.species)):
                     if ti.static(not specie.FIX):
@@ -213,20 +213,20 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         self.rhos[idx] += specie.S[idx] # 更新固相密度场
             # 更新源项场
             ## 温度场源项
-            if ti.static(self.TEMPERATURE):
+            if ti.static(self.TEMPERATURE) and self.t[None] > self.TF_delay[None] and self.t[None] > self.TS_delay[None]:
                 self.TS.dS[idx] = 0.0
                 self.TF.dS[idx] = 0.0
                 if self.solid[idx] > 0: # 有固体
                     # 流固热交换
                     if self.solid[idx]<1: # 有流体
                         dH = self.TS.exchangeCoef[idx]*self.TS.exchangeSurface[idx]*(self.TF.physical_value(self.TF.S[idx])-self.TS.physical_value(self.TS.S[idx]))*self.dt
-                        self.TS.dS[idx] += dH/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale
-                        self.TF.dS[idx] += -dH/self.TF.capacity_m(idx)/self.rho[idx]/self.TF.v_scale
+                        self.TS.dS[idx] += dH/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale # 归一化温度变化 
+                        self.TF.dS[idx] += -dH/self.TF.capacity_m(idx)/self.rho[idx]/self.TF.v_scale # 归一化温度变化
                     # 辐射
                     if ti.static(self.RADIATION):
-                        self.TS.dS[idx] += self.TS.radiation(idx)*self.dt/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale
+                        self.TS.dS[idx] += self.TS.radiation(idx)*self.dt/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale # 归一化温度变化
             ## 化学反应源项
-            if ti.static(self.CHEMISTRY):
+            if ti.static(self.CHEMISTRY) and self.t[None] > self.chemistry_field_delay[None]:
                 self.reactions.update_dS(idx)
         # ========== 3. 边界条件（仅 NEE / ES，基于 rho, v, f） ==========
         if ti.static(self.boundary_condition_model == BC_MODEL.NEE):

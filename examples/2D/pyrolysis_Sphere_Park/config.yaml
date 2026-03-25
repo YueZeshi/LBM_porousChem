@@ -3,7 +3,7 @@ basic:
   author    : Sylvain
   date      : 2025-12-27
   dimension : 2 # 2 or 3
-  arch      : cpu # cpu/gpu/vulkan/cuda .etc the platform
+  arch      : gpu # cpu/gpu/vulkan/cuda .etc the platform
   type      : configuration # configuration / snapshot(saved)
 
 module : 
@@ -24,6 +24,7 @@ flowProperties:
     # # if mixture
 
 thermalPropertiesFluid : 
+  delay : 100 # the delay time of temperature field, to avoid numerical instability before the stable flow field is formed
   normalize:
     Trange : [500,1000] # [a,b] means [a,b] will be mapped to [0,1]
   thermalDiff :
@@ -56,6 +57,7 @@ thermalPropertiesFluid :
   # if mixture
 
 thermalPropertiesSolid : 
+  delay : 100 # the delay time of temperature field, to avoid numerical instability before the stable flow field is formed
   normalize:
    Trange: [500,1000]
   thermalDiff :
@@ -87,10 +89,11 @@ thermalPropertiesSolid :
 
 radiationProperties:
   type : mean_temp # mean_temp/none
-  Tambient : 600
+  Tambient : 800
 
 chemicalProperties:
   type : input # cantera/input
+  delay : 100 # the delay time of chemical reaction, to avoid numerical instability before the stable flow and temperature field is formed
   # # if cantera
   # path : YOUR_CANTERA_FILE.yaml
   # if input
@@ -354,10 +357,14 @@ initialCondition:
     rho : 1
     velocity : [0,0,0] # initial velocity of non-solid volume (to avoid numerical instablity)
   thermal: # initial condition of temperature
+    setting : 
+      delay : 100 # the delay time of temperature field, to avoid numerical instability before the stable flow field is formed
     T : 200
-    TS : 500
-    TF : 500
+    TS : 300
+    TF : 300
   chemical:
+    setting : 
+      delay : 100
     N2 : 
       zone : ALL
       value : 1.0
