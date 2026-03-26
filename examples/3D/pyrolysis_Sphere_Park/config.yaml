@@ -2,7 +2,7 @@ basic:
   name      : pyrolysis_test
   author    : Sylvain
   date      : 2025-12-27
-  dimension : 2 # 2 or 3
+  dimension : 3 # 2 or 3
   arch      : gpu # cpu/gpu/vulkan/cuda .etc the platform
   type      : configuration # configuration / snapshot(saved)
 
@@ -296,8 +296,8 @@ chemicalProperties:
 geometry:
   zone1:
     type : sphere # sphere/cylinder/box/cone/stl
-    center : [0.1,0.05,0]
-    radius : 0.01
+    center : [0.1,0.05,0.05]
+    radius : 0.013
   # zone2 :
   #   type : cylinder
   #   center : [0.05,0.05,0]
@@ -384,7 +384,7 @@ boundaryCondition:
     thermalFluid:
       type: fixedValue # periodic/fixedValue/zeroGradient
       # if fixedValue
-      value : 800
+      value : 700
       # # if zeroGradient
     thermalSolid : 
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
@@ -423,16 +423,36 @@ boundaryCondition:
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
     chemical:
       type: zeroGradient 
+  forward:
+    flow:
+      type : wall
+    thermalFluid:
+      type: fixedValue # periodic/fixedValue/zeroGradient 
+      value : 700
+    thermalSolid : 
+      type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
+    chemical:
+      type: zeroGradient 
+  back:
+    flow:
+      type : wall
+    thermalFluid:
+      type: fixedValue # periodic/fixedValue/zeroGradient 
+      value : 700
+    thermalSolid : 
+      type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
+    chemical:
+      type: zeroGradient 
   
   
 spaceControl:
-  geometry : [0.5,0.1]
-  DX : 4e-4
+  geometry : [0.2,0.1,0.1]
+  DX : 1e-3
 
 timeControl:
   startTime : 0
   endTime : 2000
-  DT : 4e-4
+  DT : 1e-3
 
 outputControl:
   vtk:

@@ -232,6 +232,8 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
     if isChemical and chemicalProperties is not None:
         logger.info("Chemistry module loading...")
         chemicalType = chemicalProperties.get("type")
+        chem_delay = chemicalProperties.get("delay",0)
+        lb.set_chemistry_delay(chem_delay)
         if chemicalType == "cantera":
             # load chemical mechanism
             logger.info("Cantera loading...")

@@ -12,7 +12,7 @@ class LBM3D_BASE:
     """
     def __init__(self, X, Y, Z,dx = 0.001,dt = 0.001,name="LBM",isThermal = False,isChemical = False,isPoro = False,isRadiation = False):
         self.name = name
-        self.t = 0.0
+        self.t = ti.field(float,shape=()) # 当前时间
         self.tol = 1e-6
         # 模型参数
         self.X = float(X)
@@ -84,11 +84,14 @@ class LBM3D_BASE:
         # Esoteric Twist (ET) 单数组算法奇偶步标记：0=偶数步, 1=奇数步
         self.even_step = ti.field(dtype=ti.i32, shape=())
         if self.TEMPERATURE:
+            self.TF_delay = ti.field(float,shape=()) # 温度场延迟时间步数
+            self.TS_delay = ti.field(float,shape=()) # 温度场延迟时间步数
             self.TF:TemperatureFluid = TemperatureFluid("Temperature of Fluid",self)
             self.TS:TemperatureSolid = TemperatureSolid("Temperature of Solid",self,isRadiation = self.RADIATION)
             self.min_T = ti.field(float,shape=())
             self.max_T = ti.field(float,shape=())
         if self.CHEMISTRY:
+            self.chemistry_field_delay = ti.field(float,shape=()) # 化学反应场延迟时间步数
             self.specieName = []
             self.species:list[Specie] = []
             self.reactions = Reactions(self) 
@@ -111,6 +114,12 @@ class LBM3D_BASE:
         self.snapshotPath = "snapshot.yaml"
         # 初始化ET步进标记
         self.even_step[None] = 0
+        # 初始化delay
+        if self.TEMPERATURE:
+            self.TF_delay[None] = 0.0
+            self.TS_delay[None] = 0.0
+        if self.CHEMISTRY:
+            self.chemistry_field_delay[None] = 0.0
     # 内置函数
     def __repr__(self):
         return self.__str__()

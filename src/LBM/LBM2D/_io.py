@@ -297,6 +297,8 @@ class LBM2D_INPUT(LBM2D_BASE):
         """
         self.species.append(Specie(specie,self,Mmass = molemass,FIX=Fix))
         self.specieName.append(specie)
+    def set_chemistry_delay(self,delay):
+        self.chemistry_field_delay[None] = delay
     def set_specie_viscosity(self,specieName,value):
         """为指定物种设置常数黏度。"""
         specie = self.species[self.specieName.index(specieName)]

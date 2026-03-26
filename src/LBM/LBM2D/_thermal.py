@@ -105,7 +105,6 @@ class TemperatureFluid(ScalarField):
                     if ti.static(not specie.FIX):
                         cm += specie.capacity_m(T)*specie.S[i]
         return cm
-
 @ti.data_oriented
 class TemperatureSolid(ScalarField):
     def __init__(self,name,lb2d,FIX = False,isRadiation = False):
@@ -202,9 +201,11 @@ class TemperatureSolid(ScalarField):
                 cm = self.NASA_coef[1][0]+T*(self.NASA_coef[1][1]+T*(self.NASA_coef[1][2]*T+T*(self.NASA_coef[1][3]+T*self.NASA_coef[1][4])))
         elif ti.static(self.capacity_model==THERMO_MODEL.MIXTURE):
             if ti.static(self.LBM.CHEMISTRY):
+                T = self.physical_value(self.S[i])
                 for specie in ti.static(list(self.LBM.species)):
-                    if ti.static(not specie.FIX):
-                        cm += specie.capacity_m(self.physical_value(self.S[i]))*specie.S[i]*self.LBM.rho[i]
+                    if ti.static(specie.FIX):
+                        cm += specie.capacity_m(T)*specie.S[i]
+                cm /= self.LBM.rhos[i]
             else:
                 cm += 1000
         return cm
