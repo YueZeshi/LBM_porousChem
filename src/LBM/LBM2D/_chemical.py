@@ -255,7 +255,7 @@ class Reaction:
         else:
             k = self.A
         # print(k,T)
-        return k
+        return 1
     @ti.func
     def reaction(self,i):  # mole修正还没有写好
         kr = self.Arrehnius(i)

@@ -397,7 +397,7 @@ boundaryCondition:
       rho: 1
     thermalFluid:
       type: zeroGradient # periodic/fixedValue/zeroGradient 
-      # value : 400
+      # value : 
     thermalSolid : 
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
     chemical:

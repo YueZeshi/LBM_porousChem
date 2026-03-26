@@ -231,7 +231,7 @@ class Reaction:
         # 反应热效应
         if ti.static(self.LBM.TEMPERATURE):
             dH *= -kr*self.LBM.dt # 注意保证kr deltaH的单位匹配。是质量都是质量，是摩尔数都是摩尔数。
-            dS[self.specieNum]= dH # J
+            # dS[self.specieNum]= dH # J
         return dS
 
 @ti.data_oriented
