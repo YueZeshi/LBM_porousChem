@@ -2,13 +2,16 @@ import ast
 import taichi as ti
 import numpy as np
 import os
+from pyevtk.hl import gridToVTK
 import json
+import pyvista as pv
 from ruamel.yaml import YAML
 from ._core import LBM3D_BASE
 from ..util.flag import *
 from ..util import constant
 from ._scalarField import ScalarField
 from ._chemical import Specie,Reaction
+from ._thermal import TemperatureFluid,TemperatureSolid
 @ti.data_oriented
 class LBM3D_INPUT(LBM3D_BASE):
     """用户侧 3D LBM 输入/配置接口。
@@ -48,7 +51,7 @@ class LBM3D_INPUT(LBM3D_BASE):
             - ndarray：直接写入（需要形状匹配）。
         """
         if(type(param) in [float,int]):
-            data = param*np.ones(shape=(self.nx,self.ny,self.nz),dtype=np.float32).astype(np.float32)
+            data = float(param)*np.ones(shape=(self.nx,self.ny,self.nz),dtype=np.float32).astype(np.float32)
             field.from_numpy(data)
         if(type(param) is str):
             in_dat = np.loadtxt(param,dtype=np.float32)
@@ -68,14 +71,14 @@ class LBM3D_INPUT(LBM3D_BASE):
             支持常数、文件路径或 ndarray，均按 Fortran-order 对齐。
         """
         if(type(param1) in [float,int]):
-            dat1 = param1*np.ones(shape=(self.nx,self.ny,self.nz)).astype(np.float32) 
+            dat1 = float(param1)*np.ones(shape=(self.nx,self.ny,self.nz)).astype(np.float32) 
         if(type(param1) is str):
             dat1 = np.loadtxt(param1)
             dat1 = np.reshape(dat1, (self.nx,self.ny,self.nz),order='F').astype(np.float32)
         if(type(param1)==np.ndarray):
             dat1 = np.array(param1).astype(np.float32)
         if(type(param2) in [float,int]):
-            dat2 = param2*np.ones(shape=(self.nx,self.ny,self.nz)).astype(np.float32)  
+            dat2 = float(param2)*np.ones(shape=(self.nx,self.ny,self.nz)).astype(np.float32)  
         if(type(param2) is str):
             dat2 = np.loadtxt(param2)
             dat2 = np.reshape(dat2, (self.nx,self.ny,self.nz),order='F').astype(np.float32)
@@ -96,21 +99,21 @@ class LBM3D_INPUT(LBM3D_BASE):
             支持常数、文件路径或 ndarray，均按 Fortran-order 对齐。
         """
         if(type(param1) in [float,int]):
-            dat1 = param1*np.ones(shape=(self.nx,self.ny,self.nz)).astype(np.float32)
+            dat1 = float(param1)*np.ones(shape=(self.nx,self.ny,self.nz)).astype(np.float32)
         if(type(param1) is str):
             dat1 = np.loadtxt(param1)
             dat1 = np.reshape(dat1, (self.nx,self.ny,self.nz),order='F').astype(np.float32)
         if(type(param1)==np.ndarray):
             dat1 = np.array(param1).astype(np.float32)
         if(type(param2) in [float,int]):
-            dat2 = param2*np.ones(shape=(self.nx,self.ny,self.nz)).astype(np.float32)  
+            dat2 = float(param2)*np.ones(shape=(self.nx,self.ny,self.nz)).astype(np.float32)  
         if(type(param2) is str):
             dat2 = np.loadtxt(param2)
             dat2 = np.reshape(dat2, (self.nx,self.ny,self.nz),order='F')
         if(type(param2)==np.ndarray):
             dat2 = np.array(param2).astype(np.float32)
         if(type(param3) in [float,int]):
-            dat3 = param3*np.ones(shape=(self.nx,self.ny,self.nz)).astype(np.float32)   
+            dat3 = float(param3)*np.ones(shape=(self.nx,self.ny,self.nz)).astype(np.float32)   
         if(type(param3) is str):
             dat3 = np.loadtxt(param3)
             dat3 = np.reshape(dat3, (self.nx,self.ny,self.nz),order='F').astype(np.float32)
@@ -201,7 +204,6 @@ class LBM3D_INPUT(LBM3D_BASE):
         """流体：设定常数比热容。"""
         self.TF.capacity_model = THERMO_MODEL.CONSTANT
         self.TF.cm = value
-        print(value)
     def set_fluid_capacity_poly(self,poly):
         """流体：设定多项式比热容。"""
         self.TF.capacity_model = THERMO_MODEL.POLYNOMIAL
@@ -259,6 +261,20 @@ class LBM3D_INPUT(LBM3D_BASE):
         self.TS.v_ref = Trange[0]
         self.TS.v_scale = Trange[1]-Trange[0]
 
+    ### 延迟设置
+    def set_TF_delay(self, delay):
+        """流体温度场：设置延迟启动时间（LU）。"""
+        if self.TEMPERATURE:
+            self.TF_delay[None] = delay
+    def set_TS_delay(self, delay):
+        """固体温度场：设置延迟启动时间（LU）。"""
+        if self.TEMPERATURE:
+            self.TS_delay[None] = delay
+    def set_chemistry_delay(self, delay):
+        """化学反应场：设置延迟启动时间（LU）。"""
+        if self.CHEMISTRY:
+            self.chemistry_field_delay[None] = delay
+
     ### 辐射相关
     def set_radiation(self,model,param):
         """设置辐射模型。
@@ -297,16 +313,17 @@ class LBM3D_INPUT(LBM3D_BASE):
     def set_specie_viscosity(self,specieName,value):
         """为指定物种设置常数黏度。"""
         specie = self.species[self.specieName.index(specieName)]
-        specie.viscosity_type = VISCOSITY_MODEL.CONSTANT
+        specie.viscosity_model = VISCOSITY_MODEL.CONSTANT
         specie.visco = value       
     def set_specie_viscosity_sutherland(self,specieName,coef):
         """为指定物种启用 Sutherland 黏度。"""
         specie = self.species[self.specieName.index(specieName)]
-        specie.viscosity_type = VISCOSITY_MODEL.SUTHERLAND
+        specie.viscosity_model = VISCOSITY_MODEL.SUTHERLAND
         specie.coefSutherland = coef 
     def set_specie_NASA7(self,specieName:str,TRange:list[float],coef:list):
         """为指定物种设置 NASA7 热容模型。"""
         specie = self.species[self.specieName.index(specieName)]
+        specie.thermo_model = THERMO_MODEL.NASA7
         specie.Trange = TRange
         specie.NASAcoef = coef
     def set_species(self,species,FIX=None,molemass = None):# 登记所有物质
@@ -334,23 +351,31 @@ class LBM3D_INPUT(LBM3D_BASE):
     def set_specie_diff(self,specieName,diff):
         """指定物种：常数扩散系数。"""
         specie = self.species[self.specieName.index(specieName)]
-        specie.diff_model = DIFF_MODEL.CONSANT
+        specie.diff_model = DIFF_MODEL.CONSTANT
         specie.diff = diff
     def set_specie_diff_Schmidt(self,specieName,Sc):
         """指定物种：通过 Schmidt 数设置扩散。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.diff_model=DIFF_MODEL.SCHMIDT
         specie.Sc = Sc
-    def set_specie_enthalpy(self,specieName,enthalpy):
+    def set_specie_enthalpy(self,specieName,enthalpy,unit=UNIT.MOLE):
         """指定物种：常数焓。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.thermo_model = THERMO_MODEL.CONSTANT
         specie.enthalpy = enthalpy
-    def set_specie_capacity(self,specieName,capacity): # 质量热容
+        specie.enthalpy_unit = unit
+    def set_specie_capacity(self,specieName,capacity,unit=UNIT.MOLE): # 质量热容
         """指定物种：常数质量比热容。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.thermo_model = THERMO_MODEL.CONSTANT
         specie.capa = capacity
+        specie.capa_unit = unit
+    def set_specie_capacity_poly(self,specieName,poly,unit=UNIT.MOLE): # 质量热容
+        """指定物种：多项式质量比热容。"""
+        specie = self.species[self.specieName.index(specieName)]
+        specie.thermo_model = THERMO_MODEL.POLYNOMIAL
+        specie.capa_poly = list(poly)
+        specie.capa_unit = unit
 
     def set_specie_conductivity(self,name,lamb): # 传热系数
         """指定物种：常数导热系数。"""
@@ -365,7 +390,7 @@ class LBM3D_INPUT(LBM3D_BASE):
         specie.cond_poly = list(poly)
 
     # 定义化学反应
-    def add_reaction(self,formula,A,Ea,b = 0,Tmin = 0,deltaH = 0,name="unnamed",unit=SPECIE_UNIT.MASS,fixDH = True):
+    def add_reaction(self,formula,A,Ea,b = 0,Tmin = 0,deltaH = 0,name="unnamed",unit=UNIT.MOLE,fixDH = True):
         """登记单条化学反应。
 
         Parameters
@@ -380,7 +405,7 @@ class LBM3D_INPUT(LBM3D_BASE):
             反应焓变。
         name : str
             反应名称。
-        unit : SPECIE_UNIT
+        unit : UNIT
             质量或摩尔基准。
         fixDH : bool
             是否固定焓项。
@@ -518,7 +543,7 @@ class LBM3D_INPUT(LBM3D_BASE):
             ``cantera`` 兼容的机理 yaml 文件路径。
         Notes
         -----
-        - 3D 版使用 `set_specie_mole` 登记摩尔质量。
+        - 3D 版使用 `set_specie` 登记摩尔质量。
         """
         yaml = YAML()
         with open(file,"r") as f:
@@ -538,7 +563,7 @@ class LBM3D_INPUT(LBM3D_BASE):
                 A = reaction_info["rate-constant"]["A"]
                 Ea = reaction_info["rate-constant"]["Ea"]
                 b = reaction_info["rate-constant"]["b"]
-                self.add_reaction(reaction_info["equation"],A,Ea,b,unit = SPECIE_UNIT.MOLE,fixDH = False)
+                self.add_reaction(reaction_info["equation"],A,Ea,b,unit = UNIT.MOLE,fixDH = False)
     
 # 输出 可视化
 @ti.data_oriented
