@@ -137,9 +137,9 @@ class StlReader:
         self.X = x
         self.Y = y
         self.Z = z
-        self.nx = int(x/dx)
-        self.ny = int(y/dx)
-        self.nz = int(z/dx)
+        self.nx = np.round(x/dx).astype(int)
+        self.ny = np.round(y/dx).astype(int)
+        self.nz = np.round(z/dx).astype(int)
         self.dx = dx
         self.dimension = dimension
         self.logger = logger

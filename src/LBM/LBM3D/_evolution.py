@@ -14,7 +14,7 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
         # 如需回退到原双数组算法，可改为调用 step_kernel。
         self.step_AA_kernel()
         self.tLattice += 1
-        self.t[None] += self.dt
+        self.t[None] += self.dt[None]
         ti.sync()
     @ti.kernel
     def step_AA_kernel(self):# 使用AA实现单数组步进（仅流体部分，周期/NEE/ES 边界）
@@ -75,6 +75,9 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                 f_collided = ti.Vector([0.0] * 19)
                 F = self.force(idx) # 计算体积力
                 drho = self.drho[idx] # 化学反应引起的密度变化率
+                if rho+drho < self.tol:
+                    print("Warning: Density is zero or negative at idx ", idx,rho,drho)
+                    drho = 0.0
                 self.drho[idx] = 0.0 # 重置密度变化率，下一步重新计算
                 # 碰撞
                 for q in ti.static(range(19)):
@@ -139,7 +142,7 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
             ## 固体温度场
             if ti.static(self.TEMPERATURE):
                 if self.t[None] > self.TS_delay[None]:
-                    if self.solid[idx]>0:
+                    if self.solid[idx] > 0:
                         # 读取离散速度分量
                         for q in ti.static(range(7)):
                             e = self.e7[q]
@@ -194,12 +197,12 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                                 for q in ti.static(range(7)):
                                     S_local += g_local[q]
                                 if S_local < -self.tol:
-                                    S_local = -self.tol
+                                    S_local = 0.0
                                 specie.S[idx] = S_local
                                 Yall += specie.S[idx]
                                 # 碰撞
                                 tau_local = specie.tau(idx)
-                                dS_local = specie.dS[idx]/self.rho[idx]
+                                dS_local = specie.dS[idx] / self.rho[idx]
                                 for q in ti.static(range(7)):
                                     geq = specie.geq7(q, S_local, idx[0], idx[1], idx[2])
                                     gq = g_local[q] - (g_local[q] - geq) / tau_local # 碰撞项
@@ -221,7 +224,10 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                             self.rhos[idx] += specie.S[idx] # 更新固相密度场
                     for specie in ti.static(list(self.species)):
                         if ti.static(not specie.FIX):
-                            specie.S[idx] /= Yall
+                            if Yall < self.tol:
+                                print("Warning: Total mass fraction is zero or negative at idx ", idx)
+                            else:
+                                specie.S[idx] /= Yall
                     # 更新孔隙率
                     self.solid[idx] = self.rhos[idx]/self.rhos0[idx] if self.rhos0[idx]>0 else 0.0
             # 更新源项场
@@ -233,12 +239,12 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                     if self.solid[idx] > 0: # 有固体
                         # 流固热交换
                         if self.solid[idx]<1: # 有流体
-                            dH = self.TS.exchangeCoef[idx]*self.TS.exchangeSurface[idx]*(self.TF.physical_value(self.TF.S[idx])-self.TS.physical_value(self.TS.S[idx]))*self.dt
-                            self.TS.dS[idx] += dH/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale # 归一化温度变化 
-                            self.TF.dS[idx] += -dH/self.TF.capacity_m(idx)/self.rho[idx]/self.TF.v_scale # 归一化温度变化
+                            dH = self.TS.exchangeCoef[idx]*self.TS.exchangeSurface[idx]*(self.TF.physical_value(self.TF.S[idx])-self.TS.physical_value(self.TS.S[idx]))*self.dt[None] # 热交换量 J/m3
+                            self.TS.dS[idx] += dH/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale[None] # 归一化温度变化     
+                            self.TF.dS[idx] += -dH/self.TF.capacity_m(idx)/self.rho[idx]/self.TF.v_scale[None] # 归一化温度变化
                         # 辐射
                         if ti.static(self.RADIATION):
-                            self.TS.dS[idx] += self.TS.radiation(idx)*self.dt/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale # 归一化温度变化
+                            self.TS.dS[idx] += self.TS.radiation(idx)*self.dt[None]/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale[None] # 归一化温度变化
             ## 化学反应源项
             if ti.static(self.CHEMISTRY):
                 if self.t[None] > self.chemistry_field_delay[None]:
@@ -472,10 +478,10 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
     def viscosity(self,i): # in LU
         visco = 0.1
         if ti.static(self.viscosity_model==VISCOSITY_MODEL.CONSTANT):
-            visco = self.visco*self.dt/self.dx**2
+            visco = self.visco[None]*self.dt[None]/self.dx[None]**2
         elif ti.static(self.viscosity_model==VISCOSITY_MODEL.SUTHERLAND):
             T = self.GetTF(i)
-            visco = self.sutherland_coef[0]*T**1.5/(T+self.sutherland_coef[1])*self.dt/self.dx**2
+            visco = self.sutherland_coef[0]*T**1.5/(T+self.sutherland_coef[1])*self.dt[None]/self.dx[None]**2
         elif ti.static(self.viscosity_model == VISCOSITY_MODEL.MIXTURE):
             if ti.static(self.CHEMISTRY):
                 for specie in ti.static(self.species):
