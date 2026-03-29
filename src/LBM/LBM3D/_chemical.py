@@ -5,7 +5,7 @@ from ..util.flag import *
 from ..util import constant
 @ti.data_oriented
 class Specie(ScalarField): # 物种质量分数场
-    def __init__(self,name,lb3d,FIX = False,Mmass = 1.0,unit = UNIT.MOLE):
+    def __init__(self,name,lb3d,FIX = False,Mmass :float = 1.0,unit = UNIT.MOLE):
         super().__init__(name,lb3d,FIX)
         self.molemass = Mmass/1000
         self.unit = unit
@@ -246,7 +246,6 @@ class Reaction:
         kr = self.Arrehnius(i)
         dS = ti.Vector([0.0]*(self.specieNum+1)) # concentration change (specieNum) and enthalpy change (1)
         # 计算化学反应速率 mole
-        # print(kr)
         for j in ti.static(range(len(self.LBM.species))):
             if self.coefReactant[j]>0 : # 该物质参与反应
                 if self.LBM.species[j].S[i]>self.LBM.tol: # 存在该物质
@@ -267,8 +266,6 @@ class Reaction:
                         #     kr *= (specie.S[i]/specie.molemass)**self.coefRate[j] # 该物质对反应的贡献 可以不贡献
                 else: # no reaction including absence of catalyst
                     kr = 0
-        # if kr>0:
-        # print(kr)
         # 计算物种浓度变化和焓变
         # kr mol/m3/s
         dH = 0.0 # 物种变化带来的焓变以及反应焓变
@@ -288,8 +285,6 @@ class Reaction:
         if ti.static(self.LBM.TEMPERATURE):
             if ti.static(self.isFixDH):
                 dH += self.deltaH # 反应热效应
-                        # # 物质的生成和消失会影响焓变                    
-                        # # dh += ds*self.LBM.Temperature.S[i]*specie.capacity_m(i) # 物种生成和消失带来的焓变
             # 反应热效应    
             dH *= -kr*self.LBM.dt # 注意保证kr deltaH的单位匹配。是质量都是质量，是摩尔数都是摩尔数。
             # dS[self.specieNum]= dH # J
@@ -317,15 +312,22 @@ class Reactions:
 
     @ti.func
     def update_dS(self,i): # 计算所有化学反应带来的物质源项和能量源项
-        
+        dh = self.dS[i][self.specieNum] # 反应热效应引起的能量变化
         for j in ti.static(range(self.specieNum+1)):
             self.dS[i][j] = 0
         for r in ti.static(self.reactions):
             self.dS[i] += r.reaction(i)
         for j in ti.static(range(self.specieNum)):
-            self.LBM.species[j].dS[i] = self.dS[i][j]
+            ds = self.dS[i][j]
+            self.LBM.species[j].dS[i] = ds
+            if ti.static(not self.LBM.species[j].FIX): # 气相物种影响密度场
+                self.LBM.drho[i] += ds # 化学反应引起的密度变化率
+                # if ti.static(self.LBM.TEMPERATURE):
+                #     # 物质的生成和消失会影响焓变                   
+                #     dh += ds*self.LBM.TF.S[i]*self.LBM.species[j].capacity_m(i) # 物种生成和消失带来的焓变
         if ti.static(self.LBM.TEMPERATURE):
-            if self.LBM.solid[i] > 0:
-                self.LBM.TS.dS[i] += self.dS[i][self.specieNum]/self.LBM.TS.capacity_m(i)/self.LBM.rhos[i]/self.LBM.TS.v_scale
+            if self.LBM.solid[i] > 0: # 如果有固体则温度施加在固体上，反之则在流体上
+                self.LBM.TS.dS[i] += dh/self.LBM.TS.capacity_m(i)/self.LBM.rhos[i]/self.LBM.TS.v_scale
             else:
-                self.LBM.TF.dS[i] += self.dS[i][self.specieNum]/self.LBM.TF.capacity_m(i)/self.LBM.rho[i]/self.LBM.TF.v_scale
+                self.LBM.TF.dS[i] += dh/self.LBM.TF.capacity_m(i)/self.LBM.rho[i]/self.LBM.TF.v_scale
+                            

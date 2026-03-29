@@ -42,6 +42,7 @@ class LBM2D_BASE:
         # 声明物理场
         
         self.rho = ti.field(float, shape=(self.nx,self.ny,self.nz))
+        self.drho = ti.field(float, shape=(self.nx,self.ny,self.nz)) # 密度变化率场
         self.v = ti.Vector.field(3,float, shape=(self.nx,self.ny,self.nz))
         self.solid = ti.field(float,shape = (self.nx,self.ny,self.nz))
         

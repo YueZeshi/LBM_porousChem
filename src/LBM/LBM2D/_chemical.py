@@ -330,11 +330,13 @@ class Reactions:
     @ti.func
     def update_dS(self,i): # 计算所有化学反应带来的物质源项和能量源项
         for j in ti.static(range(self.specieNum+1)): 
-            self.dS[i][j] = 0
+            self.dS[i][j] = 0 # 密度源项和焓源项
         for r in ti.static(self.reactions): # reaction update
             self.dS[i] += r.reaction(i)
         for j in ti.static(range(self.specieNum)):
             self.LBM.species[j].dS[i] = self.dS[i][j]
+            if ti.static(not self.LBM.species[j].FIX): # 气相物种影响密度场
+                self.LBM.drho[i] += self.dS[i][j] # 化学反应引起的密度变化
         if ti.static(self.LBM.TEMPERATURE):
             if self.LBM.solid[i] > 0:
                 self.LBM.TS.dS[i] += self.dS[i][self.specieNum]/self.LBM.TS.capacity_m(i)/self.LBM.rhos[i]/self.LBM.TS.v_scale # 化学反应带来的能量变化转换为温度变化 注意温度变化量归一化

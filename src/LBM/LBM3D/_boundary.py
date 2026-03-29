@@ -211,10 +211,10 @@ class LBM3D_BOUNDARY(LBM3D_BASE):
                 for s in ti.static([1,7,9,11,13]):
                     i_storage = self.periodic_index([0,y,z]+self.e19[s])
                     i_neighbor_storage = self.periodic_index([1,y,z]+self.e19[s])
-                    self.f[i_storage][self.LR[s]] = self.feq19(s,0,y,z)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq19(s,1,y,z))
+                    self.f[i_storage][self.LR[s]] = self.feq19(s,self.rho[0,y,z],0,y,z)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq19(s,self.rho[1,y,z],1,y,z))
             else:  # 奇数步
                 for s in ti.static([1,7,9,11,13]):
-                    self.f[0,y,z][s] = self.feq19(s,0,y,z)+(self.f[1,y,z][s]-self.feq19(s,1,y,z))
+                    self.f[0,y,z][s] = self.feq19(s,self.rho[0,y,z],0,y,z)+(self.f[1,y,z][s]-self.feq19(s,self.rho[1,y,z],1,y,z))
     @ti.func
     def Boundary_condition_flow_NEE_AA_1(self,x,y,z):
         if self.solid[self.nx-1,y,z]<1:
@@ -230,10 +230,10 @@ class LBM3D_BOUNDARY(LBM3D_BASE):
                 for s in ti.static([2,8,10,12,14]):
                     i_storage = self.periodic_index([self.nx-1,y,z]+self.e19[s])
                     i_neighbor_storage = self.periodic_index([self.nx-2,y,z]+self.e19[s])
-                    self.f[i_storage][self.LR[s]] = self.feq19(s,self.nx-1,y,z)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq19(s,self.nx-2,y,z))
+                    self.f[i_storage][self.LR[s]] = self.feq19(s,self.rho[self.nx-1,y,z],self.nx-1,y,z)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq19(s,self.rho[self.nx-2,y,z],self.nx-2,y,z))
             else:  # 奇数步
                 for s in ti.static([2,8,10,12,14]):
-                    self.f[self.nx-1,y,z][s] = self.feq19(s,self.nx-1,y,z)+(self.f[self.nx-2,y,z][s]-self.feq19(s,self.nx-2,y,z))
+                    self.f[self.nx-1,y,z][s] = self.feq19(s,self.rho[self.nx-1,y,z],self.nx-1,y,z)+(self.f[self.nx-2,y,z][s]-self.feq19(s,self.rho[self.nx-2,y,z],self.nx-2,y,z))
     @ti.func
     def Boundary_condition_flow_NEE_AA_2(self,x,y,z):
         if self.solid[x,0,z]<1:
@@ -249,10 +249,10 @@ class LBM3D_BOUNDARY(LBM3D_BASE):
                 for s in ti.static([3,7,8,15,17]):
                     i_storage = self.periodic_index([x,0,z]+self.e19[s])
                     i_neighbor_storage = self.periodic_index([x,1,z]+self.e19[s])
-                    self.f[i_storage][self.LR[s]] = self.feq19(s,x,0,z)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq19(s,x,1,z))
+                    self.f[i_storage][self.LR[s]] = self.feq19(s,self.rho[x,0,z],x,0,z)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq19(s,self.rho[x,1,z],x,1,z))
             else:  # 奇数步
                 for s in ti.static([3,7,8,15,17]):
-                    self.f[x,0,z][s] = self.feq19(s,x,0,z)+(self.f[x,1,z][s]-self.feq19(s,x,1,z))
+                    self.f[x,0,z][s] = self.feq19(s,self.rho[x,0,z],x,0,z)+(self.f[x,1,z][s]-self.feq19(s,self.rho[x,1,z],x,1,z))
     @ti.func
     def Boundary_condition_flow_NEE_AA_3(self,x,y,z):
         if self.solid[x,self.ny-1,z]<1:
@@ -268,10 +268,10 @@ class LBM3D_BOUNDARY(LBM3D_BASE):
                 for s in ti.static([4,9,10,16,18]):
                     i_storage = self.periodic_index([x,self.ny-1,z]+self.e19[s])
                     i_neighbor_storage = self.periodic_index([x,self.ny-2,z]+self.e19[s])
-                    self.f[i_storage][self.LR[s]] = self.feq19(s,x,self.ny-1,z)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq19(s,x,self.ny-2,z))
+                    self.f[i_storage][self.LR[s]] = self.feq19(s,self.rho[x,self.ny-1,z],x,self.ny-1,z)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq19(s,self.rho[x,self.ny-2,z],x,self.ny-2,z))
             else:  # 奇数步
                 for s in ti.static([4,9,10,16,18]):
-                    self.f[x,self.ny-1,z][s] = self.feq19(s,x,self.ny-1,z)+(self.f[x,self.ny-2,z][s]-self.feq19(s,x,self.ny-2,z))
+                    self.f[x,self.ny-1,z][s] = self.feq19(s,self.rho[x,self.ny-1,z],x,self.ny-1,z)+(self.f[x,self.ny-2,z][s]-self.feq19(s,self.rho[x,self.ny-2,z],x,self.ny-2,z))
     @ti.func
     def Boundary_condition_flow_NEE_AA_4(self,x,y,z):
         if self.solid[x,y,0]<1:
@@ -287,10 +287,10 @@ class LBM3D_BOUNDARY(LBM3D_BASE):
                 for s in ti.static([5,11,12,15,16]):
                     i_storage = self.periodic_index([x,y,0]+self.e19[s])
                     i_neighbor_storage = self.periodic_index([x,y,1]+self.e19[s])
-                    self.f[i_storage][self.LR[s]] = self.feq19(s,x,y,0)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq19(s,x,y,1))
+                    self.f[i_storage][self.LR[s]] = self.feq19(s,self.rho[x,y,0],x,y,0)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq19(s,self.rho[x,y,1],x,y,1))
             else:  # 奇数步
                 for s in ti.static([5,11,12,15,16]):
-                    self.f[x,y,0][s] = self.feq19(s,x,y,0)+(self.f[x,y,1][s]-self.feq19(s,x,y,1))    
+                    self.f[x,y,0][s] = self.feq19(s,self.rho[x,y,0],x,y,0)+(self.f[x,y,1][s]-self.feq19(s,self.rho[x,y,1],x,y,1))    
     @ti.func
     def Boundary_condition_flow_NEE_AA_5(self,x,y,z):
         if self.solid[x,y,self.nz-1]<1:
@@ -306,10 +306,10 @@ class LBM3D_BOUNDARY(LBM3D_BASE):
                 for s in ti.static([6,13,14,17,18]):
                     i_storage = self.periodic_index([x,y,self.nz-1]+self.e19[s])
                     i_neighbor_storage = self.periodic_index([x,y,self.nz-2]+self.e19[s])
-                    self.f[i_storage][self.LR[s]] = self.feq19(s,x,y,self.nz-1)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq19(s,x,y,self.nz-2))
+                    self.f[i_storage][self.LR[s]] = self.feq19(s,self.rho[x,y,self.nz-1],x,y,self.nz-1)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq19(s,self.rho[x,y,self.nz-2],x,y,self.nz-2))
             else:  # 奇数步
                 for s in ti.static([6,13,14,17,18]):
-                    self.f[x,y,self.nz-1][s] = self.feq19(s,x,y,self.nz-1)+(self.f[x,y,self.nz-2][s]-self.feq19(s,x,y,self.nz-2))    
+                    self.f[x,y,self.nz-1][s] = self.feq19(s,self.rho[x,y,self.nz-1],x,y,self.nz-1)+(self.f[x,y,self.nz-2][s]-self.feq19(s,self.rho[x,y,self.nz-2],x,y,self.nz-2))    
     
     """equilibrium"""
     @ti.func

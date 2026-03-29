@@ -24,9 +24,9 @@ flowProperties:
     # # if mixture
 
 thermalPropertiesFluid : 
-  delay : 100 # the delay time of temperature field, to avoid numerical instability before the stable flow field is formed
+  delay : 20 # the delay time of temperature field, to avoid numerical instability before the stable flow field is formed
   normalize:
-    Trange : [500,1000] # [a,b] means [a,b] will be mapped to [0,1]
+    Trange : [500,600] # [a,b] means [a,b] will be mapped to [0,1]
   thermalDiff :
     type : derived # constant/Prandtl/derived
     # if constant
@@ -57,9 +57,9 @@ thermalPropertiesFluid :
   # if mixture
 
 thermalPropertiesSolid : 
-  delay : 100 # the delay time of temperature field, to avoid numerical instability before the stable flow field is formed
+  delay : 20 # the delay time of temperature field, to avoid numerical instability before the stable flow field is formed
   normalize:
-   Trange: [500,1000]
+   Trange: [500,600]
   thermalDiff :
     type : derived # constant/derived
     # # if constant
@@ -89,18 +89,18 @@ thermalPropertiesSolid :
 
 radiationProperties:
   type : mean_temp # mean_temp/none
-  Tambient : 800
+  Tambient : 650
 
 chemicalProperties:
+  delay : 20 # the delay time of chemical reaction, to avoid numerical instability before the stable flow and temperature field is formed
   type : input # cantera/input
-  delay : 100 # the delay time of chemical reaction, to avoid numerical instability before the stable flow and temperature field is formed
   # # if cantera
   # path : YOUR_CANTERA_FILE.yaml
   # if input
   species :
     tar : 
-      composition : {H : 2}
       state : fluid
+      molemass : 28
       viscosity : 
         type : constant # constant/sutherland
         # # if constant
@@ -137,6 +137,7 @@ chemicalProperties:
     syngas : 
       # composition : {O : 2}
       state : fluid
+      molemass : 28
       viscosity : 
         type : constant # constant/sutherland
         # # if constant
@@ -206,6 +207,7 @@ chemicalProperties:
         # data : [0,0,0,0,0]
     wood : 
       state : solid
+      molemass : 28
       thermodynamic :
         type : polynomial # constant/NASA7
         # # if constant
@@ -228,6 +230,7 @@ chemicalProperties:
         # data : [0,0,0,0,0]
     char :
       state : solid # solid phase has only thermodynamic properties
+      molemass : 28
       thermodynamic :
         type : constant # constant/NASA7
         # if constant
@@ -245,6 +248,7 @@ chemicalProperties:
         data : [1,1e-6,0,0,0]
     intermediate :
       state : solid # solid phase has only thermodynamic properties
+      molemass : 28
       thermodynamic :
         type : polynomial # constant/NASA7
         # if constant
@@ -334,12 +338,12 @@ initialCondition:
       #   porosity : 0.4
       porousModel : darcy # darcy/darcyforchheimer/ergun
       #   # if darcy
-      darcy : 2.5e11
+      darcy : 2.5e7
       # # if darcyforchheimer
       # darcy : 2.5e10
       # forchheimer : 6e4
       # if ergun    # solid2:
-      exchangeSurface : 1000
+      exchangeSurface : 10000
       exchangeCoef : 10
       emissivity : 0.6
     #   zone : zone2
@@ -384,7 +388,7 @@ boundaryCondition:
     thermalFluid:
       type: fixedValue # periodic/fixedValue/zeroGradient
       # if fixedValue
-      value : 700
+      value : 650
       # # if zeroGradient
     thermalSolid : 
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
@@ -408,7 +412,7 @@ boundaryCondition:
       # velocity : [0,0,0]
     thermalFluid:
       type: fixedValue # periodic/fixedValue/zeroGradient 
-      value : 700
+      value : 650
     thermalSolid : 
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
     chemical:
@@ -418,7 +422,7 @@ boundaryCondition:
       type : wall
     thermalFluid:
       type: fixedValue # periodic/fixedValue/zeroGradient 
-      value : 700
+      value : 650
     thermalSolid : 
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
     chemical:
@@ -428,7 +432,7 @@ boundaryCondition:
       type : wall
     thermalFluid:
       type: fixedValue # periodic/fixedValue/zeroGradient 
-      value : 700
+      value : 650
     thermalSolid : 
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
     chemical:
@@ -438,7 +442,7 @@ boundaryCondition:
       type : wall
     thermalFluid:
       type: fixedValue # periodic/fixedValue/zeroGradient 
-      value : 700
+      value : 650
     thermalSolid : 
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
     chemical:

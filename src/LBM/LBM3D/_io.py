@@ -613,12 +613,6 @@ class LBM3D_OUTPUT(LBM3D_BASE):
         """内部 Taichi kernel：计算最小温度（LU）。"""
         for I in ti.grouped(self.rho):
             ti.atomic_min(self.min_T[None], self.TF.S[I])
-    def log_info(self):
-        """生成当前步简要日志字符串。"""
-        p = f"    t(LU)={self.tLattice} : Max velocity magnitude (LU) : {self.get_max_v():.7f}, "
-        if self.TEMPERATURE:
-            p +=f"Min temperature: {self.get_min_T():.7f} K, Max temperature : {self.get_max_T():.7f}"
-        return p
     def export_snapshot(self,config):
         """导出快照（预留接口）。当前未实现。"""
         pass

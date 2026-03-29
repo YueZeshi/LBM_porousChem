@@ -9,17 +9,12 @@ class LBM3D_INFO(LBM3D_BASE):
 
     def description(self):
         des = "\n------------------------------------------\n"        
-        des += self.description_basic()
-        des += "\n"
-        des += self.description_flow()
-        des += "\n"
-        des += self.description_porous()
-        des += "\n"
-        des += self.description_thermal()
-        des += "\n"
-        des += self.description_chemical()
-        des += "\n"
-        des += self.description_BC()
+        des += self.description_basic()+"\n"
+        des += self.description_flow()+"\n"
+        des += self.description_porous()+"\n"
+        des += self.description_thermal()+"\n"
+        des += self.description_chemical()+"\n"
+        des += self.description_BC()+"\n"
         des += "------------------------------------------\n\n"
         return des
     def description_flow(self):
@@ -36,9 +31,9 @@ class LBM3D_INFO(LBM3D_BASE):
         des += "\n"
         return des
     def description_porous(self):
-        des = "Porous media model : "
+        des = ""
         if self.PORO:
-            des += f"{self.poro_model.name}"
+            des += f"Porous media model : {self.poro_model.name}"
             if self.poro_model==PORO_MODEL.SPHERICAL:
                 des +=""
             elif self.poro_model==PORO_MODEL.DARCY:
@@ -47,27 +42,20 @@ class LBM3D_INFO(LBM3D_BASE):
                 des +=""
             elif self.poro_model==PORO_MODEL.ERGUN:
                 des +=""
-        else:
-            des += "Not activated."
         return des+"\n"
     def description_thermal(self):
-        des = "Thermal module: "
+        des = ""
         if self.TEMPERATURE:
-            des += "\n"
             des += self.TF.__str__()
             des += self.TS.__str__()
-        else:
-            des += " Not activated.\n"
         return des
     def description_chemical(self)->str:
-        des = "Chemical module: "
+        des = "Chemical module: \n"
         if self.CHEMISTRY:
-            des+="\n  The species involved are: \n"
+            des+="  The species involved are: \n"
             for specie in self.species:
                 des += "    " + specie.__str__()
             des += self.reactions.__str__()
-        else:
-            des+=" Not activated.\n"
         return des
     def description_basic(self)->str:
         des = "Basic information of the LBM simulation:\n"
@@ -103,3 +91,12 @@ class LBM3D_INFO(LBM3D_BASE):
             if self.bc[i]==BC_FLOW.inlet_flow:
                 des+="    "+sideName[i]+": INLET FLOW\n"
         return des
+    def log_info(self):
+        """生成当前步简要日志字符串。
+
+        内容包括 `t(LU)`、`max|v|`，在启用温度时附带 `T_min/T_max (K)`。
+        """
+        p = f"    t(s):{self.t[None]} t(LU)={self.tLattice} : Max velocity magnitude (LU) : {self.get_max_v():.7f}, "
+        if self.TEMPERATURE:
+            p +=f"Min temperature: {self.get_min_T():.7f} K, Max temperature : {self.get_max_T():.7f}"
+        return p
