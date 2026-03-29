@@ -44,11 +44,13 @@ class LBM3D_BASE:
         self.meshX, self.meshY, self.meshZ = np.meshgrid(self.x, self.y, self.z, indexing='ij')
         # 声明物理场
         self.rho = ti.field(float, shape=(self.nx,self.ny,self.nz))
+        self.drho = ti.field(float, shape=(self.nx,self.ny,self.nz)) # 密度变化率场
         self.v = ti.Vector.field(3,float, shape=(self.nx,self.ny,self.nz))
-        self.solid = ti.field(float,shape = (self.nx,self.ny,self.nz))
-        self.rhos = ti.field(float,shape=(self.nx,self.ny,self.nz))
+        self.solid = ti.field(float,shape = (self.nx,self.ny,self.nz)) # 固体占据场，0-1连续值表示占据程度
+        self.rhos = ti.field(float,shape=(self.nx,self.ny,self.nz)) # 固相密度场
+        self.rhos0 = ti.field(float,shape=(self.nx,self.ny,self.nz)) # 固相全占据密度场
         self.f = ti.Vector.field(19,float,shape=(self.nx,self.ny,self.nz)) # 分布函数
-        self.F = ti.Vector.field(19,float,shape=(self.nx,self.ny,self.nz)) # 后碰撞分布函数
+        # self.F = ti.Vector.field(19,float,shape=(self.nx,self.ny,self.nz)) # 后碰撞分布函数 # 用于ABpattern
         # 定义边界条件
         self.bc = [BC_FLOW.periodic]*6 # 左右前后上下边界条件类型
         self.bc_v = [BC.periodic]*6 # 左右前后上下速度边界条件类型
