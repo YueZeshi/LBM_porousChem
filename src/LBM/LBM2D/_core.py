@@ -10,28 +10,23 @@ class LBM2D_BASE:
     """LBM2D base class"""
     def __init__(self, X, Y, Z, dx=0.001, dt=0.001, name="LBM", isThermal=False, isChemical=False, isPoro=False, isRadiation=False):
         self.name = name
-        self.t = ti.field(float, shape=())  # Current time
+        self.t = ti.field(float,shape=())
         self.tol = 1e-6
-        self.dx = ti.field(float, shape=())  # Lattice size
-        self.dt = ti.field(float, shape=())  # Time step
         # Model parameters
         self.X = float(X)
         self.Y = float(Y)
         self.Z = dx
         self.tLattice = 0
-        self.dx[None] = float(dx)
-        self.dt[None] = float(dt)
+        self.dx = float(dx)
+        self.dt = float(dt)
 
-        self.nx = np.round(self.X / self.dx[None]).astype(int)
-        self.ny = np.round(self.Y / self.dx[None]).astype(int)
+        self.nx = np.round(self.X / self.dx).astype(int)
+        self.ny = np.round(self.Y / self.dx).astype(int)
         self.nz = 1
         self.max_v = ti.field(float, shape=())
         self.viscosity_model = VISCOSITY_MODEL.NONE
-        self.visco = ti.field(float, shape=())
-        self.visco[None] = 2e-5
-        self.sutherland_coef = ti.field(float, shape=(2))
-        self.sutherland_coef[0] = 1.6e-6
-        self.sutherland_coef[1] = 170
+        self.visco = 2e-5
+        self.sutherland_coef = [1.6e-6,170]
         self.boundary_condition_model = BC_MODEL.NEE  # Only NEE implemented
         self.EOS = FLUID_STATE_EQUATION.IDEAL_GAS
 
@@ -47,15 +42,16 @@ class LBM2D_BASE:
         self.y = np.linspace(0, self.Y, self.ny)
         self.z = np.linspace(0, self.Z, self.nz)
         self.meshX, self.meshY, self.meshZ = np.meshgrid(self.x, self.y, self.z, indexing='ij')
-
-        # Physical fields
-        self.rho = ti.field(float, shape=(self.nx, self.ny, self.nz))  # Density field
-        self.drho = ti.field(float, shape=(self.nx, self.ny, self.nz))  # Density change rate field
-        self.v = ti.Vector.field(3, float, shape=(self.nx, self.ny, self.nz))
-        self.solid = ti.field(float, shape=(self.nx, self.ny, self.nz))
-
-        self.rhos = ti.field(float, shape=(self.nx, self.ny, self.nz))
-        self.f = ti.Vector.field(9, float, shape=(self.nx, self.ny, self.nz))  # Distribution function
+        # 声明物理场
+        
+        self.rho = ti.field(float, shape=(self.nx,self.ny,self.nz))
+        self.drho = ti.field(float, shape=(self.nx,self.ny,self.nz))
+        self.v = ti.Vector.field(3,float, shape=(self.nx,self.ny,self.nz))
+        self.solid = ti.field(float,shape = (self.nx,self.ny,self.nz))
+        
+        self.rhos = ti.field(float,shape=(self.nx,self.ny,self.nz))
+        self.rhos0 = ti.field(float,shape=(self.nx,self.ny,self.nz))
+        self.f = ti.Vector.field(9,float,shape=(self.nx,self.ny,self.nz)) # 分布函数
 
         self.ext_f = ti.Vector.field(3, float, shape=())  # External force
         # Define boundary conditions

@@ -62,7 +62,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
             elif ti.static(self.bc_rho[0]==BC.zeroGradient):
                 self.rho[0,y,z] = self.rho[1,y,z]#2*self.rho[1,y,z]-self.rho[2,y,z]
             for s in ti.static([1,5,8]):
-                self.f[0,y,z][s] = self.feq9(s,0,y,z)+(self.f[1,y,z][s]-self.feq9(s,1,y,z))
+                self.f[0,y,z][s] = self.feq9(s,self.rho[0,y,z],0,y,z)+(self.f[1,y,z][s]-self.feq9(s,self.rho[1,y,z],1,y,z))
     @ti.func
     def Boundary_condition_flow_NEE_1(self,x,y,z):
         if self.solid[self.nx-1,y,z]<1:
@@ -75,7 +75,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
             elif ti.static(self.bc_rho[1]==BC.zeroGradient):
                 self.rho[self.nx-1,y,z] = self.rho[self.nx-2,y,z]#2*self.rho[self.nx-2,y,z]-self.rho[self.nx-3,y,z]#self.rho[self.nx-2,y,z]#
             for s in ti.static([3,6,7]):
-                self.f[self.nx-1,y,z][s] = self.feq9(s,self.nx-1,y,z)+(self.f[self.nx-2,y,z][s]-self.feq9(s,self.nx-2,y,z))
+                self.f[self.nx-1,y,z][s] = self.feq9(s,self.rho[self.nx-1,y,z],self.nx-1,y,z)+(self.f[self.nx-2,y,z][s]-self.feq9(s,self.rho[self.nx-2,y,z],self.nx-2,y,z))
     @ti.func
     def Boundary_condition_flow_NEE_2(self,x,y,z):
         if self.solid[x,0,z]<1:
@@ -88,7 +88,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
             elif ti.static(self.bc_rho[2]==BC.zeroGradient):
                 self.rho[x,0,z] = self.rho[x,1,z]#2*self.rho[x,1,z]-self.rho[x,2,z]
             for s in ti.static([2,5,6]):
-                self.f[x,0,z][s] = self.feq9(s,x,0,z)+(self.f[x,1,z][s]-self.feq9(s,x,1,z))
+                self.f[x,0,z][s] = self.feq9(s,self.rho[x,0,z],x,0,z)+(self.f[x,1,z][s]-self.feq9(s,self.rho[x,1,z],x,1,z))
     @ti.func
     def Boundary_condition_flow_NEE_3(self,x,y,z):
         if self.solid[x,self.ny-1,z]<1:
@@ -101,7 +101,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
             elif ti.static(self.bc_rho[3]==BC.zeroGradient):
                 self.rho[x,self.ny-1,z] = self.rho[x,self.ny-2,z]#2*self.rho[x,self.ny-2,z]-self.rho[x,self.ny-3,z]
             for s in ti.static([4,7,8]):
-                self.f[x,self.ny-1,z][s] = self.feq9(s,x,self.ny-1,z)+(self.f[x,self.ny-2,z][s]-self.feq9(s,x,self.ny-2,z))
+                self.f[x,self.ny-1,z][s] = self.feq9(s,self.rho[x,self.ny-1,z],x,self.ny-1,z)+(self.f[x,self.ny-2,z][s]-self.feq9(s,self.rho[x,self.ny-2,z],x,self.ny-2,z))
     
     
     
@@ -159,10 +159,10 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
                 for s in ti.static([1,5,8]):
                     i_storage = self.periodic_index([0,y,z]+self.e9[s])
                     i_neighbor_storage = self.periodic_index([1,y,z]+self.e9[s])
-                    self.f[i_storage][self.LR[s]] = self.feq9(s,0,y,z)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq9(s,1,y,z))
+                    self.f[i_storage][self.LR[s]] = self.feq9(s,self.rho[0,y,z],0,y,z)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq9(s,self.rho[1,y,z],1,y,z))
             else:  # 奇数步
                 for s in ti.static([1,5,8]):
-                    self.f[0,y,z][s] = self.feq9(s,0,y,z)+(self.f[1,y,z][s]-self.feq9(s,1,y,z))
+                    self.f[0,y,z][s] = self.feq9(s,self.rho[0,y,z],0,y,z)+(self.f[1,y,z][s]-self.feq9(s,self.rho[1,y,z],1,y,z))
     @ti.func
     def Boundary_condition_flow_NEE_AA_1(self,x,y,z):
         if self.solid[self.nx-1,y,z]<1:
@@ -178,10 +178,10 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
                 for s in ti.static([3,6,7]):
                     i_storage = self.periodic_index([self.nx-1,y,z]+self.e9[s])
                     i_neighbor_storage = self.periodic_index([self.nx-2,y,z]+self.e9[s])
-                    self.f[i_storage][self.LR[s]] = self.feq9(s,self.nx-1,y,z)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq9(s,self.nx-2,y,z))
+                    self.f[i_storage][self.LR[s]] = self.feq9(s,self.rho[self.nx-1,y,z],self.nx-1,y,z)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq9(s,self.rho[self.nx-2,y,z],self.nx-2,y,z))
             else:  # 奇数步
                 for s in ti.static([3,6,7]):
-                    self.f[self.nx-1,y,z][s] = self.feq9(s,self.nx-1,y,z)+(self.f[self.nx-2,y,z][s]-self.feq9(s,self.nx-2,y,z))
+                    self.f[self.nx-1,y,z][s] = self.feq9(s,self.rho[self.nx-1,y,z],self.nx-1,y,z)+(self.f[self.nx-2,y,z][s]-self.feq9(s,self.rho[self.nx-2,y,z],self.nx-2,y,z))
     @ti.func
     def Boundary_condition_flow_NEE_AA_2(self,x,y,z):
         if self.solid[x,0,z]<1:
@@ -197,10 +197,10 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
                 for s in ti.static([2,5,6]):
                     i_storage = self.periodic_index([x,0,z]+self.e9[s])
                     i_neighbor_storage = self.periodic_index([x,1,z]+self.e9[s])
-                    self.f[i_storage][self.LR[s]] = self.feq9(s,x,0,z)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq9(s,x,1,z))
+                    self.f[i_storage][self.LR[s]] = self.feq9(s,self.rho[x,0,z],x,0,z)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq9(s,self.rho[x,1,z],x,1,z))
             else:  # 奇数步
                 for s in ti.static([2,5,6]):
-                    self.f[x,0,z][s] = self.feq9(s,x,0,z)+(self.f[x,1,z][s]-self.feq9(s,x,1,z))
+                    self.f[x,0,z][s] = self.feq9(s,self.rho[x,0,z],x,0,z)+(self.f[x,1,z][s]-self.feq9(s,self.rho[x,1,z],x,1,z))
     @ti.func
     def Boundary_condition_flow_NEE_AA_3(self,x,y,z):
         if self.solid[x,self.ny-1,z]<1:
@@ -216,10 +216,10 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
                 for s in ti.static([4,7,8]):
                     i_storage = self.periodic_index([x,self.ny-1,z]+self.e9[s])
                     i_neighbor_storage = self.periodic_index([x,self.ny-2,z]+self.e9[s])
-                    self.f[i_storage][self.LR[s]] = self.feq9(s,x,self.ny-1,z)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq9(s,x,self.ny-2,z))
+                    self.f[i_storage][self.LR[s]] = self.feq9(s,self.rho[x,self.ny-1,z],x,self.ny-1,z)+(self.f[i_neighbor_storage][self.LR[s]]-self.feq9(s,self.rho[x,self.ny-2,z],x,self.ny-2,z))
             else:  # 奇数步
                 for s in ti.static([4,7,8]):
-                    self.f[x,self.ny-1,z][s] = self.feq9(s,x,self.ny-1,z)+(self.f[x,self.ny-2,z][s]-self.feq9(s,x,self.ny-2,z))
+                    self.f[x,self.ny-1,z][s] = self.feq9(s,self.rho[x,self.ny-1,z],x,self.ny-1,z)+(self.f[x,self.ny-2,z][s]-self.feq9(s,self.rho[x,self.ny-2,z],x,self.ny-2,z))
     """NEBB"""
     @ti.func
     def Boundary_condition_NEBB(self):

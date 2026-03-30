@@ -12,12 +12,21 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
         self.updateBC(self.t)
         self.step_AA_kernel()
         self.tLattice += 1
-        self.t[None] += self.dt[None]
+        self.t[None] += self.dt
         ti.sync()
 
     @ti.kernel
     def step_AA_kernel(self):
         even = self.even_step[None]
+        # TFactive = 0
+        # TSactive = 0
+        # CHEMactive = 0
+        # if ti.static(self.TEMPERATURE) and self.t[None] < self.TF_delay:
+        #     TFactive = 1
+        # if ti.static(self.TEMPERATURE) and self.t[None] < self.TS_delay:
+        #     TSactive = 1
+        # if ti.static(self.CHEMISTRY) and self.t[None] < self.chemistry_field_delay:
+        #     CHEMactive = 1
         for idx in ti.grouped(self.solid):
             if self.solid[idx] < 1.0:
                 f_local = ti.Vector([0.0] * 9)
@@ -68,15 +77,14 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                 tau = self.tau(idx)
                 f_collided = ti.Vector([0.0] * 9)
                 F = self.force(idx) # 计算体积力
-                drho = self.drho[idx] # 化学反应引起的密度变化率
-                self.drho[idx] = 0.0 # 重置密度变化率，下一步重新计算
+                drho = self.drho[idx]
                 # 碰撞
                 for q in ti.static(range(9)):
-                    feq = self.feq9(q, idx[0], idx[1], idx[2])
+                    feq = self.feq9(q, rho, idx[0], idx[1], idx[2])
                     # 标准 BGK: f_new = f_old - (f_old - f_eq) / tau
                     fq = f_local[q] - (f_local[q] - feq) / tau # 碰撞项
                     fq += self.forceTermGuo(q, idx,F) # 力源项
-                    # fq += self.feq9(q, drho, idx[0], idx[1], idx[2]) # 密度源项
+                    fq += self.feq9(q, drho, idx[0], idx[1], idx[2]) # 密度源项
                     f_collided[q] = fq  # 赋值碰撞结果
 
                 # ----- 1.3 写入阶段（AA 迁移，写回 self.f） -----
@@ -96,7 +104,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
             tau_local = 0.0
             # 温度场更新
             ## 流体温度场
-            if ti.static(self.TEMPERATURE) and self.t[None] > self.TF_delay[None]:
+            if ti.static(self.TEMPERATURE) and self.t[None] > self.TF_delay :
                 if self.solid[idx]<1:
                     # 读取离散速度分量
                     for q in ti.static(range(5)):
@@ -130,7 +138,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         else:  # 奇数步：写本地
                             self.TF.g[idx][q] = g_collided[q]
             ## 固体温度场
-            if ti.static(self.TEMPERATURE) and self.t[None] > self.TS_delay[None]:
+            if ti.static(self.TEMPERATURE) and self.t[None] > self.TS_delay:
                 if self.solid[idx]>0:
                     # 读取离散速度分量
                     for q in ti.static(range(5)):
@@ -164,8 +172,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         else:  # 奇数步：写本地
                             self.TS.g[idx][q] = g_collided[q]
             # 浓度场更新
-            if ti.static(self.CHEMISTRY) and self.t[None] > self.chemistry_field_delay[None]:
-                Yall = 0.0
+            if ti.static(self.CHEMISTRY) and self.t[None] > self.chemistry_field_delay:
                 self.rhos[idx] = 0.0 # 更新固相密度场
                 for specie in ti.static(list(self.species)):
                     if ti.static(not specie.FIX):
@@ -184,19 +191,16 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                             S_local = 0.0
                             for q in ti.static(range(5)):
                                 S_local += g_local[q]
-                            if S_local < -self.tol: # 数值误差可能导致负值，强制修正为0
-                                S_local = -self.tol
                             specie.S[idx] = S_local
-                            Yall += specie.S[idx]
                             # 碰撞
                             tau_local = specie.tau(idx)
-                            dS_local = specie.dS[idx]/self.rho[idx] # 转化为质量分数的微观源项
+                            dS_local = specie.dS[idx]
                             for q in ti.static(range(5)):
                                 geq = specie.geq5(q, S_local, idx[0], idx[1], idx[2])
                                 gq = g_local[q] - (g_local[q] - geq) / tau_local # 碰撞项
-                                gq += specie.geq5(q, dS_local, idx[0], idx[1], idx[2]) # 添加下一帧的微观源项 
+                                gq += specie.geq5(q, dS_local, idx[0], idx[1], idx[2]) # 微观源项
                                 g_collided[q] = gq
-                            # 更新场 下一帧的分布函数
+                            # 更新场
                             for q in ti.static(range(5)):
                                 e = self.e5[q]
                                 opp_q = self.LR[q]
@@ -210,26 +214,23 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         dS_local = specie.dS[idx]
                         specie.S[idx] += dS_local 
                         self.rhos[idx] += specie.S[idx] # 更新固相密度场
-                for specie in ti.static(list(self.species)):
-                    if ti.static(not specie.FIX):
-                        specie.S[idx] /= Yall # 归一化处理
             # 更新源项场
             ## 温度场源项
-            if ti.static(self.TEMPERATURE) and self.t[None] > self.TF_delay[None] and self.t[None] > self.TS_delay[None]:
+            if ti.static(self.TEMPERATURE) and self.t[None]>self.TF_delay and self.t[None]>self.TS_delay:
                 self.TS.dS[idx] = 0.0
                 self.TF.dS[idx] = 0.0
                 if self.solid[idx] > 0: # 有固体
                     # 流固热交换
-                    if self.solid[idx]<1: # 有流体
-                        dH = self.TS.exchangeCoef[idx]*self.TS.exchangeSurface[idx]*(self.TF.physical_value(self.TF.S[idx])-self.TS.physical_value(self.TS.S[idx]))*self.dt[None] # 热交换量
-                        self.TS.dS[idx] += dH/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale[None] # 归一化温度变化 
-                        self.TF.dS[idx] += -dH/self.TF.capacity_m(idx)/self.rho[idx]/self.TF.v_scale[None] # 归一化温度变化
+                    if self.solid[idx] < 1: # 有流体
+                        dH = self.TS.exchangeCoef[idx]*self.TS.exchangeSurface[idx]*(self.TF.physical_value(self.TF.S[idx])-self.TS.physical_value(self.TS.S[idx]))*self.dt # 热交换量
+                        self.TS.dS[idx] += dH/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale # 归一化温度变化 
+                        self.TF.dS[idx] += -dH/self.TF.capacity_m(idx)/self.rho[idx]/self.TF.v_scale # 归一化温度变化
                     # 辐射
                     if ti.static(self.RADIATION):
-                        self.TS.dS[idx] += self.TS.radiation(idx)*self.dt[None]/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale[None] # 归一化温度变化
+                        self.TS.dS[idx] += self.TS.radiation(idx)*self.dt/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale # 归一化温度变化
             ## 化学反应源项
-            if ti.static(self.CHEMISTRY) and self.t[None] > self.chemistry_field_delay[None]:
-                self.reactions.update_dS(idx) # 根据当前状态计算下一帧的源项
+            if ti.static(self.CHEMISTRY) and self.t[None] > self.chemistry_field_delay:
+                self.reactions.update_dS(idx)
         # ========== 3. 边界条件（仅 NEE / ES，基于 rho, v, f） ==========
         if ti.static(self.boundary_condition_model == BC_MODEL.NEE):
             self.Boundary_condition_NEE_AA()
@@ -440,8 +441,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
         if i[1]>self.ny-1:  iout[1] = 0
         return iout
     @ti.func
-    def feq9(self, s,i,j,k): #计算平衡分布函数
-        rho = self.rho[i,j,k]
+    def feq9(self, s,rho,i,j,k): #计算平衡分布函数
         u = self.v[i,j,k]
         eps = 1-self.solid[i,j,k]
         eu = self.e9[s].dot(u)
@@ -453,8 +453,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
             feqout = self.w9[s]*rho*(1.0+3.0*eu+4.5*eu*eu/(eps+1e-12)-1.5*uv/(eps+1e-12))
         return feqout
     @ti.func
-    def feq9_no_poro(self,s,i,j,k):# 计算平衡分布函数 无多孔介质修正 用于初始化固体格点的分布函数
-        rho = self.rho[i,j,k]
+    def feq9_no_poro(self,s,rho,i,j,k):# 计算平衡分布函数 无多孔介质修正 用于初始化固体格点的分布函数
         u = self.v[i,j,k]
         eu = self.e9[s].dot(u)
         uv = u.dot(u)

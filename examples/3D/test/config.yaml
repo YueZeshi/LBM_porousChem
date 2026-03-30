@@ -1,17 +1,24 @@
 basic:
-  name      : pyrolysis_test
+  name      : test
   author    : Sylvain
-  date      : 2025-12-27
-  dimension : 3 # 2 or 3
-  arch      : gpu # cpu/gpu/vulkan/cuda .etc the platform
-  type      : configuration # configuration / snapshot(saved)
+  date      : 2025-12-21
+  dimension : 3
+  arch      : cpu
+  type      : configuration 
 
 module : 
   flow : true
-  porous_media : true
-  temperature : true
-  chemistry : true
-  radiation : true # only mean temperature model
+
+
+spaceControl:
+  geometry : [0.5,0.1,0.1]
+  DX : 1e-3
+
+
+timeControl:
+  startTime : 0
+  endTime : 1000
+  DT : 1e-3
 
 flowProperties:
   viscosity : 
@@ -299,34 +306,34 @@ chemicalProperties:
 
 geometry:
   zone1:
-    type : sphere # sphere/cylinder/box/cone/stl
+    type : sphere
     center : [0.1,0.05,0.05]
-    radius : 0.013
-  # zone2 :
-  #   type : cylinder
-  #   center : [0.05,0.05,0]
-  #   radius : 0.01
-  #   height : 0.01
-  #   axis : [0,0,1]
-  # zone3 :
-  #   type : box
-  #   center : [0.3,0.05,0]
-  #   size : [0.02,0.01,0.01]
-  # zone4 : 
-  #   type : cone
-  #   center : [0.4,0.05,0]
-  #   height : 0.1
-  #   radius : 0.02
-  #   axis : [0,0.5,0.5]
-  # zone5:
-  #   type : stl
-  #   path : YOUR_STL.stl
-  #   scale : 1
-  #   translate : [0.6,0.05,0]
-  #   rotate : [0,0,0]
+    radius : 0.01
+  zone2 :
+    type : cylinder
+    center : [0.2,0.05,0.05]
+    radius : 0.02
+    height : 0.01
+    axis : [0,1,0]
+  zone3 :
+    type : box
+    center : [0.3,0.05,0.05]
+    size : [0.02,0.01,0.01]
+  zone4 : 
+    type : cone
+    center : [0.4,0.05,0.05]
+    height : 0.1
+    radius : 0.02
+    axis : [0,0.5,0.5]
+  zone5:
+    type : stl
+    path : stl/cylinder_test2.stl
+    scale : 1
+    translate : [0.3,0.05,0.05]
+    rotate : [0,0,0]
 
 initialCondition:
-  solid: # to specify the solid area (operation in order)
+  solid:
     solid1:
       zone : zone1 # the zones concerned
       type : poro # concrete/poro/substract
@@ -361,30 +368,30 @@ initialCondition:
     rho : 1
     velocity : [0,0,0] # initial velocity of non-solid volume (to avoid numerical instablity)
   thermal: # initial condition of temperature
+    setting : 
+      delay : 100 # the delay time of temperature field, to avoid numerical instability before the stable flow field is formed
     T : 200
     TS : 300
     TF : 300
   chemical:
+    setting : 
+      delay : 100
     N2 : 
       zone : ALL
-      value : 1.0
-    # O2 : 
-    #   zone : ALL
-    #   value : 1.0
-    wood:
-      zone : zone1
-      value : 630
+      type : concrete
+  flow:
+    rho : 1
+    velocity : [0,0,0]
 
 boundaryCondition:
   left:
     flow:
       type: inlet
-      # flowrate : 1
       velocity : [0.01,0,0]
     thermalFluid:
       type: fixedValue # periodic/fixedValue/zeroGradient
       # if fixedValue
-      value : 850
+      value : 800
       # # if zeroGradient
     thermalSolid : 
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
@@ -395,20 +402,13 @@ boundaryCondition:
     flow:
       type: outlet
       rho: 1
-    thermalFluid:
-      type: zeroGradient # periodic/fixedValue/zeroGradient 
-      # value : 400
-    thermalSolid : 
-      type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
-    chemical:
-      type: zeroGradient
   down:
     flow:
       type: wall
       # velocity : [0,0,0]
     thermalFluid:
       type: fixedValue # periodic/fixedValue/zeroGradient 
-      value : 850
+      value : 800
     thermalSolid : 
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
     chemical:
@@ -418,7 +418,7 @@ boundaryCondition:
       type : wall
     thermalFluid:
       type: fixedValue # periodic/fixedValue/zeroGradient 
-      value : 850
+      value : 800
     thermalSolid : 
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
     chemical:
@@ -428,7 +428,7 @@ boundaryCondition:
       type : wall
     thermalFluid:
       type: fixedValue # periodic/fixedValue/zeroGradient 
-      value : 850
+      value : 800
     thermalSolid : 
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
     chemical:
@@ -438,7 +438,7 @@ boundaryCondition:
       type : wall
     thermalFluid:
       type: fixedValue # periodic/fixedValue/zeroGradient 
-      value : 850
+      value : 650
     thermalSolid : 
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
     chemical:
@@ -451,18 +451,18 @@ spaceControl:
 
 timeControl:
   startTime : 0
-  endTime : 1
+  endTime : 1000
   DT : 1e-3
 
 outputControl:
   vtk:
-    interval : 0.005 # the interval of vtk output
+    interval : 10 # the interval of vtk output
     path : vtk # the relative path of the output folder
     LOD : 1
-    clear : true # true to clear all the existing output in the folder
+    clear : true
   log:
     interval : 1
-    LOD : 1 # 
-  snapshot: # resume from the snapshot
-    interval : 100 # the interval of snapshot
-    path : snapshot # the relative path of the snapshot folder
+    LOD : 1
+  snapshot:
+    interval : 100
+    path : snapshot

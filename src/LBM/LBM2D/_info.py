@@ -19,7 +19,7 @@ class LBM2D_INFO(LBM2D_BASE):
         des = "Flow properties : \n"
         des += f"    viscosity model : "
         if self.viscosity_model==VISCOSITY_MODEL.CONSTANT:
-            des += f"constant : {self.visco[None]}"
+            des += f"constant : {self.visco}"
         elif self.viscosity_model==VISCOSITY_MODEL.SUTHERLAND:
             des += f"sutherland : As={self.sutherland_coef[0]}, Ts={self.sutherland_coef[1]}"
         elif self.viscosity_model==VISCOSITY_MODEL.MIXTURE:
@@ -94,7 +94,7 @@ class LBM2D_INFO(LBM2D_BASE):
 
         内容包括 `t(LU)`、`max|v|`，在启用温度时附带 `T_min/T_max (K)`。
         """
-        p = f"    t(s):{self.t[None]} t(LU)={self.tLattice} : Max velocity magnitude (LU) : {self.get_max_v():.7f}, "
+        p = f"    t(s):{self.t} t(LU)={self.tLattice} : Max velocity magnitude (LU) : {self.get_max_v():.7f}, "
         if self.TEMPERATURE:
             p +=f"Min temperature: {self.get_min_T():.7f} K, Max temperature : {self.get_max_T():.7f}"
         return p

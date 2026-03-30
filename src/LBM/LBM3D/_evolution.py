@@ -14,7 +14,7 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
         # 如需回退到原双数组算法，可改为调用 step_kernel。
         self.step_AA_kernel()
         self.tLattice += 1
-        self.t[None] += self.dt[None]
+        self.t[None] += self.dt
         ti.sync()
     @ti.kernel
     def step_AA_kernel(self):# 使用AA实现单数组步进（仅流体部分，周期/NEE/ES 边界）
@@ -81,11 +81,11 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                 self.drho[idx] = 0.0 # 重置密度变化率，下一步重新计算
                 # 碰撞
                 for q in ti.static(range(19)):
-                    feq = self.feq19(q,rho, idx[0], idx[1], idx[2])
+                    feq = self.feq19(q, rho,idx[0], idx[1], idx[2])
                     # 标准 BGK: f_new = f_old - (f_old - f_eq) / tau
                     fq = f_local[q] - (f_local[q] - feq) / tau # 碰撞项
-                    fq += self.forceTermGuo(q, idx, F) # 源项
-                    fq += self.feq19(q, drho, idx[0], idx[1], idx[2]) # 密度源项
+                    fq += self.forceTermGuo(q, idx) # 源项
+                    fq += self.feq19(q, drho,idx[0], idx[1], idx[2])# 化学反应引起的密度变化修正
                     f_collided[q] = fq  # 赋值碰撞结果
 
                 # ----- 1.3 写入阶段（AA 迁移，写回 self.f） -----
@@ -105,153 +105,137 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
             tau_local = 0.0
             # 温度场更新
             ## 流体温度场
-            if ti.static(self.TEMPERATURE):
-                if self.t[None] > self.TF_delay[None]:
-                    if self.solid[idx]<1:
-                        # 读取离散速度分量
-                        for q in ti.static(range(7)):
-                            e = self.e7[q]
-                            opp_q = self.LR[q]
-                            if even == 0:  # 偶数步：从邻居读取
-                                ip = self.periodic_index(idx - e)
-                                g_local[q] = self.TF.g[ip][q]
-                            else:  # 奇数步：从本格读取
-                                g_local[q]= self.TF.g[idx][opp_q]
-                        # 计算宏观量
-                        S_local = 0.0
-                        for q in ti.static(range(7)):
-                            S_local += g_local[q]
-                        self.TF.S[idx] = S_local
-                        # 碰撞
-                        tau_local = self.TF.tau(idx)
-                        dS_local = self.TF.dS[idx]
-                        for q in ti.static(range(7)):
-                            geq = self.TF.geq7(q, S_local, idx[0], idx[1], idx[2])
-                            gq = g_local[q] - (g_local[q] - geq) / tau_local # 碰撞项
-                            gq += self.TF.geq7(q, dS_local, idx[0], idx[1], idx[2]) # 微观源项
-                            g_collided[q] = gq
-                        # 更新场
-                        for q in ti.static(range(7)):
-                            e = self.e7[q]
-                            opp_q = self.LR[q]
-                            if even == 0:  # 偶数步：写邻居
-                                ip = self.periodic_index(idx + e)
-                                self.TF.g[ip][opp_q] = g_collided[q]
-                            else:  # 奇数步：写本地
-                                self.TF.g[idx][q] = g_collided[q]
+            if ti.static(self.TEMPERATURE) and self.t[None] > self.TF_delay:
+                if self.solid[idx]<1:
+                    # 读取离散速度分量
+                    for q in ti.static(range(7)):
+                        e = self.e7[q]
+                        opp_q = self.LR[q]
+                        if even == 0:  # 偶数步：从邻居读取
+                            ip = self.periodic_index(idx - e)
+                            g_local[q] = self.TF.g[ip][q]
+                        else:  # 奇数步：从本格读取
+                            g_local[q]= self.TF.g[idx][opp_q]
+                    # 计算宏观量
+                    S_local = 0.0
+                    for q in ti.static(range(7)):
+                        S_local += g_local[q]
+                    self.TF.S[idx] = S_local
+                    # 碰撞
+                    tau_local = self.TF.tau(idx)
+                    dS_local = self.TF.dS[idx]
+                    for q in ti.static(range(7)):
+                        geq = self.TF.geq7(q, S_local, idx[0], idx[1], idx[2])
+                        gq = g_local[q] - (g_local[q] - geq) / tau_local # 碰撞项
+                        gq += self.TF.geq7(q, dS_local, idx[0], idx[1], idx[2]) # 微观源项
+                        g_collided[q] = gq
+                    # 更新场
+                    for q in ti.static(range(7)):
+                        e = self.e7[q]
+                        opp_q = self.LR[q]
+                        if even == 0:  # 偶数步：写邻居
+                            ip = self.periodic_index(idx + e)
+                            self.TF.g[ip][opp_q] = g_collided[q]
+                        else:  # 奇数步：写本地
+                            self.TF.g[idx][q] = g_collided[q]
             ## 固体温度场
-            if ti.static(self.TEMPERATURE):
-                if self.t[None] > self.TS_delay[None]:
-                    if self.solid[idx] > 0:
-                        # 读取离散速度分量
-                        for q in ti.static(range(7)):
-                            e = self.e7[q]
-                            opp_q = self.LR[q]
-                            if even == 0:  # 偶数步：从邻居读取
-                                ip = self.periodic_index(idx - e)
-                                g_local[q] = self.TS.g[ip][q]
-                            else:  # 奇数步：从本格读取
-                                g_local[q]= self.TS.g[idx][opp_q]
-                        # 计算宏观量
-                        S_local = 0.0
-                        for q in ti.static(range(7)):
-                            S_local += g_local[q]
-                        self.TS.S[idx] = S_local
-                        # 碰撞
-                        tau_local = self.TS.tau(idx)
-                        dS_local = self.TS.dS[idx]
-                        for q in ti.static(range(7)):
-                            geq = self.TS.geq7(q, S_local, idx[0], idx[1], idx[2])
-                            gq = g_local[q] - (g_local[q] - geq) / tau_local # 碰撞项
-                            gq += self.TS.geq7(q, dS_local, idx[0], idx[1], idx[2]) # 微观源项
-                            g_collided[q] = gq
-                        # 更新场
-                        for q in ti.static(range(7)):
-                            e = self.e7[q]
-                            opp_q = self.LR[q]
-                            if even == 0:  # 偶数步：写邻居
-                                ip = self.periodic_index(idx + e)
-                                self.TS.g[ip][opp_q] = g_collided[q]
-                            else:  # 奇数步：写本地
-                                self.TS.g[idx][q] = g_collided[q]
+            if ti.static(self.TEMPERATURE) and self.t[None] > self.TS_delay:
+                if self.solid[idx]>0:
+                    # 读取离散速度分量
+                    for q in ti.static(range(7)):
+                        e = self.e7[q]
+                        opp_q = self.LR[q]
+                        if even == 0:  # 偶数步：从邻居读取
+                            ip = self.periodic_index(idx - e)
+                            g_local[q] = self.TS.g[ip][q]
+                        else:  # 奇数步：从本格读取
+                            g_local[q]= self.TS.g[idx][opp_q]
+                    # 计算宏观量
+                    S_local = 0.0
+                    for q in ti.static(range(7)):
+                        S_local += g_local[q]
+                    self.TS.S[idx] = S_local
+                    # 碰撞
+                    tau_local = self.TS.tau(idx)
+                    dS_local = self.TS.dS[idx]
+                    for q in ti.static(range(7)):
+                        geq = self.TS.geq7(q, S_local, idx[0], idx[1], idx[2])
+                        gq = g_local[q] - (g_local[q] - geq) / tau_local # 碰撞项
+                        gq += self.TS.geq7(q, dS_local, idx[0], idx[1], idx[2]) # 微观源项
+                        g_collided[q] = gq
+                    # 更新场
+                    for q in ti.static(range(7)):
+                        e = self.e7[q]
+                        opp_q = self.LR[q]
+                        if even == 0:  # 偶数步：写邻居
+                            ip = self.periodic_index(idx + e)
+                            self.TS.g[ip][opp_q] = g_collided[q]
+                        else:  # 奇数步：写本地
+                            self.TS.g[idx][q] = g_collided[q]
             # 浓度场更新
-            if ti.static(self.CHEMISTRY) :
-                if self.t[None] > self.chemistry_field_delay[None]:
-                    self.rhos[idx] = 0.0 # 更新固相密度场
-                    Yall = 0.0
-                    for specie in ti.static(list(self.species)):
-                        if ti.static(not specie.FIX):
-                            # 流体组分更新
-                            if self.solid[idx]<1:
-                                # 读取离散速度分量
-                                for q in ti.static(range(7)):
-                                    e = self.e7[q]
-                                    opp_q = self.LR[q]
-                                    if even == 0:  # 偶数步：从邻居读取
-                                        ip = self.periodic_index(idx - e)
-                                        g_local[q] = specie.g[ip][q]
-                                    else:  # 奇数步：从本格读取
-                                        g_local[q]= specie.g[idx][opp_q]
-                                # 计算宏观量
-                                S_local = 0.0
-                                for q in ti.static(range(7)):
-                                    S_local += g_local[q]
-                                if S_local < -self.tol:
-                                    S_local = 0.0
-                                specie.S[idx] = S_local
-                                Yall += specie.S[idx]
-                                # 碰撞
-                                tau_local = specie.tau(idx)
-                                dS_local = specie.dS[idx] / self.rho[idx]
-                                for q in ti.static(range(7)):
-                                    geq = specie.geq7(q, S_local, idx[0], idx[1], idx[2])
-                                    gq = g_local[q] - (g_local[q] - geq) / tau_local # 碰撞项
-                                    gq += specie.geq7(q, dS_local, idx[0], idx[1], idx[2]) # 微观源项
-                                    g_collided[q] = gq
-                                # 更新场
-                                for q in ti.static(range(7)):
-                                    e = self.e7[q]
-                                    opp_q = self.LR[q]
-                                    if even == 0:  # 偶数步：写邻居
-                                        ip = self.periodic_index(idx + e)
-                                        specie.g[ip][opp_q] = g_collided[q]
-                                    else:  # 奇数步：写本地
-                                        specie.g[idx][q] = g_collided[q]
-                        else:
-                            # 固体组分更新（仅源项，假设固体物种不迁移）
+            if ti.static(self.CHEMISTRY) and self.t[None] > self.chemistry_field_delay:
+                self.rhos[idx] = 0.0 # 更新固相密度场
+                for specie in ti.static(list(self.species)):
+                    if ti.static(not specie.FIX):
+                        # 流体组分更新
+                        if self.solid[idx]<1:
+                            # 读取离散速度分量
+                            for q in ti.static(range(7)):
+                                e = self.e7[q]
+                                opp_q = self.LR[q]
+                                if even == 0:  # 偶数步：从邻居读取
+                                    ip = self.periodic_index(idx - e)
+                                    g_local[q] = specie.g[ip][q]
+                                else:  # 奇数步：从本格读取
+                                    g_local[q]= specie.g[idx][opp_q]
+                            # 计算宏观量
+                            S_local = 0.0
+                            for q in ti.static(range(7)):
+                                S_local += g_local[q]
+                            specie.S[idx] = S_local
+                            # 碰撞
+                            tau_local = specie.tau(idx)
                             dS_local = specie.dS[idx]
-                            specie.S[idx] += dS_local 
-                            self.rhos[idx] += specie.S[idx] # 更新固相密度场
-                    for specie in ti.static(list(self.species)):
-                        if ti.static(not specie.FIX):
-                            if Yall < self.tol:
-                                print("Warning: Total mass fraction is zero or negative at idx ", idx)
-                            else:
-                                specie.S[idx] /= Yall
-                    # 更新孔隙率
-                    self.solid[idx] = self.rhos[idx]/self.rhos0[idx] if self.rhos0[idx]>0 else 0.0
+                            for q in ti.static(range(7)):
+                                geq = specie.geq7(q, S_local, idx[0], idx[1], idx[2])
+                                gq = g_local[q] - (g_local[q] - geq) / tau_local # 碰撞项
+                                gq += specie.geq7(q, dS_local, idx[0], idx[1], idx[2]) # 微观源项
+                                g_collided[q] = gq
+                            # 更新场
+                            for q in ti.static(range(7)):
+                                e = self.e7[q]
+                                opp_q = self.LR[q]
+                                if even == 0:  # 偶数步：写邻居
+                                    ip = self.periodic_index(idx + e)
+                                    specie.g[ip][opp_q] = g_collided[q]
+                                else:  # 奇数步：写本地
+                                    specie.g[idx][q] = g_collided[q]
+                    else:
+                        # 固体组分更新（仅源项，假设固体物种不迁移）
+                        dS_local = specie.dS[idx]
+                        specie.S[idx] += dS_local 
+                        self.rhos[idx] += specie.S[idx] # 更新固相密度场
             # 更新源项场
             ## 温度场源项
-            if ti.static(self.TEMPERATURE):
-                if self.t[None] > self.TF_delay[None] and self.t[None] > self.TS_delay[None]:
-                    self.TS.dS[idx] = 0.0
-                    self.TF.dS[idx] = 0.0
-                    if self.solid[idx] > 0: # 有固体
-                        # 流固热交换
-                        if self.solid[idx]<1: # 有流体
-                            dH = self.TS.exchangeCoef[idx]*self.TS.exchangeSurface[idx]*(self.TF.physical_value(self.TF.S[idx])-self.TS.physical_value(self.TS.S[idx]))*self.dt[None] # 热交换量 J/m3
-                            self.TS.dS[idx] += dH/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale[None] # 归一化温度变化     
-                            self.TF.dS[idx] += -dH/self.TF.capacity_m(idx)/self.rho[idx]/self.TF.v_scale[None] # 归一化温度变化
-                        # 辐射
-                        if ti.static(self.RADIATION):
-                            self.TS.dS[idx] += self.TS.radiation(idx)*self.dt[None]/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale[None] # 归一化温度变化
+            if ti.static(self.TEMPERATURE) and self.t[None] > self.TF_delay and self.t[None] > self.TS_delay:
+                self.TS.dS[idx] = 0.0
+                self.TF.dS[idx] = 0.0
+                if self.solid[idx] > 0: # 有固体
+                    # 流固热交换
+                    if self.solid[idx]<1: # 有流体
+                        dH = self.TS.exchangeCoef[idx]*self.TS.exchangeSurface[idx]*(self.TF.physical_value(self.TF.S[idx])-self.TS.physical_value(self.TS.S[idx]))*self.dt
+                        self.TS.dS[idx] += dH/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale # 归一化温度变化 
+                        self.TF.dS[idx] += -dH/self.TF.capacity_m(idx)/self.rho[idx]/self.TF.v_scale # 归一化温度变化
+                    # 辐射
+                    if ti.static(self.RADIATION):
+                        self.TS.dS[idx] += self.TS.radiation(idx)*self.dt/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale # 归一化温度变化
             ## 化学反应源项
-            if ti.static(self.CHEMISTRY):
-                if self.t[None] > self.chemistry_field_delay[None]:
-                    self.reactions.update_dS(idx)
+            if ti.static(self.CHEMISTRY) and self.t[None] > self.chemistry_field_delay:
+                self.reactions.update_dS(idx)
         if ti.static(self.boundary_condition_model == BC_MODEL.NEE):
             self.Boundary_condition_NEE_AA()
-
+        if ti.static(self.boundary_condition_model == BC_MODEL.ES):
+            self.Boundary_condition_ES_AA() # not implemented
         # ========== 4. 更新 ET 奇偶步标记 ==========
         self.even_step[None] = 1 - self.even_step[None]
     @ti.kernel
@@ -463,8 +447,7 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
         return feqout
     
     @ti.func
-    def feq19_no_poro(self, s,i,j,k): #计算平衡分布函数 
-        rho = self.rho[i,j,k]
+    def feq19_no_poro(self, s,rho,i,j,k): #计算平衡分布函数 
         u = self.v[i,j,k]
         eu = self.e19[s].dot(u)
         uv = u.dot(u)
@@ -478,10 +461,10 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
     def viscosity(self,i): # in LU
         visco = 0.1
         if ti.static(self.viscosity_model==VISCOSITY_MODEL.CONSTANT):
-            visco = self.visco[None]*self.dt[None]/self.dx[None]**2
+            visco = self.visco*self.dt/self.dx**2
         elif ti.static(self.viscosity_model==VISCOSITY_MODEL.SUTHERLAND):
             T = self.GetTF(i)
-            visco = self.sutherland_coef[0]*T**1.5/(T+self.sutherland_coef[1])*self.dt[None]/self.dx[None]**2
+            visco = self.sutherland_coef[0]*T**1.5/(T+self.sutherland_coef[1])*self.dt/self.dx**2
         elif ti.static(self.viscosity_model == VISCOSITY_MODEL.MIXTURE):
             if ti.static(self.CHEMISTRY):
                 for specie in ti.static(self.species):
@@ -506,7 +489,7 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
         F = ti.Vector([0.0,0.0,0.0])
         F+=self.volume_force()
         F+=self.darcy_force(i)
-        return F # 需要添加阻力大小的判断以避免数值不稳定，或者修改阻力添加方式
+        return F
     @ti.func
     def volume_force(self):
         return ti.Vector([0,0,0])
@@ -528,9 +511,10 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                     F += (-eps*self.viscosity(i)*self.coefDarcy[i]-eps*self.coefForchheimer[i]*ti.math.length(self.v[i]))*self.v[i]
         return F
     @ti.func
-    def forceTermGuo(self,s,i,F): # 将力转化为分布函数源项 Guo Zhao 实际上是动量变化量
+    def forceTermGuo(self,s,i): # 将力转化为分布函数源项 Guo Zhao 实际上是动量变化量
         rho = self.rho[i]
         u = self.v[i]
+        F = self.force(i)
         tau = self.tau(i)
         eps = 1.0-self.solid[i]
         term = 0.0

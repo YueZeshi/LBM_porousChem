@@ -15,8 +15,8 @@ class ScalarField:
         self.dS = ti.field(float,shape = (self.nx,self.ny,self.nz))
         self.v_ref = ti.field(float, shape=())
         self.v_scale = ti.field(float, shape=())
-        self.v_ref[None] = 0.0
-        self.v_scale[None] = 1.0
+        self.v_ref = 0.0
+        self.v_scale = 1.0
         if ti.static(not self.FIX):
             self.g = ti.Vector.field(5,float,shape=(self.nx,self.ny,self.nz))
             self.BC = [BC.periodic]*4
@@ -26,20 +26,20 @@ class ScalarField:
                 self.flux_BC[i]=0.0
                 self.s_BC[i]=0.0
     def get_physical_value(self,v): # change unit and reference
-        v_phys = v*self.v_scale[None] + self.v_ref[None]
+        v_phys = v*self.v_scale + self.v_ref
         return v_phys
 
     def get_normalized_value(self,v_phys):
-        v = (v_phys - self.v_ref[None])/self.v_scale[None]
+        v = (v_phys - self.v_ref)/self.v_scale
         return v
     
     @ti.func
     def normalized_value(self,v_phys):
-        v = (v_phys - self.v_ref[None])/self.v_scale[None]
+        v = (v_phys - self.v_ref)/self.v_scale
         return v
     @ti.func
     def physical_value(self,v):
-        v_phys = v*self.v_scale[None] + self.v_ref[None]
+        v_phys = v*self.v_scale + self.v_ref
         return v_phys
 
     @ti.kernel
@@ -88,10 +88,7 @@ class ScalarField:
         if ti.static(self.BC[0]==BC.zeroGradient):
             self.S[0,y,z] = self.S[1,y,z]  
         # todo 1
-        if self.even_step[None]==0: # 偶数步
-            self.g[1,y,z][3] = self.geq5(1,self.S[0,y,z],0,y,z)+(self.g[2,y,z][3]-self.geq5(1,self.S[1,y,z],1,y,z))
-        else: # 奇数步
-            self.g[0,y,z][1] = self.geq5(1,self.S[0,y,z],0,y,z)+(self.g[1,y,z][1]-self.geq5(1,self.S[1,y,z],1,y,z))
+        self.g[0,y,z][1] = self.geq5(1,self.S[0,y,z],0,y,z)+(self.g[1,y,z][1]-self.geq5(1,self.S[1,y,z],1,y,z))
     @ti.func
     def Boundary_condition_scalar_1(self,x,y,z):
         if ti.static(self.BC[1]==BC.fixedValue):
@@ -99,32 +96,21 @@ class ScalarField:
         if ti.static(self.BC[1]==BC.zeroGradient):
             self.S[self.nx-1,y,z] = self.S[self.nx-2,y,z]
         # todo 3
-        if self.even_step[None]==0: # 偶数步
-            self.g[self.nx-2,y,z][1] = self.geq5(3,self.S[self.nx-1,y,z],self.nx-1,y,z)+(self.g[self.nx-3,y,z][1]-self.geq5(3,self.S[self.nx-2,y,z],self.nx-2,y,z))
-        else: # 奇数步
-            self.g[self.nx-1,y,z][3] = self.geq5(3,self.S[self.nx-1,y,z],self.nx-1,y,z)+(self.g[self.nx-2,y,z][3]-self.geq5(3,self.S[self.nx-2,y,z],self.nx-2,y,z))
+        self.g[self.nx-1,y,z][3] = self.geq5(3,self.S[self.nx-1,y,z],self.nx-1,y,z)+(self.g[self.nx-2,y,z][3]-self.geq5(3,self.S[self.nx-2,y,z],self.nx-2,y,z))
     @ti.func
     def Boundary_condition_scalar_2(self,x,y,z):
         if ti.static(self.BC[2]==BC.fixedValue):
             self.S[x,0,z] = self.s_BC[2]
         if ti.static(self.BC[2]==BC.zeroGradient):
             self.S[x,0,z] = self.S[x,1,z]  
-        # todo 2
-        if self.even_step[None]==0: # 偶数步
-            self.g[x,1,z][4] = self.geq5(2,self.S[x,0,z],x,0,z)+(self.g[x,2,z][4]-self.geq5(2,self.S[x,1,z],x,1,z))
-        else: # 奇数步
-            self.g[x,0,z][2] = self.geq5(2,self.S[x,0,z],x,0,z)+(self.g[x,1,z][2]-self.geq5(2,self.S[x,1,z],x,1,z))
+        self.g[x,0,z][2] = self.geq5(2,self.S[x,0,z],x,0,z)+(self.g[x,1,z][2]-self.geq5(2,self.S[x,1,z],x,1,z))
     @ti.func
     def Boundary_condition_scalar_3(self,x,y,z):
         if ti.static(self.BC[3]==BC.fixedValue): 
             self.S[x,self.ny-1,z] = self.s_BC[3]
         if ti.static(self.BC[3]==BC.zeroGradient):
             self.S[x,self.ny-1,z] = self.S[x,self.ny-2,z]  
-        # todo 4
-        if self.even_step[None]==0: # 偶数步
-            self.g[x,self.ny-2,z][2] = self.geq5(4,self.S[x,self.ny-1,z],x,self.ny-1,z)+(self.g[x,self.ny-3,z][2]-self.geq5(4,self.S[x,self.ny-2,z],x,self.ny-2,z))
-        else: # 奇数步
-            self.g[x,self.ny-1,z][4] = self.geq5(4,self.S[x,self.ny-1,z],x,self.ny-1,z)+(self.g[x,self.ny-2,z][4]-self.geq5(4,self.S[x,self.ny-2,z],x,self.ny-2,z))
+        self.g[x,self.ny-1,z][4] = self.geq5(4,self.S[x,self.ny-1,z],x,self.ny-1,z)+(self.g[x,self.ny-2,z][4]-self.geq5(4,self.S[x,self.ny-2,z],x,self.ny-2,z))
     @ti.func
     def Boundary_condition_scalar_AA_0(self,x,y,z):
         if ti.static(self.BC[0]==BC.fixedValue):

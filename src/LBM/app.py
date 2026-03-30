@@ -31,10 +31,8 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
         dim = basic.get("dimension")
         if dim==2:
             from .LBM2D import LBM2DSolver as lbm
-            logger.info("2D LBM solver will be used.")
         elif dim==3:
             from .LBM3D import LBM3DSolver as lbm
-            logger.info("3D LBM solver will be used.")
         else:
             logger.error("The dimension value in the configuration file is invalid. Please set it to 2 or 3 depending on your case.")
             raise ValueError("dim")
@@ -247,8 +245,8 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
             if species is not None:
                 for specie in species:
                     logger.info(f"Specie {specie} loading...")
-                    composition = species[specie].get("composition",None)
-                    mmass = species[specie].get("molemass",0.001)
+                    composition = species[specie].get("composition")
+                    mmass = 0.0
                     if composition is not None:
                         for key,value in composition.items():
                             mmass += value*MOLEMASS[key]
@@ -316,7 +314,7 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
                                     poly = condProperty.get("data")
                                     lb.set_specie_conductivity_poly(specie,poly)
                     elif state == "solid":
-                        lb.set_specie(specie,True,mmass)
+                        lb.set_specie(specie,True)
                         if isThermal:
                             thermodynamicProperty = species[specie].get("thermodynamic")
                             if thermodynamicProperty is not None:
@@ -595,62 +593,48 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
             for solid in solidIC.values():
                 solidType = solid.get("type")
                 s = np.zeros((lb.nx,lb.ny,lb.nz))
-                if solidType=="poro":
-                    if isPoro:
-                        eps = solid["porosity"]
-                        zone =solid.get("zone")
-                        rhos = solid.get("rho",1)
-                        exchangeSurface = solid.get("exchangeSurface",1)
-                        exchangeCoef = solid.get("exchangeCoef",1)
-                        porousModel = solid.get("porousModel")
-                        emis = solid.get("emisssivity",1.0)
-                        border = np.zeros((lb.nx,lb.ny,lb.nz))
-                        if zone =="ALL":
-                            for geo_name,geo_data in geo_dict.items():
-                                s += geo_data[0]
-                                border +=geo_data[1]
-                        elif type(zone) is ruamel.yaml.comments.CommentedSeq: # []
-                            for zoneName in solid["zone"]:
-                                s += geo_dict[zoneName][0]
-                                border +=geo_dict[zoneName][1]
-                        elif type(zone) is str:
-                            s = geo_dict[solid["zone"]][0]
-                            border += geo_dict[solid["zone"]][1] 
-                        s = (s>0)*(1.0)
-                        solid_fraction = (1-eps)*s
-                        lb.add_solid(solid_fraction)
-                        lb.add_rho_solid(rhos*s)
-                        if isThermal:
-                            lb.set_heat_exchange_surface(exchangeSurface*s)
-                            lb.set_heat_exchange_coef(exchangeCoef*s)
-                        if isRadiation:
-                            lb.init_field(lb.TS.radiation_surface,border)
-                            lb.init_field(lb.TS.emissivity,border*emis)
-                        if porousModel=="darcy":
-                            darcy = solid.get("darcy")
-                            lb.set_poro_Darcy(s,darcy)
-                        elif porousModel == "darcyForchheimer":
-                            darcy = solid.get("darcy")
-                            forchheimer = solid.get("forchheimer")
-                            lb.set_poro_Darcy_Forchheimer(s,darcy,forchheimer)
-                        elif porousModel == "ergun":
-                            pass
-                    else:
-                        logger.warning("Poro-solid specified but porous_media module not enabled.")
-                        if solid["zone"]=="ALL":
-                            for geo_name,geo_data in geo_dict.items():
-                                s += geo_data[0]
-                        elif type(solid["zone"]) is ruamel.yaml.comments.CommentedSeq: # []
-                            for zoneName in solid["zone"]:
-                                s += geo_dict[zoneName][0]
-                        elif type(solid["zone"]) is str:
-                            s = geo_dict[solid["zone"]][0]
-                        s = (s>0)*(1.0)
-                        rhos = solid.get("rho",1)
-                        lb.add_solid(s)
-                        lb.add_rho_solid(rhos*s)
+                if isPoro and solidType=="poro":
+                    eps = solid["porosity"]
+                    zone =solid.get("zone")
+                    rhos = solid.get("rho",1)
+                    exchangeSurface = solid.get("exchangeSurface",1)
+                    exchangeCoef = solid.get("exchangeCoef",1)
+                    porousModel = solid.get("porousModel")
+                    emis = solid.get("emisssivity",1.0)
+                    border = np.zeros((lb.nx,lb.ny,lb.nz))
+                    if zone =="ALL":
+                        for geo_name,geo_data in geo_dict.items():
+                            s += geo_data[0]
+                            border +=geo_data[1]
+                    elif type(zone) is ruamel.yaml.comments.CommentedSeq: # []
+                        for zoneName in solid["zone"]:
+                            s += geo_dict[zoneName][0]
+                            border +=geo_dict[zoneName][1]
+                    elif type(zone) is str:
+                        s = geo_dict[solid["zone"]][0]
+                        border += geo_dict[solid["zone"]][1] 
+                    s = (s>0)*(1.0)
+                    solid_fraction = (1-eps)*s
+                    lb.add_solid(solid_fraction)
+                    lb.add_rho_solid(rhos*s)
+                    if isThermal:
+                        lb.set_heat_exchange_surface(exchangeSurface*s)
+                        lb.set_heat_exchange_coef(exchangeCoef*s)
+                    if isRadiation:
+                        lb.init_field(lb.TS.radiation_surface,border)
+                        lb.init_field(lb.TS.emissivity,border*emis)
+                    if porousModel=="darcy":
+                        darcy = solid.get("darcy")
+                        lb.set_poro_Darcy(s,darcy)
+                    elif porousModel == "darcyForchheimer":
+                        darcy = solid.get("darcy")
+                        forchheimer = solid.get("forchheimer")
+                        lb.set_poro_Darcy_Forchheimer(s,darcy,forchheimer)
+                    elif porousModel == "ergun":
+                        pass
                         
                 elif solidType=="concrete":
+                    s = np.zeros((lb.nx,lb.ny,lb.nz))
                     if solid["zone"]=="ALL":
                         for geo_name,geo_data in geo_dict.items():
                             s += geo_data[0]
@@ -686,9 +670,9 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
         simulationStartTime = timeControl.get("startTime",0)
         # if startTime is None:
         #     startTime = 0
-        lb.tLattice = int(simulationStartTime/lb.dt[None])
+        lb.tLattice = int(simulationStartTime/lb.dt)
         endTime = timeControl.get("endTime",0)
-        endTimeLattice = endTime/lb.dt[None]
+        endTimeLattice = endTime/lb.dt
     
     # output
     logger.info("Loading outputControl...")
@@ -697,10 +681,10 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
         logger.error("outputControl missing.")
     else:
         logControl = outputControl.get("log")
-        printInterval = int(logControl["interval"]/lb.dt[None])
+        printInterval = int(logControl["interval"]/lb.dt)
         exportControl = outputControl.get("vtk")
         interval = exportControl.get("interval",100)
-        exportInterval = int(interval/lb.dt[None])
+        exportInterval = int(interval/lb.dt)
         exportPath = exportControl.get("path")
         if not exportPath:
             exportPath = "output"
@@ -713,7 +697,7 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
         lb.PVD.exportPath = exportPath
         snapshot = config["outputControl"]["snapshot"]
         interval = snapshot.get("interval",100)
-        snapshotInterval = int(interval/lb.dt[None])
+        snapshotInterval = int(interval/lb.dt)
         snapshotPath = snapshot.get("path")
         lb.snapshotPath = snapshotPath
         preTime = time.time()

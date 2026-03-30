@@ -79,9 +79,14 @@ class LBM3D_INITIALIZATION(LBM3D_BASE):
                     for specie in ti.static(list(self.species)):
                         if ti.static(specie.FIX):
                             self.rhos[i] += specie.S[i]
-                    self.rhos0[i] = self.rhos[i]/(1-eps) if eps < 1  else 1.0 # 计算全占据密度，用于后续更新孔隙率
+                # if self.solid[i]!=0: # 计算孔隙率为1的密度作为参考
+                #     self.rho1[i] = self.rhos[i]/self.solid[i]
+                #     if self.rho1[i]==0:
+                #         self.rho1[i]=1.0
             for s in ti.static(range(19)):
-                self.f[i][s] = self.feq19_no_poro(s,i[0],i[1],i[2])
+                self.f[i][s] = self.feq19_no_poro(s,self.rho[i],i[0],i[1],i[2])
+            # if ti.static(self.TEMPERATURE):
+            #     self.IE.uS[i] = self.IE.S[i]*self.v[i]
             for s in ti.static(range(7)):
                 if ti.static(self.CHEMISTRY):
                     for specie in ti.static(list(self.species)):

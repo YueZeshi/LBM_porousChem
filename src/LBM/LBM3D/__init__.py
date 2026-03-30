@@ -1,22 +1,3 @@
-"""LBM3D module
-================
-
-Provides the 3D Lattice Boltzmann Method (LBM) solver implementation
-used for pyrolysis simulations. The main public class is
-:class:`LBM3DSolver`.
-
-This module composes several mixin classes that implement different
-aspects of the solver: core data structures, evolution operators,
-boundary conditions, IO, and initialization.
-
-Notes
------
-The implementation uses Taichi for performance and relies on
-data-oriented programming idioms.
-"""
-
-
-# 扩散行为可能有点问题，扩散应该是根据物种浓度梯度来进行的，而不是直接根据物种密度来进行的，后续可能需要修改
 import taichi as ti
 
 from ._info import LBM3D_INFO

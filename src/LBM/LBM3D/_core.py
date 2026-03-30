@@ -12,27 +12,22 @@ class LBM3D_BASE:
     """
     def __init__(self, X, Y, Z,dx = 0.001,dt = 0.001,name="LBM",isThermal = False,isChemical = False,isPoro = False,isRadiation = False):
         self.name = name
-        self.t = ti.field(float,shape=()) # 当前时间
+        self.t = ti.field(float,shape=())
         self.tol = 1e-12
         # 模型参数
         self.X = float(X)
         self.Y = float(Y)
         self.Z = float(Z)
         self.tLattice : int = 0
-        self.dx = ti.field(float,shape=()) # 格子尺度
-        self.dt = ti.field(float,shape=()) # 步进时间
-        self.dx[None] = float(dx) # 格子尺度 
-        self.dt[None] = float(dt) # 步进时间
-        self.nx = np.round(self.X/self.dx[None]).astype(int)
-        self.ny = np.round(self.Y/self.dx[None]).astype(int)
-        self.nz = np.round(self.Z/self.dx[None]).astype(int) # 模型大小
+        self.dx = float(dx) # 格子尺度 
+        self.dt = float(dt) # 步进时间
+        self.nx = np.round(self.X/self.dx).astype(int)
+        self.ny = np.round(self.Y/self.dx).astype(int)
+        self.nz = np.round(self.Z/self.dx).astype(int) # 模型大小
         self.max_v=ti.field(float,shape=())
         self.viscosity_model = VISCOSITY_MODEL.CONSTANT
-        self.visco = ti.field(float,shape=())
-        self.visco[None] = 1e-5
-        self.sutherland_coef = ti.field(float,shape=(2))
-        self.sutherland_coef[0] = 1.6e-6
-        self.sutherland_coef[1] = 170
+        self.visco = 1e-5
+        self.sutherland_coef = [1.6e-6,170]
         self.boundary_condition_model = BC_MODEL.NEE
         self.EOS = FLUID_STATE_EQUATION.IDEAL_GAS
         # LBM使用常量
@@ -49,13 +44,13 @@ class LBM3D_BASE:
         self.meshX, self.meshY, self.meshZ = np.meshgrid(self.x, self.y, self.z, indexing='ij')
         # 声明物理场
         self.rho = ti.field(float, shape=(self.nx,self.ny,self.nz))
-        self.drho = ti.field(float, shape=(self.nx,self.ny,self.nz)) # 密度变化率场
+        self.drho = ti.field(float, shape=(self.nx,self.ny,self.nz))
         self.v = ti.Vector.field(3,float, shape=(self.nx,self.ny,self.nz))
-        self.solid = ti.field(float,shape = (self.nx,self.ny,self.nz)) # 固体占据场，0-1连续值表示占据程度
-        self.rhos = ti.field(float,shape=(self.nx,self.ny,self.nz)) # 固相密度场
-        self.rhos0 = ti.field(float,shape=(self.nx,self.ny,self.nz)) # 固相全占据密度场
+        self.solid = ti.field(float,shape = (self.nx,self.ny,self.nz))
+        self.rhos = ti.field(float,shape=(self.nx,self.ny,self.nz))
+        self.rhos0 = ti.field(float,shape=(self.nx,self.ny,self.nz))
         self.f = ti.Vector.field(19,float,shape=(self.nx,self.ny,self.nz)) # 分布函数
-        # self.F = ti.Vector.field(19,float,shape=(self.nx,self.ny,self.nz)) # 后碰撞分布函数 # 用于ABpattern
+        self.F = ti.Vector.field(19,float,shape=(self.nx,self.ny,self.nz)) # 后碰撞分布函数
         # 定义边界条件
         self.bc = [BC_FLOW.periodic]*6 # 左右前后上下边界条件类型
         self.bc_v = [BC.periodic]*6 # 左右前后上下速度边界条件类型
@@ -123,10 +118,10 @@ class LBM3D_BASE:
         self.even_step[None] = 0
         # 初始化delay
         if self.TEMPERATURE:
-            self.TF_delay[None] = 0.0
-            self.TS_delay[None] = 0.0
+            self.TF_delay = 0.0
+            self.TS_delay = 0.0
         if self.CHEMISTRY:
-            self.chemistry_field_delay[None] = 0.0
+            self.chemistry_field_delay = 0.0
     # 内置函数
     def __repr__(self):
         return self.__str__()

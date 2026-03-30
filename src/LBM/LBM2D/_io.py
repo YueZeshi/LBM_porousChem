@@ -152,7 +152,7 @@ class LBM2D_INPUT(LBM2D_BASE):
     ## 密度场
     def set_viscosity(self,mu):#定义常黏度
         """设定常黏度模型，``mu`` 为格子单位黏度。"""
-        self.visco[None] = mu
+        self.visco = mu
         self.viscosity_model = VISCOSITY_MODEL.CONSTANT
     def set_viscosity_sutherland(self,As,Ts):
         """启用 Sutherland 黏度模型，参数 ``As``、``Ts`` 为模型系数。"""
@@ -174,45 +174,45 @@ class LBM2D_INPUT(LBM2D_BASE):
             Darcy 系数，内部自动乘以 ``dx**2``。
         """
         self.poro_model = PORO_MODEL.DARCY
-        coefDarcy *=self.dx[None]**2
+        coefDarcy *=self.dx**2
         self.init_field(self.coefDarcy,coefDarcy*s)
     def set_poro_Darcy_Forchheimer(self,s,coefDarcy, coefForchheimer):
         """设置 Darcy-Forchheimer 多孔介质阻力，含线性与二次项。"""
         self.poro_model = PORO_MODEL.DARCYFORCHHEIMER
-        coefDarcy *=self.dx[None]**2
-        coefForchheimer *=self.dx[None]
+        coefDarcy *=self.dx**2
+        coefForchheimer *=self.dx
         self.init_field(self.coefDarcy,coefDarcy*s)
         self.init_field(self.coefForchheimer,coefForchheimer*s)
     
     ## 温度场
     def set_TF_delay(self,delay):
-        self.TF_delay[None] = delay
+        self.TF_delay = delay
     def set_fluid_thermal_diff(self,diff):
         """流体：设定常数热扩散系数。"""
         self.TF.thermal_diff_model = THERMAL_DIFF_MODEL.CONSTANT
-        self.TF.thermal_diff[None] = diff
+        self.TF.thermal_diff = diff
     def set_fluid_Prandtl(self,Pr):
         """流体：通过 Pr 数确定热扩散系数。"""
         self.TF.thermal_diff_model = THERMAL_DIFF_MODEL.PRANDTL
-        self.TF.Pr[None] = Pr
+        self.TF.Pr = Pr
     def set_fluid_thermal_diff_derived(self):
         """流体：使用模型自适应热扩散。"""
         self.TF.thermal_diff_model = THERMAL_DIFF_MODEL.DERIVED
     def set_fluid_conductivity(self,value):
         """流体：设定常数导热系数。"""
         self.TF.conductivity_model = CONDUCTIVITY_MODEL.CONSTANT
-        self.TF.cond[None] = value
+        self.TF.cond = value
     def set_fluid_conductivity_poly(self,poly):
         """流体：设定多项式导热系数（按温度）。"""
         self.TF.conductivity_model = CONDUCTIVITY_MODEL.POLYNOMIAL
-        self.TF.cond_poly[None] = poly 
+        self.TF.cond_poly = poly 
     def set_fluid_conductivity_mixture(self):
         """流体：启用混合物导热模型。"""
         self.TF.conductivity_model = CONDUCTIVITY_MODEL.MIXTURE
     def set_fluid_capacity(self,value):
         """流体：设定常数比热容。"""
         self.TF.capacity_model = THERMO_MODEL.CONSTANT
-        self.TF.cm[None] = value
+        self.TF.cm = value
     def set_fluid_capacity_poly(self,poly):
         """流体：设定多项式比热容。"""
         self.TF.capacity_model = THERMO_MODEL.POLYNOMIAL
@@ -225,27 +225,27 @@ class LBM2D_INPUT(LBM2D_BASE):
             self.TF.Trange[i] = Trange[i]
         for i in range(2):
             for j in range(7):
-                self.TF.NASA_coef[i,j] = data[i][j]
+                self.TF.NASA_coef[i][j] = data[i][j]
     def set_fluid_capacity_mixture(self):
         """流体：混合物比热模型。"""
         self.TF.capacity_model = THERMO_MODEL.MIXTURE
     def set_fluid_Trange(self,Trange):
         """流体：设置参考温度区间 ``[T_ref, T_max]`` 以归一化。"""
-        self.TF.v_ref[None] = Trange[0]
-        self.TF.v_scale[None] = Trange[1]-Trange[0]
+        self.TF.v_ref = Trange[0]
+        self.TF.v_scale = Trange[1]-Trange[0]
     def set_TS_delay(self,delay):
-        self.TS_delay[None] = delay
+        self.TS_delay = delay
     def set_solid_thermal_diff(self,diff):
         """固体：设定常数热扩散系数。"""
         self.TS.thermal_diff_model = THERMAL_DIFF_MODEL.CONSTANT
-        self.TS.thermal_diff[None] = diff
+        self.TS.thermal_diff = diff
     def set_solid_thermal_diff_derived(self):
         """固体：使用模型自适应热扩散。"""
         self.TS.thermal_diff_model = THERMAL_DIFF_MODEL.DERIVED
     def set_solid_conductivity(self,value):
         """固体：设定常数导热系数。"""
         self.TS.conductivity_model = CONDUCTIVITY_MODEL.CONSTANT
-        self.TS.cond[None] = value
+        self.TS.cond = value
     def set_solid_conductivity_poly(self,poly):
         """固体：设定多项式导热系数。"""
         self.TS.conductivity_model = CONDUCTIVITY_MODEL.POLYNOMIAL
@@ -257,7 +257,7 @@ class LBM2D_INPUT(LBM2D_BASE):
     def set_solid_capacity(self,value):
         """固体：设定常数比热容。"""
         self.TS.capacity_model = THERMO_MODEL.CONSTANT
-        self.TS.cm[None] = value
+        self.TS.cm = value
     def set_solid_capacity_poly(self,poly):
         """固体：设定多项式比热容。"""
         self.TS.capacity_model = THERMO_MODEL.POLYNOMIAL
@@ -270,15 +270,15 @@ class LBM2D_INPUT(LBM2D_BASE):
             self.TS.Trange[i] = Trange[i]
         for i in range(2):
             for j in range(7):
-                self.TS.NASA_coef[i,j] = data[i][j]
+                self.TS.NASA_coef[i][j] = data[i][j]
 
     def set_solid_capacity_mixture(self):
         self.TS.capacity_model = THERMO_MODEL.MIXTURE
 
     def set_solid_Trange(self,Trange):
         """固体：设置参考温度区间 ``[T_ref, T_max]`` 以归一化。"""
-        self.TS.v_ref[None] = Trange[0]
-        self.TS.v_scale[None] = Trange[1]-Trange[0]
+        self.TS.v_ref = Trange[0]
+        self.TS.v_scale = Trange[1]-Trange[0]
 
     ### 辐射相关
     def set_radiation(self,model,param):
@@ -293,7 +293,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         """
         if model == RADIATION_MODEL.SURFACE_UNIFORM:
             self.TS.radiation_model = model
-            self.TS.Tambient[None] = float(param)
+            self.TS.Tambient = float(param)
         # if model == RADIATION_MODEL.REAL_RADIATION:
         #     self.TS.radiation_model = model
         #     self.TS.real_radiation = ti.field(float,shape=(self.nx,self.ny,self.nz))
@@ -316,12 +316,12 @@ class LBM2D_INPUT(LBM2D_BASE):
         self.species.append(Specie(specie,self,Mmass = molemass,FIX=Fix))
         self.specieName.append(specie)
     def set_chemistry_delay(self,delay):
-        self.chemistry_field_delay[None] = delay
+        self.chemistry_field_delay = delay
     def set_specie_viscosity(self,specieName,value):
         """为指定物种设置常数黏度。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.viscosity_type = VISCOSITY_MODEL.CONSTANT
-        specie.visco[None] = value
+        specie.visco = value
     def set_specie_viscosity_sutherland(self,specieName,coef):
         """为指定物种启用 Sutherland 黏度。"""
         specie = self.species[self.specieName.index(specieName)]
@@ -336,7 +336,7 @@ class LBM2D_INPUT(LBM2D_BASE):
             specie.Trange[i] = TRange[i]
         for i in range(2):
             for j in range(7):
-                specie.NASAcoef[i,j] = coef[i][j]
+                specie.NASAcoef[i][j] = coef[i][j]
     def set_species(self,species,FIX=None,molemass = None):# 登记所有物质
         """批量注册物种。
 
@@ -363,36 +363,36 @@ class LBM2D_INPUT(LBM2D_BASE):
         """指定物种：常数扩散系数。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.diff_model = DIFF_MODEL.CONSTANT
-        specie.diff[None] = diff
+        specie.diff = diff
     def set_specie_diff_Schmidt(self,specieName,Sc):
         """指定物种：通过 Schmidt 数设置扩散。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.diff_model=DIFF_MODEL.SCHMIDT
-        specie.Sc[None] = Sc
+        specie.Sc = Sc
     def set_specie_enthalpy(self,specieName,enthalpy,unit=UNIT.MOLE):
         """指定物种：常数焓。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.thermo_model = THERMO_MODEL.CONSTANT
-        specie.enthalpy[None] = enthalpy
+        specie.enthalpy = enthalpy
         specie.enthalpy_unit = unit
     def set_specie_capacity(self,specieName,capacity,unit=UNIT.MOLE): # 质量热容
         """指定物种：常数质量比热容。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.thermo_model = THERMO_MODEL.CONSTANT
-        specie.capa[None] = capacity
+        specie.capa = capacity
         specie.capa_unit = unit
     def set_specie_capacity_poly(self,specieName,poly,unit=UNIT.MOLE): # 质量热容
         """指定物种：多项式质量比热容。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.thermo_model = THERMO_MODEL.POLYNOMIAL
-        for i in range(max(5,len(poly))):
+        for i in range(min(5,len(poly))):
             specie.capa_poly[i] = poly[i]
         specie.capa_unit = unit
 
     def set_specie_conductivity(self,name,lamb): # 传热系数
         specie = self.species[self.specieName.index(name)]
         specie.cond_model=CONDUCTIVITY_MODEL.CONSTANT
-        specie.cond[None] = lamb
+        specie.cond = lamb
     
     def set_specie_conductivity_poly(self,name,poly): # 传热系数
         specie = self.species[self.specieName.index(name)]
@@ -533,7 +533,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         mesh and surface array
         """
         from ..GEO.STL import StlReader
-        stlReader = StlReader(self.X,self.Y,self.dx[None],self.dx[None],2,logger=kwargs.get("logger",None))
+        stlReader = StlReader(self.X,self.Y,self.dx,self.dx,2,logger=kwargs.get("logger",None))
         return stlReader.voxel_stl(stl_path,scale,translate,rotate)
         
     
@@ -665,7 +665,7 @@ class LBM2D_OUTPUT(LBM2D_BASE):
         grid = pv.StructuredGrid(self.meshX,self.meshY,self.meshZ)
         grid.point_data.update(self.get_data_pyvista())
         grid.save(filename)
-        self.PVD.addVTK(self.tLattice*self.dt[None],os.path.basename(filename))
+        self.PVD.addVTK(self.tLattice*self.dt,os.path.basename(filename))
         self.PVD.writePVD()
     def get_data_pyvista(self):
         """组装 pyvista 友好的点数据字典。

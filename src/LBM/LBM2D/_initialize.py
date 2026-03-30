@@ -64,9 +64,10 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
                     for specie in ti.static(list(self.species)):
                         if ti.static(specie.FIX):
                             self.rhos[i] += specie.S[i]
+                self.rhos0[i] = self.rhos[i]/(1-eps) if eps < 1 else 0.0
             # 需要添加rhos0
             for s in ti.static(range(9)):
-                self.f[i][s] = self.feq9_no_poro(s,i[0],i[1],i[2])
+                self.f[i][s] = self.feq9_no_poro(s,self.rho[i],i[0],i[1],i[2])
                 if ti.static(self.CHEMISTRY):
                     if s<5:
                         for specie in ti.static(list(self.species)):
