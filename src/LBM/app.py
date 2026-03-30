@@ -686,9 +686,9 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
         simulationStartTime = timeControl.get("startTime",0)
         # if startTime is None:
         #     startTime = 0
-        lb.tLattice = int(simulationStartTime/lb.dt)
+        lb.tLattice = int(simulationStartTime/lb.dt[None])
         endTime = timeControl.get("endTime",0)
-        endTimeLattice = endTime/lb.dt
+        endTimeLattice = endTime/lb.dt[None]
     
     # output
     logger.info("Loading outputControl...")
@@ -697,10 +697,10 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
         logger.error("outputControl missing.")
     else:
         logControl = outputControl.get("log")
-        printInterval = logControl["interval"]/lb.dt
+        printInterval = logControl["interval"]/lb.dt[None]
         exportControl = outputControl.get("vtk")
         interval = exportControl.get("interval",100)
-        exportInterval = int(interval/lb.dt)
+        exportInterval = int(interval/lb.dt[None])
         exportPath = exportControl.get("path")
         if not exportPath:
             exportPath = "output"
@@ -713,7 +713,7 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
         lb.PVD.exportPath = exportPath
         snapshot = config["outputControl"]["snapshot"]
         interval = snapshot.get("interval",100)
-        snapshotInterval = int(interval/lb.dt)
+        snapshotInterval = int(interval/lb.dt[None])
         snapshotPath = snapshot.get("path")
         lb.snapshotPath = snapshotPath
         preTime = time.time()
@@ -743,7 +743,7 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
             logger.info(lb.log_info())
         if lb.tLattice % exportInterval==0:
             lb.export_VTK_pyvista()
-        if lb.tLattice%snapshotInterval==0:
+        if lb.tLattice % snapshotInterval==0:
             lb.export_snapshot(config)
         if debug:
             lb.check_python()

@@ -13,8 +13,10 @@ class ScalarField:
         self.FIX = FIX
         self.S = ti.field(float,shape=(self.nx,self.ny,self.nz))
         self.dS = ti.field(float,shape = (self.nx,self.ny,self.nz))
-        self.v_ref = 0.0
-        self.v_scale = 1.0
+        self.v_ref = ti.field(float,shape=())
+        self.v_scale = ti.field(float,shape=())
+        self.v_ref[None] = 0.0
+        self.v_scale[None] = 1.0
         if not self.FIX:
             self.g = ti.Vector.field(7,float,shape=(self.nx,self.ny,self.nz))
             self.G = ti.Vector.field(7,float,shape=(self.nx,self.ny,self.nz))
@@ -25,20 +27,20 @@ class ScalarField:
                 self.flux_BC[i]=0.0
                 self.s_BC[i]=0.0
     def get_physical_value(self,v): # change unit and reference
-        v_phys = v*self.v_scale + self.v_ref
+        v_phys = v*self.v_scale[None] + self.v_ref[None]
         return v_phys
 
     def get_normalized_value(self,v_phys):
-        v = (v_phys - self.v_ref)/self.v_scale
+        v = (v_phys - self.v_ref[None])/self.v_scale[None]
         return v    
     
     @ti.func
     def normalized_value(self,v_phys):
-        v = (v_phys - self.v_ref)/self.v_scale
+        v = (v_phys - self.v_ref[None])/self.v_scale[None]
         return v
     @ti.func
     def physical_value(self,v):
-        v_phys = v*self.v_scale + self.v_ref
+        v_phys = v*self.v_scale[None] + self.v_ref[None]
         return v_phys
 
     @ti.kernel

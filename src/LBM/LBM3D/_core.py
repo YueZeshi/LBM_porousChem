@@ -13,21 +13,26 @@ class LBM3D_BASE:
     def __init__(self, X, Y, Z,dx = 0.001,dt = 0.001,name="LBM",isThermal = False,isChemical = False,isPoro = False,isRadiation = False):
         self.name = name
         self.t = ti.field(float,shape=()) # 当前时间
-        self.tol = 1e-6
+        self.tol = 1e-12
         # 模型参数
         self.X = float(X)
         self.Y = float(Y)
         self.Z = float(Z)
         self.tLattice : int = 0
-        self.dx = float(dx) # 格子尺度 
-        self.dt = float(dt) # 步进时间
-        self.nx = np.round(self.X/self.dx).astype(int)
-        self.ny = np.round(self.Y/self.dx).astype(int)
-        self.nz = np.round(self.Z/self.dx).astype(int) # 模型大小
+        self.dx = ti.field(float,shape=()) # 格子尺度
+        self.dt = ti.field(float,shape=()) # 步进时间
+        self.dx[None] = float(dx) # 格子尺度 
+        self.dt[None] = float(dt) # 步进时间
+        self.nx = np.round(self.X/self.dx[None]).astype(int)
+        self.ny = np.round(self.Y/self.dx[None]).astype(int)
+        self.nz = np.round(self.Z/self.dx[None]).astype(int) # 模型大小
         self.max_v=ti.field(float,shape=())
         self.viscosity_model = VISCOSITY_MODEL.CONSTANT
-        self.visco = 1e-5
-        self.sutherland_coef = [1.6e-6,170]
+        self.visco = ti.field(float,shape=())
+        self.visco[None] = 1e-5
+        self.sutherland_coef = ti.field(float,shape=(2))
+        self.sutherland_coef[0] = 1.6e-6
+        self.sutherland_coef[1] = 170
         self.boundary_condition_model = BC_MODEL.NEE
         self.EOS = FLUID_STATE_EQUATION.IDEAL_GAS
         # LBM使用常量
