@@ -216,12 +216,12 @@ class LBM2D_INPUT(LBM2D_BASE):
     def set_fluid_capacity_poly(self,poly):
         """流体：设定多项式比热容。"""
         self.TF.capacity_model = THERMO_MODEL.POLYNOMIAL
-        for i in range(max(5,len(poly))):
+        for i in range(min(5,len(poly))):
             self.TF.cm_poly[i] = poly[i] 
     def set_fluid_capacity_NASA7(self,Trange,data):
         """流体：启用 NASA7 多项式比热模型。"""
         self.TF.capacity_model = THERMO_MODEL.NASA7
-        for i in range(max(3,len(data))):
+        for i in range(min(3,len(data))):
             self.TF.Trange[i] = Trange[i]
         for i in range(2):
             for j in range(7):
@@ -249,7 +249,7 @@ class LBM2D_INPUT(LBM2D_BASE):
     def set_solid_conductivity_poly(self,poly):
         """固体：设定多项式导热系数。"""
         self.TS.conductivity_model = CONDUCTIVITY_MODEL.POLYNOMIAL
-        for i in range(max(5,len(poly))):
+        for i in range(min(5,len(poly))):
             self.TS.cond_poly[i] = poly[i]
     def set_solid_conductivity_mixture(self):
         """固体：启用混合物导热模型。"""
@@ -261,12 +261,12 @@ class LBM2D_INPUT(LBM2D_BASE):
     def set_solid_capacity_poly(self,poly):
         """固体：设定多项式比热容。"""
         self.TS.capacity_model = THERMO_MODEL.POLYNOMIAL
-        for i in range(max(5,len(poly))):
+        for i in range(min(5,len(poly))):
             self.TS.cm_poly[i] = poly[i] 
     def set_solid_capacity_NASA7(self,Trange,data):
         """固体：启用 NASA7 多项式比热模型。"""
         self.TS.capacity_model = THERMO_MODEL.NASA7
-        for i in range(max(3,len(Trange))):
+        for i in range(min(3,len(Trange))):
             self.TS.Trange[i] = Trange[i]
         for i in range(2):
             for j in range(7):
@@ -332,7 +332,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         """为指定物种设置 NASA7 热容模型。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.thermo_model = THERMO_MODEL.NASA7
-        for i in range(max(3,len(TRange))):
+        for i in range(min(3,len(TRange))):
             specie.Trange[i] = TRange[i]
         for i in range(2):
             for j in range(7):
@@ -397,7 +397,7 @@ class LBM2D_INPUT(LBM2D_BASE):
     def set_specie_conductivity_poly(self,name,poly): # 传热系数
         specie = self.species[self.specieName.index(name)]
         specie.cond_model=CONDUCTIVITY_MODEL.POLYNOMIAL
-        for i in range(max(5,len(poly))):
+        for i in range(min(5,len(poly))):
             specie.cond_poly[i] = poly[i]
     
     # 定义化学反应

@@ -12,13 +12,13 @@ module :
 
 spaceControl:
   geometry : [1,0.1]
-  DX : 1e-3
+  DX : 2e-4
 
 
 timeControl:
   startTime : 0
   endTime : 1000
-  DT : 1e-3
+  DT : 2e-4
 
 flowProperties:
   viscosity :
