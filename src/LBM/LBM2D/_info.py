@@ -1,13 +1,10 @@
 from ._core import LBM2D_BASE
 from ..util.flag import *
 class LBM2D_INFO(LBM2D_BASE):
-    
     def __str__(self):
         return self.description()
-
     def __repr__(self):
         return self.__str__()
-
     def description(self):
         des = "\n------------------------------------------\n"        
         des += self.description_basic()+"\n"
@@ -22,7 +19,7 @@ class LBM2D_INFO(LBM2D_BASE):
         des = "Flow properties : \n"
         des += f"    viscosity model : "
         if self.viscosity_model==VISCOSITY_MODEL.CONSTANT:
-            des += f"constant : {self.visco}"
+            des += f"constant : {self.visco[None]}"
         elif self.viscosity_model==VISCOSITY_MODEL.SUTHERLAND:
             des += f"sutherland : As={self.sutherland_coef[0]}, Ts={self.sutherland_coef[1]}"
         elif self.viscosity_model==VISCOSITY_MODEL.MIXTURE:
@@ -47,16 +44,16 @@ class LBM2D_INFO(LBM2D_BASE):
     def description_thermal(self):
         des = ""
         if self.TEMPERATURE:
-            des += self.TF.__str__()
-            des += self.TS.__str__()
+            des += self.TF.description()
+            des += self.TS.description()
         return des
     def description_chemical(self)->str:
         des = "Chemical module: \n"
         if self.CHEMISTRY:
             des+="  The species involved are: \n"
             for specie in self.species:
-                des += "    " + specie.__str__()
-            des += self.reactions.__str__()
+                des += "    " + specie.description()
+            des += self.reactions.description()
         return des
     def description_basic(self)->str:
         des = "Basic information of the LBM simulation:\n"
@@ -97,7 +94,7 @@ class LBM2D_INFO(LBM2D_BASE):
 
         内容包括 `t(LU)`、`max|v|`，在启用温度时附带 `T_min/T_max (K)`。
         """
-        p = f"    t(s):{self.tLattice*self.dt} t(LU)={self.tLattice} : Max velocity magnitude (LU) : {self.get_max_v():.7f}, "
+        p = f"    t(s):{self.t[None]} t(LU)={self.tLattice} : Max velocity magnitude (LU) : {self.get_max_v():.7f}, "
         if self.TEMPERATURE:
             p +=f"Min temperature: {self.get_min_T():.7f} K, Max temperature : {self.get_max_T():.7f}"
         return p

@@ -697,7 +697,7 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
         logger.error("outputControl missing.")
     else:
         logControl = outputControl.get("log")
-        printInterval = logControl["interval"]/lb.dt[None]
+        printInterval = int(logControl["interval"]/lb.dt[None])
         exportControl = outputControl.get("vtk")
         interval = exportControl.get("interval",100)
         exportInterval = int(interval/lb.dt[None])

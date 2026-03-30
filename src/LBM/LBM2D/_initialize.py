@@ -20,32 +20,27 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
     def init_python(self):
         # initialize reactions class , knowing all species
         if self.CHEMISTRY:
-            self.reactions.dS = ti.Vector.field(len(self.species)+1,dtype = float,shape=self.rho.shape) # specie num + 1
+            self.reactions.dS = ti.Vector.field(len(self.species) + 1, dtype=float, shape=self.rho.shape) # specie num + 1
             self.reactions.specieNum = len(self.species)
         # create export directory
-        os.makedirs(self.exportPath,exist_ok=True)
+        os.makedirs(self.exportPath, exist_ok=True)
         # handle exception
         ## mixture but no chemistry
         if not self.CHEMISTRY and self.TEMPERATURE:
             if self.TF.capacity_model == THERMO_MODEL.MIXTURE:
                 self.TF.capacity_model = THERMO_MODEL.CONSTANT
-                print("Warning: No chemistry module enabled, but mixture fluid capacity model selected. Switching to constant model.")
+                print("Warning: No chemistry module enabled, switching fluid capacity model to constant.")
             if self.TF.conductivity_model == CONDUCTIVITY_MODEL.MIXTURE:
                 self.TF.conductivity_model = CONDUCTIVITY_MODEL.CONSTANT
-                print("Warning: No chemistry module enabled, but mixture fluid conductivity model selected. Switching to constant model.")
-        fixSpecieNum = 0
-        if self.CHEMISTRY: # 判断是否定义固体物种
-            fixSpecieNum = 0
-            for specie in self.species:
-                if specie.FIX:
-                    fixSpecieNum += 1
-        if (not self.CHEMISTRY or fixSpecieNum==0) and self.TEMPERATURE:
+                print("Warning: No chemistry module enabled, switching fluid conductivity model to constant.")
+        fixSpecieNum = sum(1 for specie in self.species if specie.FIX) if self.CHEMISTRY else 0
+        if (not self.CHEMISTRY or fixSpecieNum == 0) and self.TEMPERATURE:
             if self.TS.capacity_model == THERMO_MODEL.MIXTURE:
                 self.TS.capacity_model = THERMO_MODEL.CONSTANT
-                print("Warning: No chemistry module enabled, but mixture solid capacity model selected. Switching to constant model.")
+                print("Warning: No chemistry module enabled, switching solid capacity model to constant.")
             if self.TS.conductivity_model == CONDUCTIVITY_MODEL.MIXTURE:
                 self.TS.conductivity_model = CONDUCTIVITY_MODEL.CONSTANT
-                print("Warning: No chemistry module enabled, but mixture solid conductivity model selected. Switching to constant model.")
+                print("Warning: No chemistry module enabled, switching solid conductivity model to constant.")
     @ti.kernel
     def static_init_kernel(self): # 初始化静态变量
         self.e9[0] = ti.Vector([0,0,0])
@@ -69,10 +64,7 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
                     for specie in ti.static(list(self.species)):
                         if ti.static(specie.FIX):
                             self.rhos[i] += specie.S[i]
-                # if self.solid[i]!=0: # 计算孔隙率为1的密度作为参考
-                #     self.rho1[i] = self.rhos[i]/self.solid[i]
-                #     if self.rho1[i]==0:
-                #         self.rho1[i]=1.0
+            # 需要添加rhos0
             for s in ti.static(range(9)):
                 self.f[i][s] = self.feq9_no_poro(s,i[0],i[1],i[2])
                 if ti.static(self.CHEMISTRY):
@@ -103,4 +95,4 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
         for i,k in ti.ndrange(self.nx,self.nz):
             self.rho_bc_profile[2][i,0,k] = self.rho_BC[2]
             self.rho_bc_profile[3][i,0,k] = self.rho_BC[3]
-            
+

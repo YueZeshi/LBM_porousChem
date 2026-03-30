@@ -9,11 +9,13 @@ from ._core import LBM2D_BASE
 from ..util.flag import *
 from ..util import constant
 from ._scalarField import ScalarField
-from ._chemical import Specie,Reaction
-from ._thermal import TemperatureFluid,TemperatureSolid
+from ._chemical import Specie, Reaction
+from ._thermal import TemperatureFluid, TemperatureSolid
+
 @ti.data_oriented
 class LBM2D_INPUT(LBM2D_BASE):
-    """用户侧 2D LBM 输入/配置接口。
+    """
+    用户侧 2D LBM 输入/配置接口。
 
     主要职责：
     - 配置输出路径、初始场、物性参数与边界条件。
@@ -22,8 +24,12 @@ class LBM2D_INPUT(LBM2D_BASE):
     约定：所有场形状默认为 ``(nx, ny, nz)``，存储顺序为 Fortran-order。
     """
 
+    #----------
+    # 用户使用函数
+    #----------
     def set_vtk_path(self, path):
-        """设置 VTK 导出目录。
+        """
+        设置 VTK 导出目录。
 
         Parameters
         ----------
@@ -34,8 +40,10 @@ class LBM2D_INPUT(LBM2D_BASE):
         self.PVD.exportPath = path
 
     # 初始化场
+    # 设置场初值
     def init_field(self, field, param):
-        """用标量或文件初始化单通道场。
+        """
+        用标量或文件初始化单通道场。
 
         Parameters
         ----------
@@ -46,16 +54,17 @@ class LBM2D_INPUT(LBM2D_BASE):
             - str：文本文件路径，按 Fortran-order reshape。
             - ndarray：直接写入（需要形状匹配）。
         """
-        if(type(param) in [float,int]):
-            data = float(param)*np.ones(shape=(self.nx,self.ny,self.nz),dtype=np.float32).astype(np.float32)
+        if isinstance(param, (float, int)):
+            data = float(param) * np.ones(shape=(self.nx, self.ny, self.nz), dtype=np.float32).astype(np.float32)
             field.from_numpy(data)
-        if(type(param) is str):
-            in_dat = np.loadtxt(param,dtype=np.float32)
-            in_dat = np.reshape(in_dat, (self.nx,self.ny,self.nz),order='F').astype(np.float32)
-            field.from_numpy(in_dat)
-        if(type(param)==np.ndarray):
-            param = np.array(param).astype(np.float32)
-            field.from_numpy(param)
+        elif isinstance(param, str):
+            data = np.loadtxt(param).reshape((self.nx, self.ny, self.nz), order='F').astype(np.float32)
+            field.from_numpy(data)
+        elif isinstance(param, np.ndarray):
+            assert param.shape == (self.nx, self.ny, self.nz), "Shape mismatch!"
+            field.from_numpy(param.astype(np.float32))
+        else:
+            raise ValueError("Unsupported parameter type for field initialization.")
 
     def init_field2(self, field, param1, param2): 
         """用两组数据初始化双通道场，最后 axis=3 拼接。
@@ -67,23 +76,23 @@ class LBM2D_INPUT(LBM2D_BASE):
         param1, param2 : float | int | str | numpy.ndarray
             支持常数、文件路径或 ndarray，均按 Fortran-order 对齐。
         """
-        if(type(param1) in [float,int]):
-            dat1 = param1*np.ones(shape=(self.nx,self.ny,self.nz)).astype(np.float32)
-        if(type(param1) is str):
+        if isinstance(param1, (float, int)):
+            dat1 = param1 * np.ones(shape=(self.nx, self.ny, self.nz)).astype(np.float32)
+        elif isinstance(param1, str):
             dat1 = np.loadtxt(param1)
-            dat1 = np.reshape(dat1, (self.nx,self.ny,self.nz),order='F').astype(np.float32)
-        if(type(param1)==np.ndarray):
+            dat1 = np.reshape(dat1, (self.nx, self.ny, self.nz), order='F').astype(np.float32)
+        elif isinstance(param1, np.ndarray):
             dat1 = np.array(param1).astype(np.float32)
-        if(type(param2) in [float,int]):
-            dat2 = param2*np.ones(shape=(self.nx,self.ny,self.nz)).astype(np.float32)
-        if(type(param2) is str):
+        if isinstance(param2, (float, int)):
+            dat2 = param2 * np.ones(shape=(self.nx, self.ny, self.nz)).astype(np.float32)
+        elif isinstance(param2, str):
             dat2 = np.loadtxt(param2)
-            dat2 = np.reshape(dat2, (self.nx,self.ny,self.nz),order='F').astype(np.float32)
-        if(type(param2)==np.ndarray):
+            dat2 = np.reshape(dat2, (self.nx, self.ny, self.nz), order='F').astype(np.float32)
+        elif isinstance(param2, np.ndarray):
             dat2 = np.array(param2).astype(np.float32)
-        dat1 = np.expand_dims(dat1,3)
-        dat2 = np.expand_dims(dat2,3)
-        data = np.concatenate((dat1,dat2),axis = 3)
+        dat1 = np.expand_dims(dat1, 3)
+        dat2 = np.expand_dims(dat2, 3)
+        data = np.concatenate((dat1, dat2), axis=3)
         field.from_numpy(data)   
 
     def init_field3(self, field, param1, param2, param3): 
@@ -96,31 +105,31 @@ class LBM2D_INPUT(LBM2D_BASE):
         param1, param2, param3 : float | int | str | numpy.ndarray
             支持常数、文件路径或 ndarray，均按 Fortran-order 对齐。
         """
-        if(type(param1) in [float,int]):
-            dat1 = param1*np.ones(shape=(self.nx,self.ny,self.nz)).astype(np.float32) 
-        if(type(param1) is str):
+        if isinstance(param1, (float, int)):
+            dat1 = param1 * np.ones(shape=(self.nx, self.ny, self.nz)).astype(np.float32) 
+        elif isinstance(param1, str):
             dat1 = np.loadtxt(param1)
-            dat1 = np.reshape(dat1, (self.nx,self.ny,self.nz),order='F').astype(np.float32)
-        if(type(param1)==np.ndarray):
+            dat1 = np.reshape(dat1, (self.nx, self.ny, self.nz), order='F').astype(np.float32)
+        elif isinstance(param1, np.ndarray):
             dat1 = np.array(param1).astype(np.float32)
-        if(type(param2) in [float,int]):
-            dat2 = param2*np.ones(shape=(self.nx,self.ny,self.nz)).astype(np.float32) 
-        if(type(param2) is str):
+        if isinstance(param2, (float, int)):
+            dat2 = param2 * np.ones(shape=(self.nx, self.ny, self.nz)).astype(np.float32) 
+        elif isinstance(param2, str):
             dat2 = np.loadtxt(param2)
-            dat2 = np.reshape(dat2, (self.nx,self.ny,self.nz),order='F').astype(np.float32)
-        if(type(param2)==np.ndarray):
+            dat2 = np.reshape(dat2, (self.nx, self.ny, self.nz), order='F').astype(np.float32)
+        elif isinstance(param2, np.ndarray):
             dat2 = np.array(param2).astype(np.float32)
-        if(type(param3) in [float,int]):
-            dat3 = param3*np.ones(shape=(self.nx,self.ny,self.nz)).astype(np.float32) 
-        if(type(param3) is str):
+        if isinstance(param3, (float, int)):
+            dat3 = param3 * np.ones(shape=(self.nx, self.ny, self.nz)).astype(np.float32) 
+        elif isinstance(param3, str):
             dat3 = np.loadtxt(param3)
-            dat3 = np.reshape(dat3, (self.nx,self.ny,self.nz),order='F').astype(np.float32)
-        if(type(param3)==np.ndarray):
+            dat3 = np.reshape(dat3, (self.nx, self.ny, self.nz), order='F').astype(np.float32)
+        elif isinstance(param3, np.ndarray):
             dat3 = np.array(param3).astype(np.float32)
-        dat1 = np.expand_dims(dat1,3)
-        dat2 = np.expand_dims(dat2,3)
-        dat3 = np.expand_dims(dat3,3)
-        data = np.concatenate((dat1,dat2,dat3),axis = 3)
+        dat1 = np.expand_dims(dat1, 3)
+        dat2 = np.expand_dims(dat2, 3)
+        dat3 = np.expand_dims(dat3, 3)
+        data = np.concatenate((dat1, dat2, dat3), axis=3)
         field.from_numpy(data)
     # 设置物理场属性
     def add_solid(self,solid):
@@ -143,11 +152,12 @@ class LBM2D_INPUT(LBM2D_BASE):
     ## 密度场
     def set_viscosity(self,mu):#定义常黏度
         """设定常黏度模型，``mu`` 为格子单位黏度。"""
-        self.visco = mu
+        self.visco[None] = mu
         self.viscosity_model = VISCOSITY_MODEL.CONSTANT
     def set_viscosity_sutherland(self,As,Ts):
         """启用 Sutherland 黏度模型，参数 ``As``、``Ts`` 为模型系数。"""
-        self.sutherland_coef = [As,Ts]
+        self.sutherland_coef[0] = As
+        self.sutherland_coef[1] = Ts
         self.viscosity_model = VISCOSITY_MODEL.SUTHERLAND
     def set_viscosity_mixture(self):
         """启用混合物黏度模型（多物种时）。"""
@@ -164,13 +174,13 @@ class LBM2D_INPUT(LBM2D_BASE):
             Darcy 系数，内部自动乘以 ``dx**2``。
         """
         self.poro_model = PORO_MODEL.DARCY
-        coefDarcy *=self.dx**2
+        coefDarcy *=self.dx[None]**2
         self.init_field(self.coefDarcy,coefDarcy*s)
     def set_poro_Darcy_Forchheimer(self,s,coefDarcy, coefForchheimer):
         """设置 Darcy-Forchheimer 多孔介质阻力，含线性与二次项。"""
         self.poro_model = PORO_MODEL.DARCYFORCHHEIMER
-        coefDarcy *=self.dx**2
-        coefForchheimer *=self.dx
+        coefDarcy *=self.dx[None]**2
+        coefForchheimer *=self.dx[None]
         self.init_field(self.coefDarcy,coefDarcy*s)
         self.init_field(self.coefForchheimer,coefForchheimer*s)
     
@@ -180,87 +190,95 @@ class LBM2D_INPUT(LBM2D_BASE):
     def set_fluid_thermal_diff(self,diff):
         """流体：设定常数热扩散系数。"""
         self.TF.thermal_diff_model = THERMAL_DIFF_MODEL.CONSTANT
-        self.TF.thermal_diff= diff
+        self.TF.thermal_diff[None] = diff
     def set_fluid_Prandtl(self,Pr):
         """流体：通过 Pr 数确定热扩散系数。"""
         self.TF.thermal_diff_model = THERMAL_DIFF_MODEL.PRANDTL
-        self.TF.Pr = Pr
+        self.TF.Pr[None] = Pr
     def set_fluid_thermal_diff_derived(self):
         """流体：使用模型自适应热扩散。"""
         self.TF.thermal_diff_model = THERMAL_DIFF_MODEL.DERIVED
     def set_fluid_conductivity(self,value):
         """流体：设定常数导热系数。"""
         self.TF.conductivity_model = CONDUCTIVITY_MODEL.CONSTANT
-        self.TF.cond = value
+        self.TF.cond[None] = value
     def set_fluid_conductivity_poly(self,poly):
         """流体：设定多项式导热系数（按温度）。"""
         self.TF.conductivity_model = CONDUCTIVITY_MODEL.POLYNOMIAL
-        self.TF.cond_poly = poly 
+        self.TF.cond_poly[None] = poly 
     def set_fluid_conductivity_mixture(self):
         """流体：启用混合物导热模型。"""
         self.TF.conductivity_model = CONDUCTIVITY_MODEL.MIXTURE
     def set_fluid_capacity(self,value):
         """流体：设定常数比热容。"""
         self.TF.capacity_model = THERMO_MODEL.CONSTANT
-        self.TF.cm = value
-        print(value)
+        self.TF.cm[None] = value
     def set_fluid_capacity_poly(self,poly):
         """流体：设定多项式比热容。"""
         self.TF.capacity_model = THERMO_MODEL.POLYNOMIAL
-        self.TF.cm_poly = poly 
+        for i in range(max(5,len(poly))):
+            self.TF.cm_poly[i] = poly[i] 
     def set_fluid_capacity_NASA7(self,Trange,data):
         """流体：启用 NASA7 多项式比热模型。"""
         self.TF.capacity_model = THERMO_MODEL.NASA7
-        self.TF.Trange = Trange
-        self.TF.NASA_coef = data
+        for i in range(max(3,len(data))):
+            self.TF.Trange[i] = Trange[i]
+        for i in range(2):
+            for j in range(7):
+                self.TF.NASA_coef[i,j] = data[i][j]
     def set_fluid_capacity_mixture(self):
         """流体：混合物比热模型。"""
         self.TF.capacity_model = THERMO_MODEL.MIXTURE
     def set_fluid_Trange(self,Trange):
         """流体：设置参考温度区间 ``[T_ref, T_max]`` 以归一化。"""
-        self.TF.v_ref = Trange[0]
-        self.TF.v_scale = Trange[1]-Trange[0]
+        self.TF.v_ref[None] = Trange[0]
+        self.TF.v_scale[None] = Trange[1]-Trange[0]
     def set_TS_delay(self,delay):
         self.TS_delay[None] = delay
     def set_solid_thermal_diff(self,diff):
         """固体：设定常数热扩散系数。"""
         self.TS.thermal_diff_model = THERMAL_DIFF_MODEL.CONSTANT
-        self.TS.thermal_diff= diff
+        self.TS.thermal_diff[None] = diff
     def set_solid_thermal_diff_derived(self):
         """固体：使用模型自适应热扩散。"""
         self.TS.thermal_diff_model = THERMAL_DIFF_MODEL.DERIVED
     def set_solid_conductivity(self,value):
         """固体：设定常数导热系数。"""
         self.TS.conductivity_model = CONDUCTIVITY_MODEL.CONSTANT
-        self.TS.cond = value
+        self.TS.cond[None] = value
     def set_solid_conductivity_poly(self,poly):
         """固体：设定多项式导热系数。"""
         self.TS.conductivity_model = CONDUCTIVITY_MODEL.POLYNOMIAL
-        self.TS.cond_poly = poly 
+        for i in range(max(5,len(poly))):
+            self.TS.cond_poly[i] = poly[i]
     def set_solid_conductivity_mixture(self):
         """固体：启用混合物导热模型。"""
         self.TS.conductivity_model = CONDUCTIVITY_MODEL.MIXTURE
     def set_solid_capacity(self,value):
         """固体：设定常数比热容。"""
         self.TS.capacity_model = THERMO_MODEL.CONSTANT
-        self.TS.cm = value
+        self.TS.cm[None] = value
     def set_solid_capacity_poly(self,poly):
         """固体：设定多项式比热容。"""
         self.TS.capacity_model = THERMO_MODEL.POLYNOMIAL
-        self.TS.cm_poly = poly 
+        for i in range(max(5,len(poly))):
+            self.TS.cm_poly[i] = poly[i] 
     def set_solid_capacity_NASA7(self,Trange,data):
         """固体：启用 NASA7 多项式比热模型。"""
         self.TS.capacity_model = THERMO_MODEL.NASA7
-        self.TS.Trange = Trange
-        self.TS.NASA_coef = data
+        for i in range(max(3,len(Trange))):
+            self.TS.Trange[i] = Trange[i]
+        for i in range(2):
+            for j in range(7):
+                self.TS.NASA_coef[i,j] = data[i][j]
 
     def set_solid_capacity_mixture(self):
         self.TS.capacity_model = THERMO_MODEL.MIXTURE
 
     def set_solid_Trange(self,Trange):
         """固体：设置参考温度区间 ``[T_ref, T_max]`` 以归一化。"""
-        self.TS.v_ref = Trange[0]
-        self.TS.v_scale = Trange[1]-Trange[0]
+        self.TS.v_ref[None] = Trange[0]
+        self.TS.v_scale[None] = Trange[1]-Trange[0]
 
     ### 辐射相关
     def set_radiation(self,model,param):
@@ -275,7 +293,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         """
         if model == RADIATION_MODEL.SURFACE_UNIFORM:
             self.TS.radiation_model = model
-            self.TS.Tambient = float(param)
+            self.TS.Tambient[None] = float(param)
         # if model == RADIATION_MODEL.REAL_RADIATION:
         #     self.TS.radiation_model = model
         #     self.TS.real_radiation = ti.field(float,shape=(self.nx,self.ny,self.nz))
@@ -303,18 +321,22 @@ class LBM2D_INPUT(LBM2D_BASE):
         """为指定物种设置常数黏度。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.viscosity_type = VISCOSITY_MODEL.CONSTANT
-        specie.visco = value       
+        specie.visco[None] = value
     def set_specie_viscosity_sutherland(self,specieName,coef):
         """为指定物种启用 Sutherland 黏度。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.viscosity_type = VISCOSITY_MODEL.SUTHERLAND
-        specie.coefSutherland = coef 
+        specie.coefSutherland[0] = coef[0]
+        specie.coefSutherland[1] = coef[1] 
     def set_specie_NASA7(self,specieName:str,TRange:list[float],coef:list):
         """为指定物种设置 NASA7 热容模型。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.thermo_model = THERMO_MODEL.NASA7
-        specie.Trange = TRange
-        specie.NASAcoef = coef
+        for i in range(max(3,len(TRange))):
+            specie.Trange[i] = TRange[i]
+        for i in range(2):
+            for j in range(7):
+                specie.NASAcoef[i,j] = coef[i][j]
     def set_species(self,species,FIX=None,molemass = None):# 登记所有物质
         """批量注册物种。
 
@@ -328,11 +350,11 @@ class LBM2D_INPUT(LBM2D_BASE):
             摩尔质量列表；为空时默认 0.028 kg/mol。"""
         if FIX == None:
             FIX = [False]*len(species)
-        if molemass==None:
-            molemass = [0.028]*len(species)
+        if molemass == None:
+            molemass = [28.0]*len(species)
         i = 0
         for name in species:
-            self.set_specie(name,FIX[i])
+            self.set_specie(name,FIX[i],molemass[i])
             i += 1
     def init_specie(self,name,param):
         """初始化指定物种场，同 `init_field` 语义。"""
@@ -341,40 +363,42 @@ class LBM2D_INPUT(LBM2D_BASE):
         """指定物种：常数扩散系数。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.diff_model = DIFF_MODEL.CONSTANT
-        specie.diff = diff
+        specie.diff[None] = diff
     def set_specie_diff_Schmidt(self,specieName,Sc):
         """指定物种：通过 Schmidt 数设置扩散。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.diff_model=DIFF_MODEL.SCHMIDT
-        specie.Sc = Sc
+        specie.Sc[None] = Sc
     def set_specie_enthalpy(self,specieName,enthalpy,unit=UNIT.MOLE):
         """指定物种：常数焓。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.thermo_model = THERMO_MODEL.CONSTANT
-        specie.enthalpy = enthalpy
+        specie.enthalpy[None] = enthalpy
         specie.enthalpy_unit = unit
     def set_specie_capacity(self,specieName,capacity,unit=UNIT.MOLE): # 质量热容
         """指定物种：常数质量比热容。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.thermo_model = THERMO_MODEL.CONSTANT
-        specie.capa = capacity
+        specie.capa[None] = capacity
         specie.capa_unit = unit
     def set_specie_capacity_poly(self,specieName,poly,unit=UNIT.MOLE): # 质量热容
         """指定物种：多项式质量比热容。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.thermo_model = THERMO_MODEL.POLYNOMIAL
-        specie.capa_poly = list(poly)
+        for i in range(max(5,len(poly))):
+            specie.capa_poly[i] = poly[i]
         specie.capa_unit = unit
 
     def set_specie_conductivity(self,name,lamb): # 传热系数
         specie = self.species[self.specieName.index(name)]
         specie.cond_model=CONDUCTIVITY_MODEL.CONSTANT
-        specie.cond = lamb
+        specie.cond[None] = lamb
     
     def set_specie_conductivity_poly(self,name,poly): # 传热系数
         specie = self.species[self.specieName.index(name)]
         specie.cond_model=CONDUCTIVITY_MODEL.POLYNOMIAL
-        specie.cond_poly = list(poly)
+        for i in range(max(5,len(poly))):
+            specie.cond_poly[i] = poly[i]
     
     # 定义化学反应
     def add_reaction(self,formula,A,Ea,b = 0,Tmin = 0,deltaH = 0,name="unnamed",unit=UNIT.MOLE,fixDH = True):
@@ -509,7 +533,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         mesh and surface array
         """
         from ..GEO.STL import StlReader
-        stlReader = StlReader(self.X,self.Y,self.dx,self.dx,2,logger=kwargs.get("logger",None))
+        stlReader = StlReader(self.X,self.Y,self.dx[None],self.dx[None],2,logger=kwargs.get("logger",None))
         return stlReader.voxel_stl(stl_path,scale,translate,rotate)
         
     
@@ -641,7 +665,7 @@ class LBM2D_OUTPUT(LBM2D_BASE):
         grid = pv.StructuredGrid(self.meshX,self.meshY,self.meshZ)
         grid.point_data.update(self.get_data_pyvista())
         grid.save(filename)
-        self.PVD.addVTK(self.tLattice*self.dt,os.path.basename(filename))
+        self.PVD.addVTK(self.tLattice*self.dt[None],os.path.basename(filename))
         self.PVD.writePVD()
     def get_data_pyvista(self):
         """组装 pyvista 友好的点数据字典。

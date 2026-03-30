@@ -1,43 +1,35 @@
 import taichi as ti
 from ._core import LBM2D_BASE
-from ._chemical import Specie,Reaction
-from ._thermal import TemperatureFluid,TemperatureSolid
+from ._chemical import Specie, Reaction
+from ._thermal import TemperatureFluid, TemperatureSolid
 from ..util.flag import *
 @ti.data_oriented
 class LBM2D_EVOLUTION(LBM2D_BASE):
     """
-    evolution part of LBM
-    The realisation of Boundary condition is written in _boundary.py because of its complexity
+    Evolution part of LBM2D
     """
-    def step(self): # run one step
+    def step(self):
         self.updateBC(self.t)
-        # 目前默认使用 AA 单数组步进，仅流体部分；
-        # 如需回退到原双数组算法，可改为调用 step_kernel。
         self.step_AA_kernel()
         self.tLattice += 1
-        self.t[None] += self.dt
-        # self.check_kernel()
+        self.t[None] += self.dt[None]
         ti.sync()
+
     @ti.kernel
-    def step_AA_kernel(self):# 使用AA实现单数组步进（仅流体部分，周期/NEE/ES 边界）
+    def step_AA_kernel(self):
         even = self.even_step[None]
-        # ========== 1. AA 碰撞 + 迁移（单数组 self.f） ==========
         for idx in ti.grouped(self.solid):
-            # 目前仅对流体 / 多孔介质区域更新，纯固体区域流场更新默认全程反弹边界（一阶精度）
-            #---流场更新---#
             if self.solid[idx] < 1.0:
-                # ----- 1.1 读取阶段：偶数步从邻居读，奇数步从本格读 -----
                 f_local = ti.Vector([0.0] * 9)
-                # read
                 for q in ti.static(range(9)):
                     e = self.e9[q]
                     opp_q = self.LR[q]
-                    if even == 0:  # 偶数步：从邻居读取
+                    if even == 0:
                         ip = self.periodic_index(idx - e)
                         f_local[q] = self.f[ip][q]
-                    else:  # 奇数步：从本格读取
+                    else:
                         f_local[q] = self.f[idx][opp_q]
-                # 宏观量
+
                 rho = 0.0
                 v = ti.Vector([0.0, 0.0, 0.0])
                 for q in ti.static(range(9)):
@@ -84,7 +76,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                     # 标准 BGK: f_new = f_old - (f_old - f_eq) / tau
                     fq = f_local[q] - (f_local[q] - feq) / tau # 碰撞项
                     fq += self.forceTermGuo(q, idx,F) # 力源项
-                    fq += self.feq9(q, drho, idx[0], idx[1], idx[2]) # 密度源项
+                    # fq += self.feq9(q, drho, idx[0], idx[1], idx[2]) # 密度源项
                     f_collided[q] = fq  # 赋值碰撞结果
 
                 # ----- 1.3 写入阶段（AA 迁移，写回 self.f） -----
@@ -229,12 +221,12 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                 if self.solid[idx] > 0: # 有固体
                     # 流固热交换
                     if self.solid[idx]<1: # 有流体
-                        dH = self.TS.exchangeCoef[idx]*self.TS.exchangeSurface[idx]*(self.TF.physical_value(self.TF.S[idx])-self.TS.physical_value(self.TS.S[idx]))*self.dt
-                        self.TS.dS[idx] += dH/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale # 归一化温度变化 
-                        self.TF.dS[idx] += -dH/self.TF.capacity_m(idx)/self.rho[idx]/self.TF.v_scale # 归一化温度变化
+                        dH = self.TS.exchangeCoef[idx]*self.TS.exchangeSurface[idx]*(self.TF.physical_value(self.TF.S[idx])-self.TS.physical_value(self.TS.S[idx]))*self.dt[None] # 热交换量
+                        self.TS.dS[idx] += dH/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale[None] # 归一化温度变化 
+                        self.TF.dS[idx] += -dH/self.TF.capacity_m(idx)/self.rho[idx]/self.TF.v_scale[None] # 归一化温度变化
                     # 辐射
                     if ti.static(self.RADIATION):
-                        self.TS.dS[idx] += self.TS.radiation(idx)*self.dt/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale # 归一化温度变化
+                        self.TS.dS[idx] += self.TS.radiation(idx)*self.dt[None]/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale[None] # 归一化温度变化
             ## 化学反应源项
             if ti.static(self.CHEMISTRY) and self.t[None] > self.chemistry_field_delay[None]:
                 self.reactions.update_dS(idx) # 根据当前状态计算下一帧的源项
