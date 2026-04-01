@@ -13,7 +13,8 @@ class Specie(ScalarField): # 物种质量分数场
 
         if not FIX:
             self.viscosity_type = VISCOSITY_MODEL.CONSTANT
-            self.visco = 1e-5
+            self.visco = ti.field(float,shape=())
+            self.visco[None] = 1e-5
             self.coefSutherland = [0,0]
             self.diff_model = DIFF_MODEL.CONSTANT
             self.diff = 1e-5
@@ -39,7 +40,7 @@ class Specie(ScalarField): # 物种质量分数场
         if not self.FIX:
             des += "        - Viscosity model : "
             if self.viscosity_type == VISCOSITY_MODEL.CONSTANT:
-                des += f"constant {self.visco}\n"
+                des += f"constant {self.visco[None]}\n"
             elif self.viscosity_type == VISCOSITY_MODEL.SUTHERLAND:
                 des += f"sutherland {self.coefSutherland}\n"
             else:
@@ -77,7 +78,7 @@ class Specie(ScalarField): # 物种质量分数场
     def viscosity(self,i): # in LU
         visco = 1e-5
         if ti.static(self.viscosity_type==VISCOSITY_MODEL.CONSTANT):
-            visco = self.visco*self.LBM.dt/self.LBM.dx**2
+            visco = self.visco[None]*self.LBM.dt/self.LBM.dx**2
         elif ti.static(self.viscosity_type==VISCOSITY_MODEL.SUTHERLAND):
             T = self.LBM.GetTF(i)
             visco = self.coefSutherland[0]*T**1.5/(T+self.coefSutherland[1])

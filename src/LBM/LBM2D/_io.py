@@ -321,7 +321,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         """为指定物种设置常数黏度。"""
         specie = self.species[self.specieName.index(specieName)]
         specie.viscosity_type = VISCOSITY_MODEL.CONSTANT
-        specie.visco = value
+        specie.visco[None] = value
     def set_specie_viscosity_sutherland(self,specieName,coef):
         """为指定物种启用 Sutherland 黏度。"""
         specie = self.species[self.specieName.index(specieName)]
