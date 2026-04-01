@@ -293,7 +293,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         """
         if model == RADIATION_MODEL.SURFACE_UNIFORM:
             self.TS.radiation_model = model
-            self.TS.Tambient = float(param)
+            self.TS.Tambient[None] = float(param)
         # if model == RADIATION_MODEL.REAL_RADIATION:
         #     self.TS.radiation_model = model
         #     self.TS.real_radiation = ti.field(float,shape=(self.nx,self.ny,self.nz))

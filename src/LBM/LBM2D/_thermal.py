@@ -113,7 +113,8 @@ class TemperatureSolid(ScalarField):
         self.exchangeCoef = ti.field(float,shape=(self.nx,self.ny,self.nz))
         self.exchangeSurface = ti.field(float,shape=(self.nx,self.ny,self.nz))
         if isRadiation:
-            self.Tambient = 300.0
+            self.Tambient = ti.field(float,shape=())
+            self.Tambient[None] = 300.0
             self.radiation_model = RADIATION_MODEL.NONE # 辐射模型
             self.radiation_surface = ti.field(float,shape = (self.nx,self.ny,self.nz)) # S/V L-1
             self.emissivity = ti.field(float,shape=(self.nx,self.ny,self.nz))
@@ -216,7 +217,7 @@ class TemperatureSolid(ScalarField):
     def radiation(self,i):# Wm-2K-4*m-1K4*{m2}=Wm-3 SI # 单位体积辐射 SI
         q = 0.0
         if ti.static(self.radiation_model==RADIATION_MODEL.SURFACE_UNIFORM):
-            q += self.emissivity[i]*SIGMA*self.radiation_surface[i]/self.LBM.dx*(ti.pow(self.Tambient,4)-ti.pow(self.physical_value(self.S[i]),4))
+            q += self.emissivity[i]*SIGMA*self.radiation_surface[i]/self.LBM.dx*(ti.pow(self.Tambient[None],4)-ti.pow(self.physical_value(self.S[i]),4))
         # elif ti.static(self.radiation_model==RADIATION_MODEL.REAL_RADIATION):
         #     q += self.real_radiation[i]-self.radiation_surface[i]/self.LBM.dxti*ti.pow(self.physical_value(self.S[i]),4)
         return q
