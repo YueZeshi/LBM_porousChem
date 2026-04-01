@@ -85,7 +85,7 @@ class LBM2D_BASE:
         self.PORO = isPoro
         self.RADIATION = isRadiation and isThermal
         # Esoteric Twist (ET) Single array algorithm even-odd step marker: 0=even step, 1=odd step
-        self.even_step = ti.field(dtype=ti.i32, shape=())
+        self.even_step = ti.field(dtype=ti.u1, shape=())
         if self.TEMPERATURE:
             self.TF_delay = ti.field(float,shape=())  # Temperature field delay time steps
             self.TS_delay = ti.field(float,shape=())  # Temperature field delay time steps
@@ -117,7 +117,7 @@ class LBM2D_BASE:
         self.exportPath = "result"
         self.snapshotPath = "snapshot.yaml"
         # Initialize ET step marker
-        self.even_step[None] = 0
+        self.even_step[None] = False
     # Built-in functions
     def __repr__(self):
         return self.__str__()

@@ -16,14 +16,13 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
 
     @ti.kernel
     def step_AA_kernel(self):
-        even = self.even_step[None]
         for idx in ti.grouped(self.solid):
             if self.solid[idx] < 1.0:
                 f_local = ti.Vector([0.0] * 9)
                 for q in ti.static(range(9)):
                     e = self.e9[q]
                     opp_q = self.LR[q]
-                    if even == 0:
+                    if self.even_step[None]:
                         ip = self.periodic_index(idx - e)
                         f_local[q] = self.f[ip][q]
                     else:
@@ -81,7 +80,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                 for q in ti.static(range(9)):
                     e = self.e9[q]
                     opp_q = self.LR[q]
-                    if even == 0:  # 偶数步：写邻居
+                    if self.even_step[None]:
                         ip = self.periodic_index(idx + e)
                         self.f[ip][opp_q] = f_collided[q]
                     else:  # 奇数步：写本地
@@ -101,7 +100,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         for q in ti.static(range(5)):
                             e = self.e5[q]
                             opp_q = self.LR[q]
-                            if even == 0:  # 偶数步：从邻居读取
+                            if self.even_step[None]:  # 偶数步：从邻居读取
                                 ip = self.periodic_index(idx - e)
                                 g_local[q] = self.TF.g[ip][q]
                             else:  # 奇数步：从本格读取
@@ -123,7 +122,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         for q in ti.static(range(5)):
                             e = self.e5[q]
                             opp_q = self.LR[q]
-                            if even == 0:  # 偶数步：写邻居
+                            if self.even_step[None]:  # 偶数步：写邻居
                                 ip = self.periodic_index(idx + e)
                                 self.TF.g[ip][opp_q] = g_collided[q]
                             else:  # 奇数步：写本地
@@ -136,7 +135,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         for q in ti.static(range(5)):
                             e = self.e5[q]
                             opp_q = self.LR[q]
-                            if even == 0:  # 偶数步：从邻居读取
+                            if self.even_step[None]:  # 偶数步：从邻居读取
                                 ip = self.periodic_index(idx - e)
                                 g_local[q] = self.TS.g[ip][q]
                             else:  # 奇数步：从本格读取
@@ -158,7 +157,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         for q in ti.static(range(5)):
                             e = self.e5[q]
                             opp_q = self.LR[q]
-                            if even == 0:  # 偶数步：写邻居
+                            if self.even_step[None]:  # 偶数步：写邻居
                                 ip = self.periodic_index(idx + e)
                                 self.TS.g[ip][opp_q] = g_collided[q]
                             else:  # 奇数步：写本地
@@ -175,7 +174,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                                 for q in ti.static(range(5)):
                                     e = self.e5[q]
                                     opp_q = self.LR[q]
-                                    if even == 0:  # 偶数步：从邻居读取
+                                    if self.even_step[None]:  # 偶数步：从邻居读取
                                         ip = self.periodic_index(idx - e)
                                         g_local[q] = specie.g[ip][q]
                                     else:  # 奇数步：从本格读取
@@ -197,7 +196,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                                 for q in ti.static(range(5)):
                                     e = self.e5[q]
                                     opp_q = self.LR[q]
-                                    if even == 0:  # 偶数步：写邻居
+                                    if self.even_step[None]:  # 偶数步：写邻居
                                         ip = self.periodic_index(idx + e)
                                         specie.g[ip][opp_q] = g_collided[q]
                                     else:  # 奇数步：写本地
@@ -233,7 +232,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
             self.Boundary_condition_ES_AA() # not implemented
 
         # ========== 4. 更新 ET 奇偶步标记 ==========
-        self.even_step[None] = 1 - self.even_step[None]
+        self.even_step[None] = not self.even_step[None]
         self.t[None] += self.dt[None]
     @ti.kernel
     def step_kernel(self):

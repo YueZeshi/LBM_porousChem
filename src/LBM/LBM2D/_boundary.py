@@ -155,7 +155,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
                 self.rho[0,y,z] = self.rho_bc_profile[0][0,y,z]
             elif ti.static(self.bc_rho[0]==BC.zeroGradient):
                 self.rho[0,y,z] = self.rho[1,y,z]#2*self.rho[1,y,z]-self.rho[2,y,z]
-            if self.even_step[None]==0: # 偶数步
+            if self.even_step[None]: # 偶数步
                 for s in ti.static([1,5,8]):
                     i_storage = self.periodic_index([0,y,z]+self.e9[s])
                     i_neighbor_storage = self.periodic_index([1,y,z]+self.e9[s])
@@ -174,7 +174,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
                 self.rho[self.nx-1,y,z] = self.rho_bc_profile[1][0,y,z]
             elif ti.static(self.bc_rho[1]==BC.zeroGradient):
                 self.rho[self.nx-1,y,z] = self.rho[self.nx-2,y,z]#2*self.rho[self.nx-2,y,z]-self.rho[self.nx-3,y,z]#self.rho[self.nx-2,y,z]#
-            if self.even_step[None]==0: # 偶数步
+            if self.even_step[None]: # 偶数步
                 for s in ti.static([3,6,7]):
                     i_storage = self.periodic_index([self.nx-1,y,z]+self.e9[s])
                     i_neighbor_storage = self.periodic_index([self.nx-2,y,z]+self.e9[s])
@@ -193,7 +193,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
                 self.rho[x,0,z] = self.rho_bc_profile[2][x,0,z]
             elif ti.static(self.bc_rho[2]==BC.zeroGradient):
                 self.rho[x,0,z] = self.rho[x,1,z]#2*self.rho[x,1,z]-self.rho[x,2,z]
-            if self.even_step[None]==0: # 偶数步
+            if self.even_step[None]: # 偶数步
                 for s in ti.static([2,5,6]):
                     i_storage = self.periodic_index([x,0,z]+self.e9[s])
                     i_neighbor_storage = self.periodic_index([x,1,z]+self.e9[s])
@@ -212,7 +212,7 @@ class LBM2D_BOUNDARY(LBM2D_BASE):
                 self.rho[x,self.ny-1,z] = self.rho_bc_profile[3][x,0,z]
             elif ti.static(self.bc_rho[3]==BC.zeroGradient):
                 self.rho[x,self.ny-1,z] = self.rho[x,self.ny-2,z]#2*self.rho[x,self.ny-2,z]-self.rho[x,self.ny-3,z]
-            if self.even_step[None]==0: # 偶数步
+            if self.even_step[None]: # 偶数步
                 for s in ti.static([4,7,8]):
                     i_storage = self.periodic_index([x,self.ny-1,z]+self.e9[s])
                     i_neighbor_storage = self.periodic_index([x,self.ny-2,z]+self.e9[s])
