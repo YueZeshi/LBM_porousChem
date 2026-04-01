@@ -186,7 +186,7 @@ class LBM2D_INPUT(LBM2D_BASE):
     
     ## 温度场
     def set_TF_delay(self,delay):
-        self.TF_delay = delay
+        self.TF_delay[None] = delay
     def set_fluid_thermal_diff(self,diff):
         """流体：设定常数热扩散系数。"""
         self.TF.thermal_diff_model = THERMAL_DIFF_MODEL.CONSTANT
@@ -234,7 +234,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         self.TF.v_ref = Trange[0]
         self.TF.v_scale = Trange[1]-Trange[0]
     def set_TS_delay(self,delay):
-        self.TS_delay = delay
+        self.TS_delay[None] = delay
     def set_solid_thermal_diff(self,diff):
         """固体：设定常数热扩散系数。"""
         self.TS.thermal_diff_model = THERMAL_DIFF_MODEL.CONSTANT
@@ -316,7 +316,7 @@ class LBM2D_INPUT(LBM2D_BASE):
         self.species.append(Specie(specie,self,Mmass = molemass,FIX=Fix))
         self.specieName.append(specie)
     def set_chemistry_delay(self,delay):
-        self.chemistry_field_delay = delay
+        self.chemistry_field_delay[None] = delay
     def set_specie_viscosity(self,specieName,value):
         """为指定物种设置常数黏度。"""
         specie = self.species[self.specieName.index(specieName)]

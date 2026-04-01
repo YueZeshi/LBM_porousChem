@@ -17,15 +17,6 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
     @ti.kernel
     def step_AA_kernel(self):
         even = self.even_step[None]
-        # TFactive = 0
-        # TSactive = 0
-        # CHEMactive = 0
-        # if ti.static(self.TEMPERATURE) and self.t[None] < self.TF_delay:
-        #     TFactive = 1
-        # if ti.static(self.TEMPERATURE) and self.t[None] < self.TS_delay:
-        #     TSactive = 1
-        # if ti.static(self.CHEMISTRY) and self.t[None] < self.chemistry_field_delay:
-        #     CHEMactive = 1
         for idx in ti.grouped(self.solid):
             if self.solid[idx] < 1.0:
                 f_local = ti.Vector([0.0] * 9)
@@ -104,7 +95,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
             # 温度场更新
             ## 流体温度场
             if ti.static(self.TEMPERATURE) :
-                if self.t[None] > self.TF_delay :
+                if self.t[None] > self.TF_delay[None]: # 温度场延迟更新:
                     if self.solid[idx]<1:
                         # 读取离散速度分量
                         for q in ti.static(range(5)):
@@ -139,7 +130,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                                 self.TF.g[idx][q] = g_collided[q]
             ## 固体温度场
             if ti.static(self.TEMPERATURE):
-                if self.t[None] > self.TS_delay:
+                if self.t[None] > self.TS_delay[None]:
                     if self.solid[idx]>0:
                         # 读取离散速度分量
                         for q in ti.static(range(5)):
@@ -174,7 +165,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                                 self.TS.g[idx][q] = g_collided[q]
             # 浓度场更新
             if ti.static(self.CHEMISTRY) :
-                if self.t[None] > self.chemistry_field_delay:
+                if self.t[None] > self.chemistry_field_delay[None]:
                     self.rhos[idx] = 0.0 # 更新固相密度场
                     for specie in ti.static(list(self.species)):
                         if ti.static(not specie.FIX):
@@ -219,7 +210,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
             # 更新源项场
             ## 温度场源项
             if ti.static(self.TEMPERATURE):
-                if self.t[None] > self.TF_delay and self.t[None]>self.TS_delay:
+                if self.t[None] > self.TF_delay[None] and self.t[None]>self.TS_delay[None]:
                     self.TS.dS[idx] = 0.0
                     self.TF.dS[idx] = 0.0
                     if self.solid[idx] > 0: # 有固体
@@ -233,7 +224,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                             self.TS.dS[idx] += self.TS.radiation(idx)*self.dt[None]/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale # 归一化温度变化
                 ## 化学反应源项
             if ti.static(self.CHEMISTRY):
-                if  self.t[None] > self.chemistry_field_delay:
+                if  self.t[None] > self.chemistry_field_delay[None]:
                     self.reactions.update_dS(idx)
         # ========== 3. 边界条件（仅 NEE / ES，基于 rho, v, f） ==========
         if ti.static(self.boundary_condition_model == BC_MODEL.NEE):
