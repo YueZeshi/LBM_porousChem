@@ -336,7 +336,7 @@ class LBM2D_INPUT(LBM2D_BASE):
             specie.Trange[i] = TRange[i]
         for i in range(2):
             for j in range(7):
-                specie.NASAcoef[i][j] = coef[i][j]
+                specie.NASAcoef[i,j] = coef[i][j]
     def set_species(self,species,FIX=None,molemass = None):# 登记所有物质
         """批量注册物种。
 

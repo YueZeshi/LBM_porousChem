@@ -22,8 +22,10 @@ class Specie(ScalarField): # 物种质量分数场
         self.thermo_model = THERMO_MODEL.CONSTANT
         self.enthalpy = 100.0
         self.capa = 100.0
-        self.Trange = [0,0,0]
-        self.NASAcoef = [[0]*7]*2
+        self.Trange = ti.field(float,shape=(3))
+        # self.Trange = [0,0,0]
+        self.NASAcoef = ti.field(float,shape=(2,7))
+        # self.NASAcoef = [[0]*7]*2
         self.capa_poly = [0]*5
         self.capa_unit = UNIT.MOLE
         self.Sc = 1.0
@@ -90,9 +92,9 @@ class Specie(ScalarField): # 物种质量分数场
             capa += self.capa
         elif ti.static(self.thermo_model==THERMO_MODEL.NASA7):
             if T < self.Trange[1]:
-                capa = (((self.NASAcoef[0][4]*T+self.NASAcoef[0][3])*T+self.NASAcoef[0][2])*T+self.NASAcoef[0][1])*T+self.NASAcoef[0][0]
+                capa = (((self.NASAcoef[0,4]*T+self.NASAcoef[0,3])*T+self.NASAcoef[0,2])*T+self.NASAcoef[0,1])*T+self.NASAcoef[0,0]
             else:
-                capa = (((self.NASAcoef[1][4]*T+self.NASAcoef[1][3])*T+self.NASAcoef[1][2])*T+self.NASAcoef[1][1])*T+self.NASAcoef[1][0]
+                capa = (((self.NASAcoef[1,4]*T+self.NASAcoef[1,3])*T+self.NASAcoef[1,2])*T+self.NASAcoef[1,1])*T+self.NASAcoef[1,0]
             capa *=constant.R
         elif ti.static(self.thermo_model==THERMO_MODEL.POLYNOMIAL):
             capa = (((self.capa_poly[4]*T+self.capa_poly[3])*T+self.capa_poly[2])*T+self.capa_poly[1])*T+self.capa_poly[0]
