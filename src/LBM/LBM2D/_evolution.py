@@ -12,7 +12,6 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
         self.updateBC(self.t)
         self.step_AA_kernel()
         self.tLattice += 1
-        self.t[None] += self.dt
         ti.sync()
 
     @ti.kernel
@@ -226,12 +225,12 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                     if self.solid[idx] > 0: # 有固体
                         # 流固热交换
                         if self.solid[idx] < 1: # 有流体
-                            dH = self.TS.exchangeCoef[idx]*self.TS.exchangeSurface[idx]*(self.TF.physical_value(self.TF.S[idx])-self.TS.physical_value(self.TS.S[idx]))*self.dt # 热交换量
+                            dH = self.TS.exchangeCoef[idx]*self.TS.exchangeSurface[idx]*(self.TF.physical_value(self.TF.S[idx])-self.TS.physical_value(self.TS.S[idx]))*self.dt[None] # 热交换量
                             self.TS.dS[idx] += dH/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale # 归一化温度变化 
                             self.TF.dS[idx] += -dH/self.TF.capacity_m(idx)/self.rho[idx]/self.TF.v_scale # 归一化温度变化
                         # 辐射
                         if ti.static(self.RADIATION):
-                            self.TS.dS[idx] += self.TS.radiation(idx)*self.dt/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale # 归一化温度变化
+                            self.TS.dS[idx] += self.TS.radiation(idx)*self.dt[None]/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale # 归一化温度变化
                 ## 化学反应源项
             if ti.static(self.CHEMISTRY):
                 if  self.t[None] > self.chemistry_field_delay:
@@ -244,6 +243,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
 
         # ========== 4. 更新 ET 奇偶步标记 ==========
         self.even_step[None] = 1 - self.even_step[None]
+        self.t[None] += self.dt[None]
     @ti.kernel
     def step_kernel(self):
         self.collision_source_streaming() # f->F
@@ -430,11 +430,11 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
 
                     # 计算流固热交换和辐射换热
                     if self.solid[i] > 0: # 有固体
-                        dH = self.TS.exchangeCoef[i]*self.TS.exchangeSurface[i]*(self.TF.physical_value(Tf)-self.TS.physical_value(Ts))*self.dt
+                        dH = self.TS.exchangeCoef[i]*self.TS.exchangeSurface[i]*(self.TF.physical_value(Tf)-self.TS.physical_value(Ts))*self.dt[None]
                         self.TS.dS[i] += dH/self.TS.capacity_m(i)/self.rhos[i]/self.TS.v_scale
                         self.TF.dS[i] += -dH/self.TF.capacity_m(i)/self.rho[i]/self.TF.v_scale
                     if ti.static(self.RADIATION):
-                        self.TS.dS[i] += self.TS.radiation(i)*self.dt/self.TS.capacity_m(i)/self.rhos[i]/self.TS.v_scale
+                        self.TS.dS[i] += self.TS.radiation(i)*self.dt[None]/self.TS.capacity_m(i)/self.rhos[i]/self.TS.v_scale
 
     # 使用函数
     @ti.func
@@ -472,10 +472,10 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
     def viscosity(self,i): # in LU
         visco = 0.1
         if ti.static(self.viscosity_model==VISCOSITY_MODEL.CONSTANT):
-            visco = self.visco[None]*self.dt/self.dx**2
+            visco = self.visco[None]*self.dt[None]/self.dx**2
         elif ti.static(self.viscosity_model==VISCOSITY_MODEL.SUTHERLAND):
             T = self.GetTF(i)
-            visco = self.sutherland_coef[0]*T**1.5/(T+self.sutherland_coef[1])*self.dt/self.dx**2
+            visco = self.sutherland_coef[0]*T**1.5/(T+self.sutherland_coef[1])*self.dt[None]/self.dx**2
         elif ti.static(self.viscosity_model == VISCOSITY_MODEL.MIXTURE):
             if ti.static(self.CHEMISTRY):
                 for specie in ti.static(self.species):

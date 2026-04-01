@@ -649,7 +649,7 @@ class LBM2D_OUTPUT(LBM2D_BASE):
                 # cellData={"pressure": pressure},
                 pointData=self.get_data_pyevtk()
             )
-        self.PVD.addVTK(self.tLattice*self.dt,os.path.basename(filename)+".vtr")
+        self.PVD.addVTK(self.t[None],os.path.basename(filename)+".vtr")
         self.PVD.writePVD()
     def export_VTK_pyvista(self): # 导出为vtk 到指定文件夹中
         """使用 pyvista 导出 `.vts` 并更新 `.pvd` 列表。
@@ -665,7 +665,7 @@ class LBM2D_OUTPUT(LBM2D_BASE):
         grid = pv.StructuredGrid(self.meshX,self.meshY,self.meshZ)
         grid.point_data.update(self.get_data_pyvista())
         grid.save(filename)
-        self.PVD.addVTK(self.tLattice*self.dt,os.path.basename(filename))
+        self.PVD.addVTK(self.t[None],os.path.basename(filename))
         self.PVD.writePVD()
     def get_data_pyvista(self):
         """组装 pyvista 友好的点数据字典。
@@ -773,7 +773,7 @@ class LBM2D_OUTPUT(LBM2D_BASE):
         # path = os.path.join("result",name)
         # os.makedirs(path,exist_ok=True)
         # with open(os.path.join(path,name+"_"+str(iter)+".json"),'w') as f:
-        #     json.dump(self.get_variable(iter*self.dt),f)
+        #     json.dump(self.get_variable(iter*self.dt[None]),f)
     def get_variable(self,t):
         """收集用户注册的变量回调并返回字典。
 
@@ -800,7 +800,7 @@ class LBM2D_OUTPUT(LBM2D_BASE):
         # print(self.species[0].coefDiff(s1))
         # print(self.tau(s1),self.TF.coefDiff(s1),self.TF.capacity_m(s1),self.TF.conductivity(s1),self.viscosity(s1),self.TS.conductivity(s1),self.TS.capacity_m(s1),self.rhos[s1],self.reactions.dS[0][s1],self.reactions.reactions[0].reaction(s1))
         # print(self.TF.capacity_m(idx),self.TF.conductivity(idx),self.viscosity(idx),self.TS.conductivity(idx),self.TS.capacity_m(idx),self.rhos[idx])
-        dH = self.TS.exchangeCoef[idx]*self.TS.exchangeSurface[idx]*(self.TF.physical_value(self.TF.S[idx])-self.TS.physical_value(self.TS.S[idx]))*self.dt
+        dH = self.TS.exchangeCoef[idx]*self.TS.exchangeSurface[idx]*(self.TF.physical_value(self.TF.S[idx])-self.TS.physical_value(self.TS.S[idx]))*self.dt[None]
         dSS = dH/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale
         dSF = -dH/self.TF.capacity_m(idx)/self.rho[idx]/self.TF.v_scale
         print(self.species[3].S[idx],self.species[3].dS[idx])

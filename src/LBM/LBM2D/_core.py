@@ -17,15 +17,17 @@ class LBM2D_BASE:
         self.Y = float(Y)
         self.Z = dx
         self.tLattice = 0
+        self.dt = ti.field(float,shape=())
         self.dx = float(dx)
-        self.dt = float(dt)
+        self.dt[None] = float(dt)
 
         self.nx = np.round(self.X / self.dx).astype(int)
         self.ny = np.round(self.Y / self.dx).astype(int)
         self.nz = 1
         self.max_v = ti.field(float, shape=())
         self.viscosity_model = VISCOSITY_MODEL.NONE
-        self.visco = 2e-5
+        self.visco = ti.field(float,shape=())
+        self.visco[None] = 2e-5
         self.sutherland_coef = [1.6e-6,170]
         self.boundary_condition_model = BC_MODEL.NEE  # Only NEE implemented
         self.EOS = FLUID_STATE_EQUATION.IDEAL_GAS
