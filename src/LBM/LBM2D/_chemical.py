@@ -72,15 +72,15 @@ class Specie(ScalarField): # 物种质量分数场
     def coefDiff(self,i):
         diff = 0.0
         if ti.static(self.diff_model==DIFF_MODEL.CONSTANT):
-            diff += self.diff*self.LBM.dt[None]/self.LBM.dx**2
+            diff += self.diff*self.LBM.dt/self.LBM.dx**2
         elif ti.static(self.diff_model==DIFF_MODEL.SCHMIDT):
-            diff += self.Sc*self.viscosity(i)*self.LBM.dt[None]/self.LBM.dx**2
+            diff += self.Sc*self.viscosity(i)*self.LBM.dt/self.LBM.dx**2
         return diff
     @ti.func
     def viscosity(self,i): # in LU
         visco = 1e-5
         if ti.static(self.viscosity_type==VISCOSITY_MODEL.CONSTANT):
-            visco = self.visco[None]*self.LBM.dt[None]/self.LBM.dx**2
+            visco = self.visco[None]*self.LBM.dt/self.LBM.dx**2
         elif ti.static(self.viscosity_type==VISCOSITY_MODEL.SUTHERLAND):
             T = self.LBM.GetTF(i)
             visco = self.coefSutherland[0]*T**1.5/(T+self.coefSutherland[1])
@@ -282,12 +282,12 @@ class Reaction:
             coef = -self.coefReactant[j]+self.coefProduct[j] # 物质生成或者消耗
             if coef != 0.:
                 if ti.static(self.unit==UNIT.MASS):
-                    ds = kr*coef*self.LBM.dt[None] # 物种的生成和消失
+                    ds = kr*coef*self.LBM.dt # 物种的生成和消失
                     dS[j] = ds # d\rho
                     if ti.static(not self.isFixDH and self.LBM.TEMPERATURE):
                         dH += coef*self.LBM.species[j].enthalpy_m(i)
                 else:
-                    ds = kr*coef*self.LBM.dt[None]*self.LBM.species[j].molemass # 摩尔质量修正到密度
+                    ds = kr*coef*self.LBM.dt*self.LBM.species[j].molemass # 摩尔质量修正到密度
                     dS[j] = ds # d\rho
                     if ti.static(not self.isFixDH and self.LBM.TEMPERATURE):
                         dH += coef*self.LBM.species[j].enthalpy_mole(i)
@@ -297,7 +297,7 @@ class Reaction:
                         # # 物质的生成和消失会影响焓变                    
                         # # dh += ds*self.LBM.Temperature.S[i]*specie.capacity_m(i) # 物种生成和消失带来的焓变
             # 反应热效应    
-            dH *= -kr*self.LBM.dt[None] # 注意保证kr deltaH的单位匹配。是质量都是质量，是摩尔数都是摩尔数。
+            dH *= -kr*self.LBM.dt # 注意保证kr deltaH的单位匹配。是质量都是质量，是摩尔数都是摩尔数。
             dS[self.specieNum]= dH # J
         return dS
 @ti.data_oriented

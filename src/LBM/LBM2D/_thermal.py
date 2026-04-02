@@ -64,11 +64,11 @@ class TemperatureFluid(ScalarField):
     def coefDiff(self, i):
         D = 0.0
         if ti.static(self.thermal_diff_model==THERMAL_DIFF_MODEL.CONSTANT):
-            D = self.thermal_diff*self.LBM.dt[None]/self.LBM.dx**2
+            D = self.thermal_diff*self.LBM.dt/self.LBM.dx**2
         elif ti.static(self.thermal_diff_model==THERMAL_DIFF_MODEL.PRANDTL):
             D = self.LBM.kinetic_viscosity(i)/self.Pr
         elif ti.static(self.thermal_diff_model==THERMAL_DIFF_MODEL.DERIVED):
-            D = self.conductivity(i)/self.LBM.rho[i]/self.capacity_m(i)*self.LBM.dt[None]/self.LBM.dx**2
+            D = self.conductivity(i)/self.LBM.rho[i]/self.capacity_m(i)*self.LBM.dt/self.LBM.dx**2
         return D    
     @ti.func
     def conductivity(self,i):
@@ -168,9 +168,9 @@ class TemperatureSolid(ScalarField):
     def coefDiff(self, i):
         D = 0.0
         if ti.static(self.thermal_diff_model==THERMAL_DIFF_MODEL.CONSTANT):
-            D = self.thermal_diff*self.LBM.dt[None]/self.LBM.dx**2
+            D = self.thermal_diff*self.LBM.dt/self.LBM.dx**2
         elif ti.static(self.thermal_diff_model==THERMAL_DIFF_MODEL.DERIVED):
-            D = self.conductivity(i)/self.LBM.rhos[i]/self.capacity_m(i)*self.LBM.dt[None]/self.LBM.dx**2
+            D = self.conductivity(i)/self.LBM.rhos[i]/self.capacity_m(i)*self.LBM.dt/self.LBM.dx**2
         return D    
     @ti.func
     def conductivity(self,i):

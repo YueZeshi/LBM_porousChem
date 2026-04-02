@@ -16,10 +16,9 @@ class LBM2D_BASE:
         self.X = float(X)
         self.Y = float(Y)
         self.Z = dx
-        self.tLattice = 0
-        self.dt = ti.field(float,shape=())
+        self.tLattice :int= 0
         self.dx = float(dx)
-        self.dt[None] = float(dt)
+        self.dt = float(dt)
 
         self.nx = np.round(self.X / self.dx).astype(int)
         self.ny = np.round(self.Y / self.dx).astype(int)
