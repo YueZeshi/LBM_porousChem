@@ -15,12 +15,12 @@ module :
 
 flowProperties:
   viscosity : 
-    type : mixture # constant/sutherland/mixture
+    type : sutherland # constant/sutherland/mixture
     # # if constant
     # value : 1e-5
     # if sutherland
-    # As : 1.6e-6
-    # Ts : 170
+    As : 1.6e-6
+    Ts : 170
     # # if mixture
 
 thermalPropertiesFluid : 

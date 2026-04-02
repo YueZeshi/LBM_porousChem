@@ -27,7 +27,8 @@ class LBM2D_BASE:
         self.viscosity_model = VISCOSITY_MODEL.NONE
         self.visco = ti.field(float,shape=())
         self.visco[None] = 2e-5
-        self.sutherland_coef = [1.6e-6,170]
+        self.sutherland_coef = [0.0,0.0] #ti.field(float,shape=(2)) # field性能不如python
+        self.sutherland_coef[0],self.sutherland_coef[1] = 1.6e-6,170
         self.boundary_condition_model = BC_MODEL.NEE  # Only NEE implemented
         self.EOS = FLUID_STATE_EQUATION.IDEAL_GAS
 
