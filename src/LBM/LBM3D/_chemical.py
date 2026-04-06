@@ -222,7 +222,6 @@ class Reaction:
         for i in range(self.specieNum):
             if self.coefProduct[i]>0:
                 description += f"        {self.LBM.species[i].name} : {self.coefProduct[i]}\n"
-        description += str(self.coefReactant)+str(self.coefProduct)+str(self.coefRate)
         return description
     def __repr__(self):
         return self.__str__()
