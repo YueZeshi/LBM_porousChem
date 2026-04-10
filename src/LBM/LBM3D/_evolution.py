@@ -14,7 +14,6 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
         # 如需回退到原双数组算法，可改为调用 step_kernel。
         self.step_AA_kernel()
         self.tLattice += 1
-        self.t[None] += self.dt
         ti.sync()
     @ti.kernel
     def step_AA_kernel(self):# 使用AA实现单数组步进（仅流体部分，周期/NEE/ES 边界）
@@ -243,6 +242,7 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
             self.Boundary_condition_ES_AA() # not implemented
         # ========== 4. 更新 ET 奇偶步标记 ==========
         self.even_step[None] = 1 - self.even_step[None]
+        self.t[None] += self.dt
     @ti.kernel
     def step_kernel(self):
         self.collision_source_streaming() # f->F
