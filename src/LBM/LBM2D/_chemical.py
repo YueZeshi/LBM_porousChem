@@ -18,6 +18,7 @@ class Specie(ScalarField): # 物种质量分数场
             self.coefSutherland = [0,0]
             self.diff_model = DIFF_MODEL.CONSTANT
             self.diff = 1e-5
+            self.isInert = False # 惰性物质不计算扩散，只有一个
 
         self.thermo_model = THERMO_MODEL.CONSTANT
         self.enthalpy = 100.0
@@ -47,6 +48,13 @@ class Specie(ScalarField): # 物种质量分数场
                 des += f"sutherland {self.coefSutherland}\n"
             else:
                 des += "not valid\n"
+            des += "        - Diffusivity model : "
+            if self.isInert:
+                des += f"inert specie, no diffusion\n"
+            elif self.diff_model == DIFF_MODEL.CONSTANT:
+                des += f"constant {self.diff}\n"
+            elif self.diff_model == DIFF_MODEL.SCHMIDT:
+                des += f"Schmidt number {self.Sc}\n"
 
         des += "        - Thermodynamic model : "
         if self.thermo_model==THERMO_MODEL.CONSTANT:
@@ -322,7 +330,9 @@ class Reactions:
         for r in ti.static(self.reactions): # reaction update
             self.dS[i] += r.reaction(i)
         for j in ti.static(range(self.specieNum)):
-            self.LBM.species[j].dS[i] = self.dS[i][j]
+            self.LBM.species[j].dS[i] = self.dS[i][j] # 密度
+            if ti.static(not self.LBM.species[j].FIX):
+                self.LBM.drho[i] += self.dS[i][j]
         if ti.static(self.LBM.TEMPERATURE):
             if self.LBM.solid[i] > 0:
                 self.LBM.TS.dS[i] += self.dS[i][self.specieNum]/self.LBM.TS.capacity_m(i)/self.LBM.rhos[i]/self.LBM.TS.v_scale # 化学反应带来的能量变化转换为温度变化 注意温度变化量归一化

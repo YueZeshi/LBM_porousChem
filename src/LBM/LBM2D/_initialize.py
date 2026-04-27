@@ -22,6 +22,9 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
         if self.CHEMISTRY:
             self.reactions.dS = ti.Vector.field(len(self.species) + 1, dtype=float, shape=self.rho.shape) # specie num + 1
             self.reactions.specieNum = len(self.species)
+            for specie in self.species:
+                if not specie.FIX and specie.isInert:
+                    self.inertSpecie = specie
         # create export directory
         os.makedirs(self.exportPath, exist_ok=True)
         # handle exception

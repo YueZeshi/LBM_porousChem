@@ -99,6 +99,7 @@ class LBM2D_BASE:
             self.specieName = []
             self.species:list[Specie] = []
             self.reactions = Reactions(self) 
+            self.inertSpecie = None # 惰性物质
         if self.PORO:        
             self.poro_model = PORO_MODEL.SPHERICAL  # Porous medium model
             self.coefDarcy = ti.field(float,shape=(self.nx,self.ny,self.nz))

@@ -399,6 +399,10 @@ class LBM2D_INPUT(LBM2D_BASE):
         specie.cond_model=CONDUCTIVITY_MODEL.POLYNOMIAL
         for i in range(min(5,len(poly))):
             specie.cond_poly[i] = poly[i]
+    def set_inert_specie(self,name):
+        """指定物种为惰性物质，不参与扩散计算。"""
+        specie = self.species[self.specieName.index(name)]
+        specie.isInert = True
     
     # 定义化学反应
     def add_reaction(self,formula,A,Ea,b = 0,Tmin = 0,deltaH = 0,name="unnamed",unit=UNIT.MOLE,fixDH = True):
@@ -577,6 +581,7 @@ class LBM2D_OUTPUT(LBM2D_BASE):
 
     使用前请先调用输入侧的 `set_vtk_path()` 指定导出目录。
     """
+        
     def get_max_v(self): # 获得最大速度，用于判断模型是否发散
         """返回当前域内速度模的最大值（格子单位）。"""
         self.max_v[None] = -1e10        

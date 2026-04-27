@@ -2,7 +2,7 @@ basic:
   name      : pyrolysis_test
   author    : Sylvain
   date      : 2025-12-27
-  dimension : 2 # 2 or 3
+  dimension : 3 # 2 or 3
   arch      : gpu # cpu/gpu/vulkan/cuda .etc the platform
   type      : configuration # configuration / snapshot(saved)
 
@@ -10,8 +10,8 @@ module :
   flow : true
   porous_media : true
   temperature : true
-  chemistry : true
-  radiation : true # only mean temperature model
+  chemistry : false
+  radiation : false # only mean temperature model
 
 flowProperties:
   viscosity : 
@@ -283,24 +283,24 @@ chemicalProperties:
       unit: mass-based # mass-based/mole-based
     - name : char formation 1
       equation : intermediate <=> char
-      rate-constant: {A: 1.38e10, b: 0.0, Ea: 1610000.0}
+      rate-constant: {A: 1.38e10, b: 0.0, Ea: 161000.0}
       deltaH: -300000
       unit: mass-based # mass-based/mole-based
     - name : char formation 2
       equation : tar <=> char
-      rate-constant: {A: 1.e5, b: 0.0, Ea: 1080000.0}
+      rate-constant: {A: 1.e5, b: 0.0, Ea: 108000.0}
       deltaH: -42000
       unit: mass-based # mass-based/mole-based
     - name : syngas formation 2
       equation : tar <=> syngas
-      rate-constant: {A: 4.28e6, b: 0.0, Ea: 1080000.0}
+      rate-constant: {A: 4.28e6, b: 0.0, Ea: 108000.0}
       deltaH: -42000
       unit: mass-based # mass-based/mole-based
 
 geometry:
   zone1:
     type : sphere # sphere/cylinder/box/cone/stl
-    center : [0.05,0.05,0]
+    center : [0.05,0.05,0.05]
     radius : 0.02
   # zone2 :
   #   type : cylinder
@@ -338,13 +338,13 @@ initialCondition:
       #   porosity : 0.4
       porousModel : darcy # darcy/darcyforchheimer/ergun
       #   # if darcy
-      darcy : 2.5e10
+      darcy : 2.5e6
       # # if darcyforchheimer
       # darcy : 2.5e10
       # forchheimer : 6e4
       # if ergun    # solid2:
       exchangeSurface : 1000
-      exchangeCoef : 100
+      exchangeCoef : 10
       emissivity : 0.6
     #   zone : zone2
     #   type : poro
@@ -423,25 +423,45 @@ boundaryCondition:
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
     chemical:
       type: zeroGradient 
+  forward:
+    flow:
+      type : wall
+    thermalFluid:
+      type: fixedValue # periodic/fixedValue/zeroGradient 
+      value : 683
+    thermalSolid : 
+      type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
+    chemical:
+      type: zeroGradient 
+  back:
+    flow:
+      type : wall
+    thermalFluid:
+      type: fixedValue # periodic/fixedValue/zeroGradient 
+      value : 683
+    thermalSolid : 
+      type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
+    chemical:
+      type: zeroGradient 
   
   
 spaceControl:
-  geometry : [0.1,0.1]
+  geometry : [0.1,0.1,0.1]
   DX : 1e-3
 
 timeControl:
   startTime : 0
-  endTime : 10000
+  endTime : 1000
   DT : 1e-3
 
 outputControl:
   vtk:
-    interval : 50 # the interval of vtk output
+    interval : 10 # the interval of vtk output
     path : vtk # the relative path of the output folder
     LOD : 1
     clear : true # true to clear all the existing output in the folder
   log:
-    interval : 1
+    interval : 0.1
     LOD : 1 # 
   snapshot: # resume from the snapshot
     interval : 100 # the interval of snapshot

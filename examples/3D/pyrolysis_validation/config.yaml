@@ -1,8 +1,8 @@
 basic:
-  name      : pyrolysis_test
+  name      : pyrolysis_validation
   author    : Sylvain
-  date      : 2025-12-27
-  dimension : 2 # 2 or 3
+  date      : 2026-04-11
+  dimension : 3 # 2 or 3
   arch      : gpu # cpu/gpu/vulkan/cuda .etc the platform
   type      : configuration # configuration / snapshot(saved)
 
@@ -28,23 +28,23 @@ thermalPropertiesFluid :
   normalize:
     Trange : [500,1000] # [a,b] means [a,b] will be mapped to [0,1]
   thermalDiff :
-    type : derived # constant/Prandtl/derived
+    type : constant # derived # constant/Prandtl/derived
     # if constant
-    # value : 1e-5
+    value : 1e-5
     # if Prandtl
     # Pr : 0.71
     # # if derived
   conductivity: 
-    type: mixture # constant/polynomial/mixture
+    type: constant # mixture # constant/polynomial/mixture
     # if constant
-    # value : 0.01
+    value : 0.01
     # # if polynomial
     # data : [0.01,-1e-6,0,0,0] # max 5 order
     # # if mixture
   capacity : 
-    type : mixture # constant/polynomial/NASA7/mixture
+    type : constant # mixture # constant/polynomial/NASA7/mixture
     # if constant
-    # value : 10000.0
+    value : 1000.0
     # # if polynomial
     # data : [24.78245636, -24.99673416e-03, 80.84730201e-06, -80.68129509e-09, 24.24372837e-12]
     # # if NASA7
@@ -61,21 +61,21 @@ thermalPropertiesSolid :
   normalize:
    Trange: [500,1000]
   thermalDiff :
-    type : derived # constant/derived
+    type : constant # derived # constant/derived
     # # if constant
-    # value : 1e-5
+    value : 1e-5
     # # if derived
   conductivity: 
-    type: mixture # constant/polynomial/mixture
+    type: constant # mixture # constant/polynomial/mixture
     # if constant
-    # value : 4
+    value : 0.02
     # if polynomial
     # data : [4,1e-4,0,0,0] # max 5 order
     # # if mixture
   capacity : 
-    type : mixture # constant/polynomial/NASA7/mixture
+    type : constant # mixture # constant/polynomial/NASA7/mixture
     # # if constant
-    # value : 1000
+    value : 1000
     # # if polynomial
     # data : [1000,1,-1e6,0,0]
     # # if NASA7
@@ -98,7 +98,7 @@ chemicalProperties:
   # path : YOUR_CANTERA_FILE.yaml
   # if input
   species :
-    tar : 
+    targas : 
       molemass : 28
       state : fluid
       viscosity : 
@@ -109,10 +109,10 @@ chemicalProperties:
         # As : 1e-7
         # Ts : 170
       thermodynamic :
-        type : polynomial # constant/NASA7
+        type : constant # polynomial # constant/NASA7
         # if constant
-        # enthalpy : 100
-        # capacity : 1000
+        enthalpy : 100
+        capacity : 1000
         # if NASA7
         # Trange: [200.0, 1000.0, 3500.0]
         # data:
@@ -127,14 +127,14 @@ chemicalProperties:
         # if constant
         value : 1e-5
         # # if Schmidt
-        Sc : 1.0
+        # Sc : 1.0
       conductivity : 
         type: constant # constant/polynomial
         # if constant
         value : 0.0258
         # # if polynomial
         # data : [0,0,0,0,0]
-    syngas : 
+    gas : 
       molemass : 28
       # composition : {O : 2}
       state : fluid
@@ -225,7 +225,7 @@ chemicalProperties:
       conductivity : 
         type: constant # constant/polynomial
         # if constant
-        value : 0.20487
+        value : 0.341
         # if polynomial
         # data : [0,0,0,0,0]
     char :
@@ -246,7 +246,7 @@ chemicalProperties:
         value : 0.0937
         # if polynomial
         data : [1,1e-6,0,0,0]
-    intermediate :
+    char1 :
       molemass : 28
       state : solid # solid phase has only thermodynamic properties
       thermodynamic :
@@ -266,41 +266,26 @@ chemicalProperties:
         # if polynomial
         # data : [1,1e-6,0,0,0]
   reactions:
-    - name : tar formation
-      equation: wood <=> tar
-      rate-constant: {A: 1.08e10, b: 0.0, Ea: 148000.0}
-      deltaH: 80000
+    - name : targas formation
+      equation: wood <=> targas
+      rate-constant: {A: 2.0e10, b: 0.0, Ea: 148000.0}
+      deltaH: 0 #110000
       unit: mass-based # mass-based/mole-based
-    - name : syngas formation 1
-      equation : wood <=> syngas
-      rate-constant: {A: 4.38e9, b: 0.0, Ea: 152700.0}
-      deltaH: 80000
+    - name : char1 formation 
+      equation : wood <=> char1
+      rate-constant: {A: 2.51e7, b: 0.0, Ea: 116400.0}
+      deltaH: 0
       unit: mass-based # mass-based/mole-based
-    - name : intermediate solid formation
-      equation : wood <=> intermediate
-      rate-constant: {A: 3.75e6, b: 0.0, Ea: 111700.0}
-      deltaH: 80000
-      unit: mass-based # mass-based/mole-based
-    - name : char formation 1
-      equation : intermediate <=> char
-      rate-constant: {A: 1.38e10, b: 0.0, Ea: 1610000.0}
-      deltaH: -300000
-      unit: mass-based # mass-based/mole-based
-    - name : char formation 2
-      equation : tar <=> char
-      rate-constant: {A: 1.e5, b: 0.0, Ea: 1080000.0}
-      deltaH: -42000
-      unit: mass-based # mass-based/mole-based
-    - name : syngas formation 2
-      equation : tar <=> syngas
-      rate-constant: {A: 4.28e6, b: 0.0, Ea: 1080000.0}
-      deltaH: -42000
+    - name : char1 decomposition
+      equation : char1 <=> 0.35 gas + 0.65 char 
+      rate-constant: {A: 1.38e10, b: 0.0, Ea: 158000.0}
+      deltaH: 0 #-210000
       unit: mass-based # mass-based/mole-based
 
 geometry:
   zone1:
     type : sphere # sphere/cylinder/box/cone/stl
-    center : [0.05,0.05,0]
+    center : [0.05,0.05,0.05]
     radius : 0.02
   # zone2 :
   #   type : cylinder
@@ -338,13 +323,13 @@ initialCondition:
       #   porosity : 0.4
       porousModel : darcy # darcy/darcyforchheimer/ergun
       #   # if darcy
-      darcy : 2.5e10
+      darcy : 2.5e4
       # # if darcyforchheimer
       # darcy : 2.5e10
       # forchheimer : 6e4
       # if ergun    # solid2:
       exchangeSurface : 1000
-      exchangeCoef : 100
+      exchangeCoef : 10
       emissivity : 0.6
     #   zone : zone2
     #   type : poro
@@ -423,20 +408,40 @@ boundaryCondition:
       type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
     chemical:
       type: zeroGradient 
+  forward:
+    flow:
+      type : wall
+    thermalFluid:
+      type: fixedValue # periodic/fixedValue/zeroGradient 
+      value : 683
+    thermalSolid : 
+      type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
+    chemical:
+      type: zeroGradient 
+  back:
+    flow:
+      type : wall
+    thermalFluid:
+      type: fixedValue # periodic/fixedValue/zeroGradient 
+      value : 683
+    thermalSolid : 
+      type : none # if the solid area doesn't contact with this boundary, the boundary condition will not be used
+    chemical:
+      type: zeroGradient 
   
   
 spaceControl:
-  geometry : [0.1,0.1]
+  geometry : [0.1,0.1,0.1]
   DX : 1e-3
 
 timeControl:
   startTime : 0
-  endTime : 10000
+  endTime : 2000
   DT : 1e-3
 
 outputControl:
   vtk:
-    interval : 50 # the interval of vtk output
+    interval : 10 # the interval of vtk output
     path : vtk # the relative path of the output folder
     LOD : 1
     clear : true # true to clear all the existing output in the folder

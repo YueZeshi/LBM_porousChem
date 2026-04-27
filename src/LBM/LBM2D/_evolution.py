@@ -67,6 +67,7 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                 f_collided = ti.Vector([0.0] * 9)
                 F = self.force(idx) # 计算体积力
                 drho = self.drho[idx]
+                self.drho[idx] = 0.0 # 化学反应引起的密度变化在碰撞后重置，下一步重新计算
                 # 碰撞
                 for q in ti.static(range(9)):
                     feq = self.feq9(q, rho, idx[0], idx[1], idx[2])
@@ -166,46 +167,50 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
             if ti.static(self.CHEMISTRY) :
                 if self.t[None] > self.chemistry_field_delay[None]:
                     self.rhos[idx] = 0.0 # 更新固相密度场
+                    self.inertSpecie.S[idx] = 1.0
                     for specie in ti.static(list(self.species)):
                         if ti.static(not specie.FIX):
-                            # 流体组分更新
-                            if self.solid[idx]<1:
-                                # 读取离散速度分量
-                                for q in ti.static(range(5)):
-                                    e = self.e5[q]
-                                    opp_q = self.LR[q]
-                                    if self.even_step[None]:  # 偶数步：从邻居读取
-                                        ip = self.periodic_index(idx - e)
-                                        g_local[q] = specie.g[ip][q]
-                                    else:  # 奇数步：从本格读取
-                                        g_local[q]= specie.g[idx][opp_q]
-                                # 计算宏观量
-                                S_local = 0.0
-                                for q in ti.static(range(5)):
-                                    S_local += g_local[q]
-                                specie.S[idx] = S_local
-                                # 碰撞
-                                tau_local = specie.tau(idx)
-                                dS_local = specie.dS[idx]
-                                for q in ti.static(range(5)):
-                                    geq = specie.geq5(q, S_local, idx[0], idx[1], idx[2])
-                                    gq = g_local[q] - (g_local[q] - geq) / tau_local # 碰撞项
-                                    gq += specie.geq5(q, dS_local, idx[0], idx[1], idx[2]) # 微观源项
-                                    g_collided[q] = gq
-                                # 更新场
-                                for q in ti.static(range(5)):
-                                    e = self.e5[q]
-                                    opp_q = self.LR[q]
-                                    if self.even_step[None]:  # 偶数步：写邻居
-                                        ip = self.periodic_index(idx + e)
-                                        specie.g[ip][opp_q] = g_collided[q]
-                                    else:  # 奇数步：写本地
-                                        specie.g[idx][q] = g_collided[q]
+                            if ti.static(not specie.isInert):
+                                # 流体组分更新
+                                if self.solid[idx]<1:
+                                    # 读取离散速度分量
+                                    for q in ti.static(range(5)):
+                                        e = self.e5[q]
+                                        opp_q = self.LR[q]
+                                        if self.even_step[None]:  # 偶数步：从邻居读取
+                                            ip = self.periodic_index(idx - e)
+                                            g_local[q] = specie.g[ip][q]
+                                        else:  # 奇数步：从本格读取
+                                            g_local[q]= specie.g[idx][opp_q]
+                                    # 计算宏观量
+                                    S_local = 0.0
+                                    for q in ti.static(range(5)):
+                                        S_local += g_local[q]
+                                    specie.S[idx] = S_local
+                                    self.inertSpecie.S[idx] -= S_local # 惰性物质浓度由其他物质浓度反推
+                                    # 碰撞
+                                    tau_local = specie.tau(idx)
+                                    dS_local = specie.dS[idx]/self.rho[idx] # 浓度源项归一化
+                                    for q in ti.static(range(5)):
+                                        geq = specie.geq5(q, S_local, idx[0], idx[1], idx[2])
+                                        gq = g_local[q] - (g_local[q] - geq) / tau_local # 碰撞项
+                                        gq += specie.geq5(q, dS_local, idx[0], idx[1], idx[2]) # 微观源项
+                                        g_collided[q] = gq
+                                    # 更新场
+                                    for q in ti.static(range(5)):
+                                        e = self.e5[q]
+                                        opp_q = self.LR[q]
+                                        if self.even_step[None]:  # 偶数步：写邻居
+                                            ip = self.periodic_index(idx + e)
+                                            specie.g[ip][opp_q] = g_collided[q]
+                                        else:  # 奇数步：写本地
+                                            specie.g[idx][q] = g_collided[q]
                         else:
                             # 固体组分更新（仅源项，假设固体物种不迁移）
                             dS_local = specie.dS[idx]
                             specie.S[idx] += dS_local 
                             self.rhos[idx] += specie.S[idx] # 更新固相密度场
+                    
             # 更新源项场
             ## 温度场源项
             if ti.static(self.TEMPERATURE):

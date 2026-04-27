@@ -15,8 +15,13 @@ from .util.constant import MOLEMASS
 
 
 
-def load_basic_config(config, logger):
-    """加载基本配置：维度、架构、名称"""
+def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
+    debug = logger.level==logging.DEBUG
+    startTime = time.time()
+    dim = 2
+    ARCH = "cpu"
+    name = ""
+    logger.info("Loading basic...")
     basic = config.get("basic")
     if basic is None:
         logger.error("basic missing")
@@ -26,6 +31,14 @@ def load_basic_config(config, logger):
             logger.info(f"{key} : {value}")
 
         dim = basic.get("dimension")
+        if dim==2:
+            from .LBM2D import LBM2DSolver as lbm
+        elif dim==3:
+            from .LBM3D import LBM3DSolver as lbm
+        else:
+            logger.error("The dimension value in the configuration file is invalid. Please set it to 2 or 3 depending on your case.")
+            raise ValueError("dim")
+        
         ARCH = basic.get("arch","cpu")
         ti.reset()
         try:
@@ -47,75 +60,53 @@ def load_basic_config(config, logger):
             ARCH = "cpu"
 
         name = basic.get("name")
-        return dim, ARCH, name
-
-def load_space_config(config, logger):
-    """加载空间控制：几何、dx"""
+    
+    logger.info("Loading spaceControl...")  
     spaceControl = config.get("spaceControl")
     if spaceControl is None:
         logger.error("spaceControl missing.")
-        raise ValueError("spaceControl missing.")
     else:
         geometry = spaceControl.get("geometry")
         if geometry is None:
             logger.error("spaceControl.geometry missing.")
-            raise ValueError("spaceControl.geometry missing.")
         else:
             x = geometry[0]
             y = geometry[1]
-            z = geometry[2] if len(geometry) > 2 else 1
+            if dim == 3:
+                z = geometry[2]
+            else:
+                z = 1
         dx = spaceControl.get("DX")
         if dx is None:
             logger.error("spaceControl.DX missing")
-            raise ValueError("spaceControl.DX missing")
-        return x, y, z, dx
-
-def load_time_config(config, logger):
-    """加载时间控制：dt"""
+    
+    logger.info("Loading timeControl.dt...")
     timeControl = config.get("timeControl")
     if timeControl is None:
         logger.error("timeControl missing.")
-        raise ValueError("timeControl missing.")
     else:
         dt = timeControl["DT"]
         if dt is None:
             logger.error("timeControl.DT missing.")
-            raise ValueError("timeControl.DT missing.")
-        return dt
-
-def load_module_config(config, logger):
-    """加载模块：热、孔隙介质、化学、辐射"""
+        
+    logger.info("Loading module...")
     module = config.get("module")
     if module is None:
         logger.error("module missing")
-        raise ValueError("module missing")
     else:
         isThermal = module.get("temperature")
         isPoro = module.get("porous_media")
         isChemical = module.get("chemistry")
         isRadiation = module.get("radiation")
-        return isThermal, isPoro, isChemical, isRadiation
-
-def initialize_lbm_solver(dim, x, y, z, dx, dt, name, isThermal, isChemical, isPoro, isRadiation, logger):
-    """初始化 LBM 求解器"""
-    if dim==2:
-        from .LBM2D import LBM2DSolver as lbm
-    elif dim==3:
-        from .LBM3D import LBM3DSolver as lbm
-    else:
-        logger.error("The dimension value in the configuration file is invalid. Please set it to 2 or 3 depending on your case.")
-        raise ValueError("dim")
     
+    # initial setting
     lb = lbm(x,y,z,dx,dt,name,isThermal,isChemical,isPoro,isRadiation)
     logger.info("LBM created")
-    return lb
-
-def load_flow_properties(config, lb, logger):
-    """加载流体属性：粘度"""
+    # viscosity
+    logger.info("Loading flowProperties...")
     flowProperties = config.get("flowProperties")
     if flowProperties is None:
         logger.error("flowProperties missing.")
-        raise ValueError("flowProperties missing.")
     else:
         viscosity = flowProperties.get("viscosity")
         viscosityType = viscosity.get("type")
@@ -128,15 +119,11 @@ def load_flow_properties(config, lb, logger):
             lb.set_viscosity_sutherland(As,Ts)
         elif viscosityType == "mixture":
             lb.set_viscosity_mixture()
-
-def load_thermal_properties(config, lb, isThermal, logger):
-    """加载热属性：流体和固体"""
-    if not isThermal:
-        return
     
-    # 流体热属性
+    # thermal
+    logger.info("Loading thermalPropertiesFluid...")
     thermalPropertiesFluid = config.get("thermalPropertiesFluid")
-    if thermalPropertiesFluid is not None:
+    if isThermal and (thermalPropertiesFluid is not None):
         TF_delay = thermalPropertiesFluid.get("delay",0)
         lb.set_TF_delay(TF_delay)
         normalize = thermalPropertiesFluid.get("normalize")
@@ -184,10 +171,10 @@ def load_thermal_properties(config, lb, isThermal, logger):
                 lb.set_fluid_capacity_mixture()
             else:
                 logger.warning(f"Capacity type {capacityType} of thermalPropertiesFluid not valid. The valid type : constant|polynomial|NASA7|mixture")
-    
-    # 固体热属性
+        
+    logger.info("Loading thermalPropertiesSolid...")
     thermalPropertiesSolid = config.get("thermalPropertiesSolid")
-    if thermalPropertiesSolid is not None:
+    if isThermal and (thermalPropertiesSolid is not None):
         TS_delay = thermalPropertiesSolid.get("delay",0)
         lb.set_TS_delay(TS_delay)
         normalize = thermalPropertiesSolid.get("normalize")
@@ -232,25 +219,19 @@ def load_thermal_properties(config, lb, isThermal, logger):
                 lb.set_solid_capacity_mixture()
             else:
                 logger.warning(f"Capacity type {capacityType} of thermalPropertiesSolid not valid. The valid type : constant|polynomial|NASA7|mixture")
-
-def load_radiation_properties(config, lb, isRadiation, logger):
-    """加载辐射属性"""
-    if not isRadiation:
-        return
+    
+    logger.info("Loading radiationProperties...")
     radiationProperties = config.get("radiationProperties")
-    if radiationProperties is not None:
+    if isRadiation and radiationProperties is not None:
         logger.info("Radiation module loading...")
         radiationType = radiationProperties.get("type")
         if radiationType=="mean_temp":
             Tambient = radiationProperties.get("Tambient",300)
             lb.set_radiation(RADIATION_MODEL.SURFACE_UNIFORM,Tambient)
-
-def load_chemical_properties(config, lb, isChemical, isThermal, logger):
-    """加载化学属性"""
-    if not isChemical:
-        return
+    # chemistry
+    logger.info("Loading chemicalProperties...")
     chemicalProperties = config.get("chemicalProperties")
-    if chemicalProperties is not None:
+    if isChemical and chemicalProperties is not None:
         logger.info("Chemistry module loading...")
         chemicalType = chemicalProperties.get("type")
         chem_delay = chemicalProperties.get("delay",0)
@@ -295,11 +276,8 @@ def load_chemical_properties(config, lb, isChemical, isThermal, logger):
                             elif diffType=="Schmidt":
                                 Sch = diffProperty.get("Sc")
                                 lb.set_specie_diff_Schmidt(specie,Sch)
-                            elif diffType == "inert":
-                                lb.set_inert_specie(specie)
                             else:
                                 logger.warning(f"Specie {specie} diffusitivity type {diffType} not valid. The valid value : constant|Schmidt")
-                        
                         if isThermal:
                             thermodynamicProperty = species[specie].get("thermodynamic")
                             if thermodynamicProperty is not None:
@@ -400,12 +378,9 @@ def load_chemical_properties(config, lb, isChemical, isThermal, logger):
 
         else:
             logger.warning(f"Chemical type {chemicalType} of chemicalProperties not valid. The valid type : cantera|input")
-        # 如果未设置惰性组分则默认最后一个气相组分为惰性组分
-        lastSpecie = [s for s in lb.species if not s.FIX][-1]
-        if not any(s.isInert for s in lb.species if not s.FIX):
-            lb.set_inert_specie(lastSpecie.name)
-def load_boundary_conditions(config, lb, dim, isThermal, isChemical, logger):
-    """加载边界条件"""
+
+    # boundary condition
+    logger.info("Loading boundary condition...")
     boundaryName = ["left","right","down","up","forward","back"]
     boundaryNum = 4
     if dim==3:
@@ -480,9 +455,10 @@ def load_boundary_conditions(config, lb, dim, isThermal, isChemical, logger):
                     lb.set_species_BC(i,BC.periodic)
                 else:
                     logger.warning(f"Boundary condition type {bcType} of thermalFluid not valid. The valid consitions : periodic|fixedValue|zeroGradient")
+    
 
-def load_geometry(config, lb, logger):
-    """加载几何"""
+    # load all geometry information in geo_dict dictionary name:(surface array, border array)
+    logger.info("Loading geometry...")
     geo_dict = {}
     geo_infos = config.get("geometry")
     if geo_infos is None:
@@ -557,14 +533,13 @@ def load_geometry(config, lb, logger):
             mesh,surface = lb.load_stl(path,scale,translate,rotate,logger=logger)
             if np.shape(mesh)[0]!=0:
                 geo_dict[geo_name]=mesh,surface
-    return geo_dict
 
-def load_initial_conditions(config, lb, isThermal, isChemical, isPoro, isRadiation, geo_dict, logger):
-    """加载初始条件"""
+
+    # set initial condition including setting soid phase
+    logger.info("Loading initialCondition...")
     initialCondition = config["initialCondition"]
     if initialCondition is None:
         logger.error("initialConditon missing.")
-        raise ValueError("initialConditon missing.")
     else:
         ## flow
         flowIC = initialCondition.get("flow")
@@ -611,7 +586,7 @@ def load_initial_conditions(config, lb, isThermal, isChemical, isPoro, isRadiati
                     elif type(zone) is str:
                         s += value*geo_dict[zone][0]
                         lb.init_specie(specie,s)
-        
+            
         ## solid phase
         solidIC = initialCondition.get("solid")
         if solidIC is None:
@@ -687,25 +662,25 @@ def load_initial_conditions(config, lb, isThermal, isChemical, isPoro, isRadiati
                         s = geo_dict[solid["zone"]][0]
                         s = (s>0)*(-1.0)
                     lb.add_solid(s)
-
-def load_time_and_output_control(config, lb, logger):
-    """加载时间和输出控制"""
+    
     # time control of simulation 
+    logger.info("Loading timeControl...")
     timeControl = config.get("timeControl")
     if timeControl is None:
         logger.error("timeControl missing.")
-        raise ValueError("timeControl missing.")
     else:
         simulationStartTime = timeControl.get("startTime",0)
+        # if startTime is None:
+        #     startTime = 0
         lb.tLattice = int(simulationStartTime/lb.dt)
         endTime = timeControl.get("endTime",0)
         endTimeLattice = endTime/lb.dt
     
     # output
+    logger.info("Loading outputControl...")
     outputControl = config.get("outputControl")
     if outputControl is None:
         logger.error("outputControl missing.")
-        raise ValueError("outputControl missing.")
     else:
         logControl = outputControl.get("log")
         printInterval = int(logControl["interval"]/lb.dt)
@@ -734,11 +709,7 @@ def load_time_and_output_control(config, lb, logger):
         debugControl = config.get("debugSetting")
         if debugControl:
             debugCheckInterval = debugControl.get("interval",10)
-    
-    return endTimeLattice, printInterval, exportInterval, snapshotInterval, debugCheckInterval, preTime, last_print_time
 
-def run_simulation(lb, endTimeLattice, printInterval, exportInterval, snapshotInterval, debug, debugCheckInterval, startTime, logger, config):
-    """运行模拟"""
     logger.info("Simulation initializing...")
     lb.init_simulation()
     logger.info("Simulation initialized.")
@@ -746,9 +717,6 @@ def run_simulation(lb, endTimeLattice, printInterval, exportInterval, snapshotIn
     # lb.check_python()
     logger.info("Simulation running...")
     logger.info("(The first step will take long time because of the compilation time)")
-    preTime = time.time()
-    last_print_time = time.time()
-    latticeUpdateBetweenLog = lb.nx*lb.ny*lb.nz*printInterval
     while lb.tLattice<=endTimeLattice:
         if lb.tLattice % printInterval==0:
             calTime = time.time()-preTime
@@ -770,53 +738,5 @@ def run_simulation(lb, endTimeLattice, printInterval, exportInterval, snapshotIn
             logger.debug(lb.tLattice)
         lb.step()
     logger.info("LBM finished.")
-
-def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
-    debug = logger.level==logging.DEBUG
-    startTime = time.time()
-    
-    logger.info("Loading basic...")
-    dim, ARCH, name = load_basic_config(config, logger)
-    
-    logger.info("Loading spaceControl...")
-    x, y, z, dx = load_space_config(config, logger)
-    
-    logger.info("Loading timeControl.dt...")
-    dt = load_time_config(config, logger)
-    
-    logger.info("Loading module...")
-    isThermal, isPoro, isChemical, isRadiation = load_module_config(config, logger)
-    
-    lb = initialize_lbm_solver(dim, x, y, z, dx, dt, name, isThermal, isChemical, isPoro, isRadiation, logger)
-    
-    logger.info("Loading flowProperties...")
-    load_flow_properties(config, lb, logger)
-    
-    logger.info("Loading thermalProperties...")
-    load_thermal_properties(config, lb, isThermal, logger)
-    
-    logger.info("Loading radiationProperties...")
-    load_radiation_properties(config, lb, isRadiation, logger)
-    
-    logger.info("Loading chemicalProperties...")
-    load_chemical_properties(config, lb, isChemical, isThermal, logger)
-    
-    logger.info("Loading boundary condition...")
-    load_boundary_conditions(config, lb, dim, isThermal, isChemical, logger)
-    
-    logger.info("Loading geometry...")
-    geo_dict = load_geometry(config, lb, logger)
-    
-    logger.info("Loading initialCondition...")
-    load_initial_conditions(config, lb, isThermal, isChemical, isPoro, isRadiation, geo_dict, logger)
-    
-    endTimeLattice, printInterval, exportInterval, snapshotInterval, debugCheckInterval, preTime, last_print_time = load_time_and_output_control(config, lb, logger)
-    
-    logger.info("Checking LBM validity...")
-    lb.check_valid()
-
-    logger.info("Starting simulation...")
-
-    run_simulation(lb, endTimeLattice, printInterval, exportInterval, snapshotInterval, debug, debugCheckInterval, startTime, logger, config)
 
 

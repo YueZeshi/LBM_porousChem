@@ -98,3 +98,10 @@ class LBM2D_INFO(LBM2D_BASE):
         if self.TEMPERATURE:
             p +=f"Min temperature: {self.get_min_T():.7f} K, Max temperature : {self.get_max_T():.7f}"
         return p
+    def check_valid(self):
+        '''检查当前LBM是否有效'''
+        # 检查惰性物质设置
+        if self.CHEMISTRY:
+            inert_count = sum(1 for specie in self.species if not specie.FIX and specie.isInert)
+            if inert_count != 1:
+                raise ValueError(f"Invalid LBM configuration: More than one inert specie found. Only one inert specie is allowed. {inert_count} inert species were found.")

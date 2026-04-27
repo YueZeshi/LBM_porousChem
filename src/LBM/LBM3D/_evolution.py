@@ -35,16 +35,13 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                         f_local[q] = self.f[idx][opp_q]
                 # 宏观量
                 rho = 0.0
+                drho = 0.0
                 v = ti.Vector([0.0, 0.0, 0.0])
                 for q in ti.static(range(19)):
                     fi = f_local[q]
                     rho += fi
                     v += self.e19[q] * fi
                 self.rho[idx] = rho
-                if self.EOS == FLUID_STATE_EQUATION.IDEAL_GAS:
-                    self.v[idx] = v / (rho + 1e-12)
-                else:
-                    self.v[idx] = v
 
                 if ti.static(self.PORO):
                     if self.solid[idx] > 0.0: # 多孔介质区域，计算渗透性修正
@@ -68,6 +65,11 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                             c1 = 0.5*eps*Fc
                             v_mag = ti.math.length(v)
                             v/=(c0+ti.sqrt(c0**2+c1*v_mag))
+                if self.EOS == FLUID_STATE_EQUATION.IDEAL_GAS:
+                    self.v[idx] = v / (rho + 1e-12)
+                else:
+                    self.v[idx] = v
+
 
                 # ----- 1.2 碰撞（BGK）+ 体力源项（GUO） -----
                 tau = self.tau(idx)
@@ -75,7 +77,7 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                 F = self.force(idx) # 计算体积力
                 drho = self.drho[idx] # 化学反应引起的密度变化率
                 if rho+drho < self.tol:
-                    print("Warning: Density is zero or negative at idx ", idx,rho,drho)
+                    print("Warning: Density is zero or negative at idx ", idx,rho,drho,self.GetTF(idx),self.GetTS(idx),self.solid[idx])
                     drho = 0.0
                 self.drho[idx] = 0.0 # 重置密度变化率，下一步重新计算
                 # 碰撞
@@ -84,7 +86,7 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                     # 标准 BGK: f_new = f_old - (f_old - f_eq) / tau
                     fq = f_local[q] - (f_local[q] - feq) / tau # 碰撞项
                     fq += self.forceTermGuo(q, idx) # 源项
-                    fq += self.feq19(q, drho,idx[0], idx[1], idx[2])# 化学反应引起的密度变化修正
+                    fq += self.feq19(q, drho, idx[0], idx[1], idx[2])# 化学反应引起的密度变化修正
                     f_collided[q] = fq  # 赋值碰撞结果
 
                 # ----- 1.3 写入阶段（AA 迁移，写回 self.f） -----
@@ -96,6 +98,7 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                         self.f[ip][opp_q] = f_collided[q]
                     else:  # 奇数步：写本地
                         self.f[idx][q] = f_collided[q]
+                self.rho[idx] += drho # 修正密度以确保后续物种扩散计算正确性
             #---标量场更新---#
             g_local = ti.Vector([0.0] * 7) # 定义临时变量 不同标量场复用
             g_collided = ti.Vector([0.0] * 7)
@@ -176,6 +179,7 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
             # 浓度场更新
             if ti.static(self.CHEMISTRY):
                 if self.t[None] > self.chemistry_field_delay:
+                    Yall = 0.0
                     self.rhos[idx] = 0.0 # 更新固相密度场
                     for specie in ti.static(list(self.species)):
                         if ti.static(not specie.FIX):
@@ -195,9 +199,10 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                                 for q in ti.static(range(7)):
                                     S_local += g_local[q]
                                 specie.S[idx] = S_local
+                                Yall += S_local
                                 # 碰撞
                                 tau_local = specie.tau(idx)
-                                dS_local = specie.dS[idx]
+                                dS_local = specie.dS[idx]/self.rho[idx] # 归一化为质量分数的变化率
                                 for q in ti.static(range(7)):
                                     geq = specie.geq7(q, S_local, idx[0], idx[1], idx[2])
                                     gq = g_local[q] - (g_local[q] - geq) / tau_local # 碰撞项
@@ -217,6 +222,21 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                             dS_local = specie.dS[idx]
                             specie.S[idx] += dS_local 
                             self.rhos[idx] += specie.S[idx] # 更新固相密度场
+                    for specie in ti.static(list(self.species)):
+                        if ti.static(not specie.FIX):
+                            ratio = specie.S[idx] / Yall
+                            for q in ti.static(range(7)): # 需要对离散速度分量进行相同的归一化处理以保持一致性
+                                e = self.e7[q]
+                                opp_q = self.LR[q]
+                                if even == 0:  # 偶数步：写邻居
+                                    ip = self.periodic_index(idx + e)
+                                    specie.g[ip][opp_q] /= Yall
+                                else:  # 奇数步：写本地
+                                    specie.g[idx][q] /= Yall
+                            specie.S[idx] /= Yall # 归一化为质量分数 # 只归一化specie.S可能会有问题，最好是归一化所有离散速度分量，因为之后使用的specie.S是从离散速度分量求和得到的
+                            # if idx[0] == 50 and idx[1] == 50 and idx[2] == 50:
+                            #     print("Debug: specie ", specie.name, " at idx ", idx, " S: ", specie.S[idx], " dS: ", specie.dS[idx], " Yall: ", Yall," tau: ", specie.tau(idx), " ratio: ", ratio)
+
             # 更新源项场
             ## 温度场源项
             if ti.static(self.TEMPERATURE):
@@ -390,8 +410,9 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                             for s in ti.static(range(7)):
                                 specie.g[i][s] = specie.G[i][s] # 更新G
                                 specie.S[i] += specie.G[i][s]
-                            if specie.S[i]<-self.tol:
-                                specie.S[i]=-self.tol
+                            if specie.S[i] < -self.tol:
+                                specie.S[i] = -self.tol
+                                print("Warning: Negative concentration for specie ", specie.name, " at idx ", i, " value: ", specie.S[i])
                             Yall += specie.S[i]
                         else:
                             if ti.static(self.PORO): # 计算当前固体物质总密度

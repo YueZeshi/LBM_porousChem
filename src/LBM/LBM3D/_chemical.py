@@ -233,10 +233,10 @@ class Reaction:
             # 有固相参与使用固相温度 
             if self.LBM.solid[i]>0: # 有点问题，有固体不代表固相反应
                 T = self.LBM.GetTS(i)
+                if (T > self.Tmin):
+                    k = self.A*(T+1e-6)**self.b*ti.math.exp(-self.Ea/(T+1e-6)/constant.R)
             else:
                 T = self.LBM.GetTF(i)
-            if (T > self.Tmin):
-                k = self.A*(T+1e-6)**self.b*ti.math.exp(-self.Ea/(T+1e-6)/constant.R)
         else:
             k = self.A
         return k
@@ -315,16 +315,16 @@ class Reactions:
     @ti.func
     def update_dS(self,i): # 计算所有化学反应带来    
         dh = self.dS[i][self.specieNum] # 反应热效应引起的能量变化的物质源项和能量源项
-        
         for j in ti.static(range(self.specieNum+1)):
             self.dS[i][j] = 0
         for r in ti.static(self.reactions):
             self.dS[i] += r.reaction(i)
         for j in ti.static(range(self.specieNum)):
             self.LBM.species[j].dS[i] = self.dS[i][j]
-        if ti.static(self.LBM.TEMPERATURE):
-            if self.LBM.solid[i] > 0: # 如果有固体则温度施加在固体上，反之则在流体上
+            if ti.static(not self.LBM.species[j].FIX) : # 固体物种的变化直接反映在密度场上
+                self.LBM.drho[i] += self.dS[i][j]
+        if ti.static(self.LBM.TEMPERATURE) : 
+            if self.LBM.solid[i] > 0 : # 如果有固体则温度施加在固体上，反之则在流体上
                 self.LBM.TS.dS[i] += dh/self.LBM.TS.capacity_m(i)/self.LBM.rhos[i]/self.LBM.TS.v_scale
-            else:
-                self.LBM.TF.dS[i] += dh/self.LBM.TF.capacity_m(i)/self.LBM.rho[i]/self.LBM.TF.v_scale
-                            
+            else : 
+                self.LBM.TF.dS[i] += dh/self.LBM.TF.capacity_m(i)/self.LBM.rho[i]/self.LBM.TF.v_scale # 气相反应热相对气相热容太大
