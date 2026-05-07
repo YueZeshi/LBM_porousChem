@@ -55,6 +55,8 @@ class Specie(ScalarField): # 物种质量分数场
                 des += f"constant {self.diff}\n"
             elif self.diff_model == DIFF_MODEL.SCHMIDT:
                 des += f"Schmidt number {self.Sc}\n"
+            else:
+                des += "not valid\n"
 
         des += "        - Thermodynamic model : "
         if self.thermo_model==THERMO_MODEL.CONSTANT:

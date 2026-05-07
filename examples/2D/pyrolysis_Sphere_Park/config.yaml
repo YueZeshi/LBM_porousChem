@@ -431,7 +431,7 @@ spaceControl:
 
 timeControl:
   startTime : 0
-  endTime : 10000
+  endTime : 2000
   DT : 1e-3
 
 outputControl:

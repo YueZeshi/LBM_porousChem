@@ -15,6 +15,7 @@ class Specie(ScalarField): # 物种质量分数场
             self.coefSutherland = [1.6e-6,170] 
             self.diff_model = DIFF_MODEL.CONSTANT
             self.diff = 1e-5
+            self.isInert = False
         self.thermo_model = THERMO_MODEL.CONSTANT
         self.enthalpy = 100.0
         self.capa = 100.0
@@ -40,6 +41,15 @@ class Specie(ScalarField): # 物种质量分数场
                 des += f"constant {self.visco}\n"
             elif self.viscosity_type==VISCOSITY_MODEL.SUTHERLAND:
                 des += f"sutherland {self.coefSutherland}\n"
+            else:
+                des += "not valid\n"
+            des += "        - Diffusivity model : "
+            if self.isInert:
+                des += "inert specie, no diffusion\n"
+            elif self.diff_model==DIFF_MODEL.CONSTANT:
+                des += f"constant {self.diff}\n"
+            elif self.diff_model==DIFF_MODEL.SCHMIDT:
+                des += f"schmidt number {self.Sc}\n"
             else:
                 des += "not valid\n"
         

@@ -34,8 +34,6 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                     fi = f_local[q]
                     rho += fi
                     v += self.e9[q] * fi
-                if self.EOS == FLUID_STATE_EQUATION.IDEAL_GAS:# 可压缩流
-                    v = v / (rho + 1e-12)
                 
                 if ti.static(self.PORO):
                     if self.solid[idx] > 0.0: # 多孔介质区域，计算渗透性修正
@@ -59,8 +57,11 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                             c1 = 0.5*eps*Fc
                             v_mag = ti.math.length(v)
                             v/=(c0+ti.sqrt(c0**2+c1*v_mag))
+                if self.EOS == FLUID_STATE_EQUATION.IDEAL_GAS:
+                    self.v[idx] = v / (rho + 1e-12)
+                else:
+                    self.v[idx] = v
                 self.rho[idx] = rho
-                self.v[idx] = v
 
                 # ----- 1.2 碰撞（BGK）+ 体力源项（GUO） -----
                 tau = self.tau(idx)

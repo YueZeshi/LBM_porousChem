@@ -388,7 +388,12 @@ class LBM3D_INPUT(LBM3D_BASE):
         specie = self.species[self.specieName.index(name)]
         specie.cond_model=CONDUCTIVITY_MODEL.POLYNOMIAL
         specie.cond_poly = list(poly)
-
+    def set_inert_specie(self,name):
+        """指定物种为惰性物质，不参与扩散计算。"""
+        specie = self.species[self.specieName.index(name)]
+        specie.isInert = True
+        self.inertSpecie = specie
+    
     # 定义化学反应
     def add_reaction(self,formula,A,Ea,b = 0,Tmin = 0,deltaH = 0,name="unnamed",unit=UNIT.MOLE,fixDH = True):
         """登记单条化学反应。

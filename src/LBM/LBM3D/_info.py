@@ -103,3 +103,10 @@ class LBM3D_INFO(LBM3D_BASE):
             if self.bc[i]==BC_FLOW.inlet_flow:
                 des+="    "+sideName[i]+": INLET FLOW\n"
         return des
+    def check_valid(self):
+        '''检查当前LBM是否有效'''
+        # 检查惰性物质设置
+        if self.CHEMISTRY:
+            inert_count = sum(1 for specie in self.species if not specie.FIX and specie.isInert)
+            if inert_count != 1:
+                raise ValueError(f"Invalid LBM configuration: More than one inert specie found. Only one inert specie is allowed. {inert_count} inert species were found.")
