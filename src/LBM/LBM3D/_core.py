@@ -4,13 +4,14 @@ import numpy as np
 from ..util.flag import *
 from ._thermal import TemperatureFluid,TemperatureSolid
 from ._chemical import Specie,Reaction,Reactions
+from ._mrt_matrix_D3Q19 import M19, invM19
 from visualization_tool.PVD import PVDWriter
 @ti.data_oriented
 class LBM3D_BASE:
     """
     LBM3D base class
     """
-    def __init__(self, X, Y, Z,dx = 0.001,dt = 0.001,name="LBM",isThermal = False,isChemical = False,isPoro = False,isRadiation = False):
+    def __init__(self, X, Y, Z,dx = 0.001,dt = 0.001,name="LBM",isThermal = False,isChemical = False,isPoro = False,isRadiation = False,collision_model=COLLISION_MODEL.BGK):
         self.name = name
         self.t = ti.field(float,shape=())
         self.tol = 1e-12
@@ -82,7 +83,7 @@ class LBM3D_BASE:
         self.CHEMISTRY = isChemical
         self.PORO = isPoro
         self.RADIATION = isRadiation and isThermal
-
+        self.collision_model = collision_model
         # Esoteric Twist (ET) 单数组算法奇偶步标记：0=偶数步, 1=奇数步
         self.even_step = ti.field(dtype=ti.i32, shape=())
         if self.TEMPERATURE:
@@ -101,6 +102,8 @@ class LBM3D_BASE:
             self.poro_model = PORO_MODEL.SPHERICAL # 使用的多孔介质模型 如球孔介质模型 Darcy Darcy-Forhheimer
             self.coefDarcy = ti.field(float,shape=(self.nx,self.ny,self.nz))
             self.coefForchheimer = ti.field(float,shape=(self.nx,self.ny,self.nz))
+        if self.collision_model == COLLISION_MODEL.MRT:
+            self.s_mrt_D3Q19 = ti.field(float, shape=(19))
         # default init all fields
         self.default_init()
         self.static_init_kernel()
@@ -173,5 +176,51 @@ class LBM3D_BASE:
     def Boundary_condition_NEE_AA(self):
         pass
     
+    @ti.func
+    def setup_mrt_rates_D3Q19(self, tau):
+        """
+        设置 D3Q19 MRT 松弛率 (BGK-equivalent 初始值)
+        守恒矩(ρ, jx, jy, jz) → s=0
+        其余非守恒矩 → s=1/tau
+        """
+        omega = 1.0 / tau
+        for i in ti.static(range(19)):
+            self.s_mrt_D3Q19[i] = omega
+        # 守恒矩: ρ(0), jz(1), jy(3), jx(9)
+        self.s_mrt_D3Q19[0] = 0.0
+        self.s_mrt_D3Q19[1] = 0.0
+        self.s_mrt_D3Q19[3] = 0.0
+        self.s_mrt_D3Q19[9] = 0.0
+
+    @ti.func
+    def mrt_collide_D3Q19(self, f, feq, idx):
+        """
+        D3Q19 MRT 碰撞: m' = m - S*(m - meq) → f' = invM19 @ m'
+        使用预构建的正交矩阵 M19/invM19
+        """
+        # 1) 变换到矩空间: m = M19 @ f, meq = M19 @ feq
+        m = ti.Vector([0.0 for _ in ti.static(range(19))])
+        meq = ti.Vector([0.0 for _ in ti.static(range(19))])
+        for i in ti.static(range(19)):
+            m_sum = 0.0
+            meq_sum = 0.0
+            for j in ti.static(range(19)):
+                m_sum += M19[i, j] * f[j]
+                meq_sum += M19[i, j] * feq[j]
+            m[i] = m_sum
+            meq[i] = meq_sum
+        # 2) 矩空间松弛
+        m_relaxed = ti.Vector([0.0 for _ in ti.static(range(19))])
+        for i in ti.static(range(19)):
+            m_relaxed[i] = m[i] - self.s_mrt_D3Q19[i] * (m[i] - meq[i])
+        # 3) 反变换回速度空间: f' = invM19 @ m_relaxed
+        f_collided = ti.Vector([0.0 for _ in ti.static(range(19))])
+        for i in ti.static(range(19)):
+            f_sum = 0.0
+            for j in ti.static(range(19)):
+                f_sum += invM19[i, j] * m_relaxed[j]
+            f_collided[i] = f_sum
+        return f_collided
+
     def updateBC(self,t):
         pass

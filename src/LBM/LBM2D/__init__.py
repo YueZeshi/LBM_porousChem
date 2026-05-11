@@ -52,6 +52,8 @@ class LBM2DSolver(LBM2D_EVOLUTION,LBM2D_BOUNDARY,LBM2D_INPUT,LBM2D_OUTPUT,LBM2D_
         Enable porous media model.
     isRadiation : bool, optional
         Enable radiation heat transfer.
+    collision_model : COLLISION_MODEL, optional
+        Collision model: BGK (0) or MRT (1) (default: BGK).
 
     Attributes
     ----------
@@ -62,9 +64,9 @@ class LBM2DSolver(LBM2D_EVOLUTION,LBM2D_BOUNDARY,LBM2D_INPUT,LBM2D_OUTPUT,LBM2D_
     The class aggregates evolution, boundary, IO, initialization and info
     mixins and uses Taichi ``@ti.data_oriented`` for performance.
     """
-    def __init__(self, X, Y, Z=1, dx=1, dt=1, name="default_LBM", isThermal=False, isChemical=False, isPoro=False, isRadiation=False):
+    def __init__(self, X, Y, Z=1, dx=1, dt=1, name="default_LBM", isThermal=False, isChemical=False, isPoro=False, isRadiation=False, collision_model=COLLISION_MODEL.BGK):
         """Initialize the solver.
 
         See the class docstring for detailed parameter descriptions.
         """
-        super().__init__(X, Y, Z, dx, dt, name, isThermal, isChemical, isPoro, isRadiation)
+        super().__init__(X, Y, Z, dx, dt, name, isThermal, isChemical, isPoro, isRadiation, collision_model)

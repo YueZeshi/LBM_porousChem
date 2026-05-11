@@ -47,7 +47,15 @@ def load_basic_config(config, logger):
             ARCH = "cpu"
 
         name = basic.get("name")
-        return dim, ARCH, name
+        
+        # 读取碰撞模型
+        collision_model_str = basic.get("collisionModel", "BGK")
+        if collision_model_str.upper() == "MRT":
+            collision_model = COLLISION_MODEL.MRT
+        else:
+            collision_model = COLLISION_MODEL.BGK
+        
+        return dim, ARCH, name, collision_model
 
 def load_space_config(config, logger):
     """加载空间控制：几何、dx"""
@@ -96,7 +104,7 @@ def load_module_config(config, logger):
         isRadiation = module.get("radiation")
         return isThermal, isPoro, isChemical, isRadiation
 
-def initialize_lbm_solver(dim, x, y, z, dx, dt, name, isThermal, isChemical, isPoro, isRadiation, logger):
+def initialize_lbm_solver(dim, x, y, z, dx, dt, name, isThermal, isChemical, isPoro, isRadiation, logger, collision_model=COLLISION_MODEL.BGK):
     """初始化 LBM 求解器"""
     if dim==2:
         from .LBM2D import LBM2DSolver as lbm
@@ -106,8 +114,8 @@ def initialize_lbm_solver(dim, x, y, z, dx, dt, name, isThermal, isChemical, isP
         logger.error("The dimension value in the configuration file is invalid. Please set it to 2 or 3 depending on your case.")
         raise ValueError("dim")
     
-    lb = lbm(x,y,z,dx,dt,name,isThermal,isChemical,isPoro,isRadiation)
-    logger.info("LBM created")
+    lb = lbm(x,y,z,dx,dt,name,isThermal,isChemical,isPoro,isRadiation,collision_model=collision_model)
+    logger.info(f"LBM created (collision_model={collision_model})")
     return lb
 
 def load_flow_properties(config, lb, logger):
@@ -776,7 +784,7 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
     startTime = time.time()
     
     logger.info("Loading basic...")
-    dim, ARCH, name = load_basic_config(config, logger)
+    dim, ARCH, name, collision_model = load_basic_config(config, logger)
     
     logger.info("Loading spaceControl...")
     x, y, z, dx = load_space_config(config, logger)
@@ -787,7 +795,7 @@ def application(config:ruamel.yaml.comments.CommentedMap,logger:logging.Logger):
     logger.info("Loading module...")
     isThermal, isPoro, isChemical, isRadiation = load_module_config(config, logger)
     
-    lb = initialize_lbm_solver(dim, x, y, z, dx, dt, name, isThermal, isChemical, isPoro, isRadiation, logger)
+    lb = initialize_lbm_solver(dim, x, y, z, dx, dt, name, isThermal, isChemical, isPoro, isRadiation, logger, collision_model)
     
     logger.info("Loading flowProperties...")
     load_flow_properties(config, lb, logger)

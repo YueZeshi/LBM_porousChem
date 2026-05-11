@@ -24,7 +24,7 @@ class LBM3DSolver(LBM3D_EVOLUTION,LBM3D_BOUNDARY,LBM3D_INPUT,LBM3D_OUTPUT,LBM3D_
       I/O、演化和边界相关方法。
     - 维度信息与坐标轴在 `LBM3D_BASE` 中统一管理。
     """
-    def __init__(self, X, Y, Z,dx = 0.001,dt = 0.001,name="default_LBM",isThermal = False,isChemical = False,isPoro = False,isRadiation = False):
+    def __init__(self, X, Y, Z,dx = 0.001,dt = 0.001,name="default_LBM",isThermal = False,isChemical = False,isPoro = False,isRadiation = False,collision_model=None):
         """构造三维 LBM 求解器。
 
         Parameters
@@ -47,13 +47,17 @@ class LBM3DSolver(LBM3D_EVOLUTION,LBM3D_BOUNDARY,LBM3D_INPUT,LBM3D_OUTPUT,LBM3D_
             是否启用多孔介质阻力模型（Darcy/Forchheimer）。
         isRadiation : bool, default False
             是否启用辐射相关模型。
+        collision_model : COLLISION_MODEL, optional
+            碰撞模型（BGK/MRT）。默认 BGK。
 
         Notes
         -----
         - 若启用相应模块，请在输入侧接口中设置对应的物性、初值
           与边界条件；未启用的模块相关方法将不产生效果或返回占位值。
         """
-        super().__init__(X, Y, Z,dx,dt,name,isThermal,isChemical,isPoro,isRadiation)
+        if collision_model is None:
+            collision_model = COLLISION_MODEL.BGK
+        super().__init__(X, Y, Z,dx,dt,name,isThermal,isChemical,isPoro,isRadiation,collision_model=collision_model)
     def __str__(self):
         """返回求解器的简要描述字符串。"""
         return f"LBM3DSolver: {self.name}, Size: {self.nx} x {self.ny} x {self.nz}, dx: {self.dx}, dt: {self.dt}, Thermal: {self.TEMPERATURE}, Chemical: {self.CHEMISTRY}, Poro: {self.PORO}, Radiation: {self.RADIATION}"

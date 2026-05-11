@@ -78,14 +78,25 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                     print("Warning: Density is zero or negative at idx ", idx,rho,drho,self.GetTF(idx),self.GetTS(idx),self.solid[idx])
                     drho = 0.0
                 self.drho[idx] = 0.0 # 重置密度变化率，下一步重新计算
-                # 碰撞
+                # 碰撞 (BGK / MRT 双模式)
+                # 预计算所有19方向平衡态分布
+                feq_all = ti.Vector([0.0 for _ in ti.static(range(19))])
                 for q in ti.static(range(19)):
-                    feq = self.feq19(q, rho,idx[0], idx[1], idx[2])
-                    # 标准 BGK: f_new = f_old - (f_old - f_eq) / tau
-                    fq = f_local[q] - (f_local[q] - feq) / tau # 碰撞项
-                    fq += self.forceTermGuo(q, idx) # 源项
-                    fq += self.feq19(q, drho, idx[0], idx[1], idx[2])# 化学反应引起的密度变化修正
-                    f_collided[q] = fq  # 赋值碰撞结果
+                    feq_all[q] = self.feq19(q, rho, idx[0], idx[1], idx[2])
+                if ti.static(self.collision_model == COLLISION_MODEL.MRT):
+                    # MRT: 矩空间碰撞 (守恒矩s=0保持, 非守恒矩s=1/tau)
+                    f_collided_local = self.mrt_collide_D3Q19(f_local, feq_all, idx)
+                    for q in ti.static(range(19)):
+                        f_collided_local[q] += self.forceTermGuo(q, idx)
+                        f_collided_local[q] += self.feq19(q, drho, idx[0], idx[1], idx[2])
+                    f_collided = f_collided_local
+                else:
+                    # BGK (默认): 标准单松弛碰撞
+                    for q in ti.static(range(19)):
+                        fq = f_local[q] - (f_local[q] - feq_all[q]) / tau # 碰撞项
+                        fq += self.forceTermGuo(q, idx) # 源项
+                        fq += self.feq19(q, drho, idx[0], idx[1], idx[2])# 化学反应引起的密度变化修正
+                        f_collided[q] = fq  # 赋值碰撞结果
 
                 # ----- 1.3 写入阶段（AA 迁移，写回 self.f） -----
                 for q in ti.static(range(19)):

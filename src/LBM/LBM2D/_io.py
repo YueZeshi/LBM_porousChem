@@ -152,7 +152,7 @@ class LBM2D_INPUT(LBM2D_BASE):
     ## 密度场
     def set_viscosity(self,mu):#定义常黏度
         """设定常黏度模型，``mu`` 为格子单位黏度。"""
-        self.visco = mu
+        self.visco[None] = mu
         self.viscosity_model = VISCOSITY_MODEL.CONSTANT
     def set_viscosity_sutherland(self,As,Ts):
         """启用 Sutherland 黏度模型，参数 ``As``、``Ts`` 为模型系数。"""

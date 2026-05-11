@@ -101,3 +101,8 @@ class BC_MODEL(Enum):
     NEE = 1
     NEBB = 2
     ES = 3
+
+class COLLISION_MODEL(Enum):
+    """碰撞模型选择。"""
+    BGK = 0  # Bhatnagar–Gross–Krook (single relaxation time)
+    MRT = 1  # Multiple Relaxation Time

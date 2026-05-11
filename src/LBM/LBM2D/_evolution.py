@@ -63,20 +63,24 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                     self.v[idx] = v
                 self.rho[idx] = rho
 
-                # ----- 1.2 碰撞（BGK）+ 体力源项（GUO） -----
-                tau = self.tau(idx)
-                f_collided = ti.Vector([0.0] * 9)
+                # ----- 1.2 碰撞（BGK/MRT）+ 体力源项（GUO） -----
                 F = self.force(idx) # 计算体积力
                 drho = self.drho[idx]
                 self.drho[idx] = 0.0 # 化学反应引起的密度变化在碰撞后重置，下一步重新计算
                 # 碰撞
+                f_collided = ti.Vector([0.0] * 9)
+                if ti.static(self.collision_model == COLLISION_MODEL.MRT):
+                    u_mrt = self.v[idx]
+                    f_collided = self.collision_MRT_D2Q9(f_local, rho, u_mrt[0], u_mrt[1])
+                else:
+                    tau = self.tau(idx)
+                    for q in ti.static(range(9)):
+                        feq = self.feq9(q, rho, idx[0], idx[1], idx[2])
+                        f_collided[q] = f_local[q] - (f_local[q] - feq) / tau
+                # 体力源项 + 密度源项 (BGK/MRT 通用)
                 for q in ti.static(range(9)):
-                    feq = self.feq9(q, rho, idx[0], idx[1], idx[2])
-                    # 标准 BGK: f_new = f_old - (f_old - f_eq) / tau
-                    fq = f_local[q] - (f_local[q] - feq) / tau # 碰撞项
-                    fq += self.forceTermGuo(q, idx,F) # 力源项
-                    fq += self.feq9(q, drho, idx[0], idx[1], idx[2]) # 密度源项
-                    f_collided[q] = fq  # 赋值碰撞结果
+                    f_collided[q] += self.forceTermGuo(q, idx, F)
+                    f_collided[q] += self.feq9(q, drho, idx[0], idx[1], idx[2])
 
                 # ----- 1.3 写入阶段（AA 迁移，写回 self.f） -----
                 for q in ti.static(range(9)):
@@ -112,14 +116,19 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         for q in ti.static(range(5)):
                             S_local += g_local[q]
                         self.TF.S[idx] = S_local
-                        # 碰撞
-                        tau_local = self.TF.tau(idx)
+                        # 碰撞 (BGK/MRT)
                         dS_local = self.TF.dS[idx]
+                        if ti.static(self.collision_model == COLLISION_MODEL.MRT):
+                            u_mrt = self.v[idx]
+                            g_collided = self.collision_MRT_D2Q5(g_local, S_local, u_mrt[0], u_mrt[1])
+                        else:
+                            tau_local = self.TF.tau(idx)
+                            for q in ti.static(range(5)):
+                                geq = self.TF.geq5(q, S_local, idx[0], idx[1], idx[2])
+                                g_collided[q] = g_local[q] - (g_local[q] - geq) / tau_local
+                        # 微观源项 (BGK/MRT通用)
                         for q in ti.static(range(5)):
-                            geq = self.TF.geq5(q, S_local, idx[0], idx[1], idx[2])
-                            gq = g_local[q] - (g_local[q] - geq) / tau_local # 碰撞项
-                            gq += self.TF.geq5(q, dS_local, idx[0], idx[1], idx[2]) # 微观源项
-                            g_collided[q] = gq
+                            g_collided[q] += self.TF.geq5(q, dS_local, idx[0], idx[1], idx[2])
                         # 更新场
                         for q in ti.static(range(5)):
                             e = self.e5[q]
@@ -147,14 +156,19 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         for q in ti.static(range(5)):
                             S_local += g_local[q]
                         self.TS.S[idx] = S_local
-                        # 碰撞
-                        tau_local = self.TS.tau(idx)
+                        # 碰撞 (BGK/MRT)
                         dS_local = self.TS.dS[idx]
+                        if ti.static(self.collision_model == COLLISION_MODEL.MRT):
+                            u_mrt = self.v[idx]
+                            g_collided = self.collision_MRT_D2Q5(g_local, S_local, u_mrt[0], u_mrt[1])
+                        else:
+                            tau_local = self.TS.tau(idx)
+                            for q in ti.static(range(5)):
+                                geq = self.TS.geq5(q, S_local, idx[0], idx[1], idx[2])
+                                g_collided[q] = g_local[q] - (g_local[q] - geq) / tau_local
+                        # 微观源项 (BGK/MRT通用)
                         for q in ti.static(range(5)):
-                            geq = self.TS.geq5(q, S_local, idx[0], idx[1], idx[2])
-                            gq = g_local[q] - (g_local[q] - geq) / tau_local # 碰撞项
-                            gq += self.TS.geq5(q, dS_local, idx[0], idx[1], idx[2]) # 微观源项
-                            g_collided[q] = gq
+                            g_collided[q] += self.TS.geq5(q, dS_local, idx[0], idx[1], idx[2])
                         # 更新场
                         for q in ti.static(range(5)):
                             e = self.e5[q]
@@ -189,14 +203,19 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                                         S_local += g_local[q]
                                     specie.S[idx] = S_local
                                     self.inertSpecie.S[idx] -= S_local # 惰性物质浓度由其他物质浓度反推
-                                    # 碰撞
-                                    tau_local = specie.tau(idx)
+                                    # 碰撞 (BGK/MRT)
                                     dS_local = specie.dS[idx]/self.rho[idx] # 浓度源项归一化
+                                    if ti.static(self.collision_model == COLLISION_MODEL.MRT):
+                                        u_mrt = self.v[idx]
+                                        g_collided = self.collision_MRT_D2Q5(g_local, S_local, u_mrt[0], u_mrt[1])
+                                    else:
+                                        tau_local = specie.tau(idx)
+                                        for q in ti.static(range(5)):
+                                            geq = specie.geq5(q, S_local, idx[0], idx[1], idx[2])
+                                            g_collided[q] = g_local[q] - (g_local[q] - geq) / tau_local
+                                    # 微观源项 (BGK/MRT通用)
                                     for q in ti.static(range(5)):
-                                        geq = specie.geq5(q, S_local, idx[0], idx[1], idx[2])
-                                        gq = g_local[q] - (g_local[q] - geq) / tau_local # 碰撞项
-                                        gq += specie.geq5(q, dS_local, idx[0], idx[1], idx[2]) # 微观源项
-                                        g_collided[q] = gq
+                                        g_collided[q] += specie.geq5(q, dS_local, idx[0], idx[1], idx[2])
                                     # 更新场
                                     for q in ti.static(range(5)):
                                         e = self.e5[q]
