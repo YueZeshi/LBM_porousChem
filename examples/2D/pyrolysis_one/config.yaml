@@ -14,6 +14,7 @@ module :
   radiation : false # only mean temperature model
 
 flowProperties:
+  eos: weakly_compressible
   viscosity : 
     type : constant # constant/sutherland/mixture
     # # if constant

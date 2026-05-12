@@ -104,6 +104,29 @@ class LBM3D_BASE:
             self.coefForchheimer = ti.field(float,shape=(self.nx,self.ny,self.nz))
         if self.collision_model == COLLISION_MODEL.MRT:
             self.s_mrt_D3Q19 = ti.field(float, shape=(19))
+            # ★ Bugfix: 初始化MRT松弛率（参照LBM2D分类模式）
+            #   守恒矩(ρ,jz,jy,jx)→s=0, 剪切矩(7模跨越5D迹零张量)→s=ω,
+            #   Ghost矩(8个高阶模)→s=s_magic=1.63
+            visco_lu = self.visco * self.dt / (self.dx ** 2)
+            tau0 = 3.0 * visco_lu + 0.5
+            omega = 1.0 / tau0
+            S_MAGIC = 1.63
+            s_np = np.full(19, S_MAGIC, dtype=np.float32)
+            # 守恒矩 (s=0)
+            s_np[0] = 0.0  # ρ
+            s_np[1] = 0.0  # jz
+            s_np[3] = 0.0  # jy
+            s_np[9] = 0.0  # jx
+            # 剪切矩 (s=omega, 7个矩跨越5D迹零二阶张量子空间)
+            s_np[2] = omega   # cz²-based
+            s_np[4] = omega   # σ_yz
+            s_np[6] = omega   # cy²-based
+            s_np[8] = omega   # cx²-based
+            s_np[10] = omega  # σ_xz
+            s_np[12] = omega  # σ_xy
+            s_np[14] = omega  # cx²-based
+            # 其余8个Ghost矩保持s_magic: m5,m7,m11,m13,m15,m16,m17,m18
+            self.s_mrt_D3Q19.from_numpy(s_np)
         # default init all fields
         self.default_init()
         self.static_init_kernel()
@@ -177,27 +200,45 @@ class LBM3D_BASE:
         pass
     
     @ti.func
-    def setup_mrt_rates_D3Q19(self, tau):
+    def setup_mrt_rates_D3Q19(self, tau, tau_bulk=None, s_magic=1.63):
         """
-        设置 D3Q19 MRT 松弛率 (BGK-equivalent 初始值)
-        守恒矩(ρ, jx, jy, jz) → s=0
-        其余非守恒矩 → s=1/tau
+        设置 D3Q19 MRT 松弛率（参照LBM2D分类模式）
+        守恒矩 (s=0): m0(ρ), m1(jz), m3(jy), m9(jx)
+        剪切矩 (s=ω, 碰撞核实时用局部τ覆盖): m2,m4,m6,m8,m10,m12,m14
+            (7个矩跨越5D迹零二阶张量子空间)
+        Ghost矩 (s=s_magic): m5,m7,m11,m13,m15,m16,m17,m18 (8个高阶模)
         """
         omega = 1.0 / tau
+        if tau_bulk is None:
+            tau_bulk = tau
+        omega_bulk = 1.0 / tau_bulk
         for i in ti.static(range(19)):
-            self.s_mrt_D3Q19[i] = omega
-        # 守恒矩: ρ(0), jz(1), jy(3), jx(9)
-        self.s_mrt_D3Q19[0] = 0.0
-        self.s_mrt_D3Q19[1] = 0.0
-        self.s_mrt_D3Q19[3] = 0.0
-        self.s_mrt_D3Q19[9] = 0.0
+            self.s_mrt_D3Q19[i] = s_magic
+        # 守恒矩 (s=0)
+        self.s_mrt_D3Q19[0] = 0.0  # ρ
+        self.s_mrt_D3Q19[1] = 0.0  # jz
+        self.s_mrt_D3Q19[3] = 0.0  # jy
+        self.s_mrt_D3Q19[9] = 0.0  # jx
+        # 剪切矩 (s=omega)
+        self.s_mrt_D3Q19[2] = omega    # cz²-based
+        self.s_mrt_D3Q19[4] = omega    # σ_yz
+        self.s_mrt_D3Q19[6] = omega    # cy²-based
+        self.s_mrt_D3Q19[8] = omega    # cx²-based
+        self.s_mrt_D3Q19[10] = omega   # σ_xz
+        self.s_mrt_D3Q19[12] = omega   # σ_xy
+        self.s_mrt_D3Q19[14] = omega   # cx²-based
+        # 其余8个Ghost矩保留s_magic: m5,m7,m11,m13,m15,m16,m17,m18
 
     @ti.func
-    def mrt_collide_D3Q19(self, f, feq, idx):
+    def mrt_collide_D3Q19(self, f, feq, idx, tau):
         """
         D3Q19 MRT 碰撞: m' = m - S*(m - meq) → f' = invM19 @ m'
         使用预构建的正交矩阵 M19/invM19
+        守恒矩(s=0)保持, 剪切矩(s=ω实时覆盖), Ghost矩(s=预设s_magic)
+        
+        tau: 局部松弛时间（支持非牛顿/变粘度流体实时ω覆盖）
         """
+        omega_local = 1.0 / tau  # 实时局部ω, 覆盖剪切模
         # 1) 变换到矩空间: m = M19 @ f, meq = M19 @ feq
         m = ti.Vector([0.0 for _ in ti.static(range(19))])
         meq = ti.Vector([0.0 for _ in ti.static(range(19))])
@@ -209,10 +250,15 @@ class LBM3D_BASE:
                 meq_sum += M19[i, j] * feq[j]
             m[i] = m_sum
             meq[i] = meq_sum
-        # 2) 矩空间松弛
+        # 2) 矩空间松弛: 分类使用松弛率
         m_relaxed = ti.Vector([0.0 for _ in ti.static(range(19))])
         for i in ti.static(range(19)):
-            m_relaxed[i] = m[i] - self.s_mrt_D3Q19[i] * (m[i] - meq[i])
+            # 剪切模(7个): 用实时ω覆盖, 支持非牛顿变粘度
+            if ti.static(i in (2, 4, 6, 8, 10, 12, 14)):
+                s_i = omega_local
+            else:
+                s_i = self.s_mrt_D3Q19[i]
+            m_relaxed[i] = m[i] - s_i * (m[i] - meq[i])
         # 3) 反变换回速度空间: f' = invM19 @ m_relaxed
         f_collided = ti.Vector([0.0 for _ in ti.static(range(19))])
         for i in ti.static(range(19)):

@@ -17,6 +17,14 @@ class LBM2D_INFO(LBM2D_BASE):
         return des
     def description_flow(self):
         des = "Flow properties : \n"
+        des += f"    EOS : "
+        if self.EOS==FLUID_STATE_EQUATION.IDEAL_GAS:
+            des += "weakly_compressible"
+        elif self.EOS==FLUID_STATE_EQUATION.INCOMPRESSIBLE:
+            des += "incompressible"
+        else:
+            des += "unknown"
+        des += "\n"
         des += f"    viscosity model : "
         if self.viscosity_model==VISCOSITY_MODEL.CONSTANT:
             des += f"constant : {self.visco}"

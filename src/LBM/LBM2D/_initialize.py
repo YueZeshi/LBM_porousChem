@@ -18,6 +18,49 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
         self.init_python()
         self.init_kernel()
     def init_python(self):
+        if self.collision_model == COLLISION_MODEL.MRT:
+            import numpy as np
+            # 用ti.field代替ti.Matrix.rows避免9×9矩阵(81 entries)编译展开警告
+            self.M9.from_numpy(np.array([
+                [1,  1,  1,  1,  1,  1,  1,  1,  1],
+                [-4, -1, -1, -1, -1,  2,  2,  2,  2],
+                [4, -2, -2, -2, -2,  1,  1,  1,  1],
+                [0,  1,  0, -1,  0,  1, -1, -1,  1],
+                [0, -2,  0,  2,  0,  1, -1, -1,  1],
+                [0,  0,  1,  0, -1,  1,  1, -1, -1],
+                [0,  0, -2,  0,  2,  1,  1, -1, -1],
+                [0,  1, -1,  1, -1,  0,  0,  0,  0],
+                [0,  0,  0,  0,  0,  1, -1,  1, -1]
+            ], dtype=np.float32))
+            self.invM9 = ti.field(dtype=ti.f32, shape=(9, 9))
+            self.invM9.from_numpy(np.array([
+                [1/9, -1/9,  1/9,    0,    0,     0,     0,   0,   0],
+                [1/9,-1/36,-1/18, 1/6,-1/6,     0,     0, 1/4,   0],
+                [1/9,-1/36,-1/18,   0,    0,   1/6,  -1/6,-1/4,   0],
+                [1/9,-1/36,-1/18,-1/6, 1/6,     0,     0, 1/4,   0],
+                [1/9,-1/36,-1/18,   0,    0,  -1/6,   1/6,-1/4,   0],
+                [1/9, 1/18, 1/36, 1/6, 1/12,  1/6,  1/12,   0, 1/4],
+                [1/9, 1/18, 1/36,-1/6,-1/12,  1/6,  1/12,   0,-1/4],
+                [1/9, 1/18, 1/36,-1/6,-1/12, -1/6, -1/12,   0, 1/4],
+                [1/9, 1/18, 1/36, 1/6, 1/12, -1/6, -1/12,   0,-1/4]
+            ], dtype=np.float32))
+            self.M5 = ti.field(dtype=ti.f32, shape=(5, 5))
+            self.M5.from_numpy(np.array([
+                [1,  1,  1,  1,  1],
+                [0,  1,  0, -1,  0],
+                [0,  0,  1,  0, -1],
+                [-4, 1,  1,  1,  1],
+                [0,  1, -1,  1, -1]
+            ], dtype=np.float32))
+            self.invM5 = ti.field(dtype=ti.f32, shape=(5, 5))
+            self.invM5.from_numpy(np.array([
+                [1/5,   0,   0,-1/5,   0],
+                [1/5, 1/2,   0, 1/20, 1/4],
+                [1/5,   0, 1/2, 1/20,-1/4],
+                [1/5,-1/2,   0, 1/20, 1/4],
+                [1/5,   0,-1/2, 1/20,-1/4]
+            ], dtype=np.float32))
+            self.setup_mrt_rates(tau=1.0) # 初始化MRT松弛率，默认tau=1.0 (可根据需要调整)
         # initialize reactions class , knowing all species
         if self.CHEMISTRY:
             self.reactions.dS = ti.Vector.field(len(self.species) + 1, dtype=float, shape=self.rho.shape) # specie num + 1
@@ -54,7 +97,7 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
         self.e5[1] = ti.Vector([1,0,0]); self.e5[2] = ti.Vector([0,1,0]); self.e5[3] = ti.Vector([-1,0,0]); self.e5[4] = ti.Vector([0,-1,0])
         self.w5[0] = 1.0/3.0
         self.w5[1] = 1.0/6.0; self.w5[2] = 1.0/6.0; self.w5[3] = 1.0/6.0; self.w5[4] = 1.0/6.0
-       
+
     @ti.kernel
     def init_kernel(self): # 初始化所有分布函数
         for i in ti.grouped(self.solid):
@@ -81,16 +124,41 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
         self.init_boundary()
     @ti.func
     def init_boundary(self): # 固定流量边界需要特殊初始化
-        # boundary 0
+        # boundary 0 (left) - velocity init
         if ti.static(self.bc[0]==BC_FLOW.inlet_flow):
             v0 = self.flow_BC[0]/self.ny/self.nz
             for j,k in ti.ndrange(self.ny,self.nz):
                 self.v_bc_profile[0][0,j,k] = ti.Vector([v0,0,0])
                 self.v[0,j,k] = ti.Vector([v0,0,0])
                 self.v[1,j,k] = ti.Vector([v0,0,0])
-        if ti.static(self.bc[0]==BC_FLOW.inlet):
+        if ti.static(self.bc[0]==BC_FLOW.inlet or self.bc[0]==BC_FLOW.wall):
             for j,k in ti.ndrange(self.ny,self.nz):
                 self.v_bc_profile[0][0,j,k] = self.v_BC[0]
+        # boundary 1 (right) - velocity init
+        if ti.static(self.bc[1]==BC_FLOW.inlet_flow):
+            v1 = self.flow_BC[1]/self.ny/self.nz
+            for j,k in ti.ndrange(self.ny,self.nz):
+                self.v_bc_profile[1][0,j,k] = ti.Vector([v1,0,0])
+        if ti.static(self.bc[1]==BC_FLOW.inlet or self.bc[1]==BC_FLOW.wall):
+            for j,k in ti.ndrange(self.ny,self.nz):
+                self.v_bc_profile[1][0,j,k] = self.v_BC[1]
+        # boundary 2 (bottom) - velocity init
+        if ti.static(self.bc[2]==BC_FLOW.inlet_flow):
+            v2 = self.flow_BC[2]/self.nx/self.nz
+            for i,k in ti.ndrange(self.nx,self.nz):
+                self.v_bc_profile[2][i,0,k] = ti.Vector([0,v2,0])
+        if ti.static(self.bc[2]==BC_FLOW.inlet or self.bc[2]==BC_FLOW.wall):
+            for i,k in ti.ndrange(self.nx,self.nz):
+                self.v_bc_profile[2][i,0,k] = self.v_BC[2]
+        # boundary 3 (top) - velocity init
+        if ti.static(self.bc[3]==BC_FLOW.inlet_flow):
+            v3 = self.flow_BC[3]/self.nx/self.nz
+            for i,k in ti.ndrange(self.nx,self.nz):
+                self.v_bc_profile[3][i,0,k] = ti.Vector([0,v3,0])
+        if ti.static(self.bc[3]==BC_FLOW.inlet or self.bc[3]==BC_FLOW.wall):
+            for i,k in ti.ndrange(self.nx,self.nz):
+                self.v_bc_profile[3][i,0,k] = self.v_BC[3]
+        # density profiles (all boundaries)
         for j,k in ti.ndrange(self.ny,self.nz):
             self.rho_bc_profile[0][0,j,k] = self.rho_BC[0]
             self.rho_bc_profile[1][0,j,k] = self.rho_BC[1]
@@ -98,3 +166,65 @@ class LBM2D_INITIALIZATION(LBM2D_BASE):
             self.rho_bc_profile[2][i,0,k] = self.rho_BC[2]
             self.rho_bc_profile[3][i,0,k] = self.rho_BC[3]
 
+    def setup_mrt_rates(self, tau, tau_bulk=None, s_magic=1.63):
+        """设置 D2Q9/D2Q5 MRT 松弛率 (仅 MRT 碰撞模型可用)。
+        
+        Args:
+            tau: 剪切粘性松弛时间 (与BGK的τ相同)
+            tau_bulk: 体粘性松弛时间 (默认与tau相同)
+            s_magic: magic parameter for s1/s2 (default 1.63 for optimal stability)
+        
+        标准MRT参数:
+            s0=0 (密度, 守恒)
+            s1=s2  (能量模, 与体粘性相关)
+            s3=s5=0 (动量, 守恒)
+            s4, s6  (能量平方模)
+            s7=s8=1/tau (剪切应力, 决定运动粘度)
+            
+        D2Q5 MRT参数 (标量输运):
+            s0=0 (标量密度, 守恒)
+            s1=s2=1/tau_Q (通量, 决定扩散系数)
+            s3=s4 (高阶矩)
+            
+        Raises:
+            RuntimeError: 如果碰撞模型不是 MRT
+        """
+        if self.collision_model != COLLISION_MODEL.MRT:
+            raise RuntimeError(
+                f"setup_mrt_rates() 仅对 MRT 碰撞模型可用, "
+                f"当前模型: {self.collision_model.name}"
+            )
+        omega = 1.0 / tau  # BGK relaxation frequency
+        if tau_bulk is None:
+            tau_bulk = tau
+        omega_bulk = 1.0 / tau_bulk
+        
+        # D2Q9 MRT 松弛率
+        # s0 (密度): 守恒矩, 松弛率为0
+        self.s_mrt[0] = 0.0
+        # s1 (能量e): 与体粘性相关
+        self.s_mrt[1] = omega_bulk
+        # s2 (能量平方ε): 与体粘性相关
+        self.s_mrt[2] = omega_bulk
+        # s3 (jx): 守恒矩
+        self.s_mrt[3] = 0.0
+        # s4 (qx): 高阶矩, 使用magic参数
+        self.s_mrt[4] = s_magic
+        # s5 (jy): 守恒矩
+        self.s_mrt[5] = 0.0
+        # s6 (qy): 高阶矩
+        self.s_mrt[6] = s_magic
+        # s7 (pxx): 剪切应力, 决定运动粘度 ν = cs^2*(τ-0.5)*dt
+        self.s_mrt[7] = omega
+        # s8 (pxy): 剪切应力
+        self.s_mrt[8] = omega
+        
+        # D2Q5 MRT 松弛率 (标量输运)
+        # s0 (φ): 守恒矩
+        self.s_mrt_q5[0] = 0.0
+        # s1 (jx), s2 (jy): 通量, 决定扩散系数 D = cs^2*(τ-0.5)*dt
+        self.s_mrt_q5[1] = omega
+        self.s_mrt_q5[2] = omega
+        # s3 (e), s4 (ε): 高阶矩
+        self.s_mrt_q5[3] = s_magic
+        self.s_mrt_q5[4] = s_magic

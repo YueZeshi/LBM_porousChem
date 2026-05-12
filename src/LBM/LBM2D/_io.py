@@ -150,6 +150,12 @@ class LBM2D_INPUT(LBM2D_BASE):
         """设置固/流换热系数分布。"""
         self.init_field(self.TS.exchangeCoef,coef)
     ## 密度场
+    def set_EOS(self,is_compressible = False):
+        """设定方程状态模型，是否考虑可压缩效应。"""
+        if is_compressible:
+            self.EOS = FLUID_STATE_EQUATION.IDEAL_GAS
+        else:
+            self.EOS = FLUID_STATE_EQUATION.INCOMPRESSIBLE
     def set_viscosity(self,mu):#定义常黏度
         """设定常黏度模型，``mu`` 为格子单位黏度。"""
         self.visco[None] = mu
@@ -806,10 +812,12 @@ class LBM2D_OUTPUT(LBM2D_BASE):
         # print(self.species[0].coefDiff(s1))
         # print(self.tau(s1),self.TF.coefDiff(s1),self.TF.capacity_m(s1),self.TF.conductivity(s1),self.viscosity(s1),self.TS.conductivity(s1),self.TS.capacity_m(s1),self.rhos[s1],self.reactions.dS[0][s1],self.reactions.reactions[0].reaction(s1))
         # print(self.TF.capacity_m(idx),self.TF.conductivity(idx),self.viscosity(idx),self.TS.conductivity(idx),self.TS.capacity_m(idx),self.rhos[idx])
-        dH = self.TS.exchangeCoef[idx]*self.TS.exchangeSurface[idx]*(self.TF.physical_value(self.TF.S[idx])-self.TS.physical_value(self.TS.S[idx]))*self.dt
-        dSS = dH/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale
-        dSF = -dH/self.TF.capacity_m(idx)/self.rho[idx]/self.TF.v_scale
-        print(self.species[3].S[idx],self.species[3].dS[idx])
+        if ti.static(hasattr(self, 'TS')):
+            dH = self.TS.exchangeCoef[idx]*self.TS.exchangeSurface[idx]*(self.TF.physical_value(self.TF.S[idx])-self.TS.physical_value(self.TS.S[idx]))*self.dt
+            dSS = dH/self.TS.capacity_m(idx)/self.rhos[idx]/self.TS.v_scale
+            dSF = -dH/self.TF.capacity_m(idx)/self.rho[idx]/self.TF.v_scale
+        if ti.static(hasattr(self, 'species') and len(self.species) > 3):
+            print(self.species[3].S[idx],self.species[3].dS[idx])
         #  rad = 0.0
         # rad_surface = 0.0
         # for i in ti.grouped(self.rho):

@@ -21,6 +21,7 @@ timeControl:
   DT : 2e-4
 
 flowProperties:
+  eos: weakly_compressible
   viscosity :
     type: constant
     value: 1e-5

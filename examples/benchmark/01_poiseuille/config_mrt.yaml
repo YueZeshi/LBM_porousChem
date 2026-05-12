@@ -1,10 +1,11 @@
 basic:
-  name      : poiseuille
-  author    : Sylvain
-  date      : 2025-12-15
+  name      : poiseuille_mrt
+  author    : benchmark
+  date      : 2026-05-11
   dimension : 2
-  arch      : cpu
-  type      : configuration 
+  arch      : gpu
+  type      : configuration
+  collisionModel : MRT
 
 module : 
   flow : true
@@ -13,32 +14,26 @@ module :
   porous_media : false
   radiation : false
 
-
-spaceControl:
-  geometry : [0.1,0.1]
-  DX : 1e-3
-
-
-timeControl:
-  startTime : 0
-  endTime : 10
-  DT : 1e-3
-
 flowProperties:
   eos: weakly_compressible
   viscosity : 
     type : constant
-    value : 0.01
+    value : 0.002
 
-chemicalProperties:
-  source : cantera
+spaceControl:
+  geometry : [0.1, 0.02]
+  DX : 5e-4
+
+timeControl:
+  startTime : 0
+  endTime : 1000
+  DT : 1e-3
 
 boundaryCondition:
   left:
     flow:
       type: inlet
-      velocity : [0.01,0,0]
-      rho : 1
+      velocity : [0.01, 0.0, 0.0]
   right:
     flow:
       type: outlet
@@ -48,23 +43,22 @@ boundaryCondition:
       type: wall
   up:
     flow:
-      type : wall
-  
+      type: wall
+
 initialCondition:
   flow:
     rho : 1
-    velocity : [0,0,0]
-  
+    velocity : [0, 0, 0]
 
 outputControl:
   vtk:
-    interval : 0.1
+    interval : 10
     path : vtk
     LOD : 1
     clear : true
   log:
-    interval : 0.1
+    interval : 1
     LOD : 1
   snapshot:
     interval : 100
-    path : snapshot.yaml
+    path : snapshot

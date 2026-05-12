@@ -205,6 +205,8 @@ lbm/
 │       ├── PVD.py                # PVD/VTK 导出器
 │       └── PvViewer.py           # PyVista 内建浏览器
 ├── examples/
+│   ├── benchmark/                # Benchmark 算例（验证集）
+│   │   └── BENCHMARK_REFERENCE.md# 📖 Benchmark 配置参考（含已知陷阱）
 │   ├── 2D/                       # 2D 仿真示例
 │   └── 3D/                       # 3D 仿真示例（含完整热解案例）
 ├── tests/                        # 单元测试

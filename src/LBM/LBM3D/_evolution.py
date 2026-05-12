@@ -85,7 +85,7 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                     feq_all[q] = self.feq19(q, rho, idx[0], idx[1], idx[2])
                 if ti.static(self.collision_model == COLLISION_MODEL.MRT):
                     # MRT: 矩空间碰撞 (守恒矩s=0保持, 非守恒矩s=1/tau)
-                    f_collided_local = self.mrt_collide_D3Q19(f_local, feq_all, idx)
+                    f_collided_local = self.mrt_collide_D3Q19(f_local, feq_all, idx, tau)
                     for q in ti.static(range(19)):
                         f_collided_local[q] += self.forceTermGuo(q, idx)
                         f_collided_local[q] += self.feq19(q, drho, idx[0], idx[1], idx[2])

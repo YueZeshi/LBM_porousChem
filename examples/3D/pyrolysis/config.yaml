@@ -24,6 +24,7 @@ timeControl:
 
 
 flowProperties:
+  eos: weakly_compressible
   viscosity : 
     type : mixture # constant/sutherland/mixture
     # # if constant

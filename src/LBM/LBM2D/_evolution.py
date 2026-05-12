@@ -69,9 +69,11 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                 self.drho[idx] = 0.0 # 化学反应引起的密度变化在碰撞后重置，下一步重新计算
                 # 碰撞
                 f_collided = ti.Vector([0.0] * 9)
+                eps_local = 1.0 - self.solid[idx]
                 if ti.static(self.collision_model == COLLISION_MODEL.MRT):
                     u_mrt = self.v[idx]
-                    f_collided = self.collision_MRT_D2Q9(f_local, rho, u_mrt[0], u_mrt[1])
+                    tau = self.tau(idx)
+                    f_collided = self.collision_MRT_D2Q9(f_local, rho, u_mrt[0], u_mrt[1], tau, eps_local)
                 else:
                     tau = self.tau(idx)
                     for q in ti.static(range(9)):
@@ -120,7 +122,8 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         dS_local = self.TF.dS[idx]
                         if ti.static(self.collision_model == COLLISION_MODEL.MRT):
                             u_mrt = self.v[idx]
-                            g_collided = self.collision_MRT_D2Q5(g_local, S_local, u_mrt[0], u_mrt[1])
+                            tau_local = self.TF.tau(idx)
+                            g_collided = self.collision_MRT_D2Q5(g_local, S_local, u_mrt[0], u_mrt[1], tau_local)
                         else:
                             tau_local = self.TF.tau(idx)
                             for q in ti.static(range(5)):
@@ -160,7 +163,8 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         dS_local = self.TS.dS[idx]
                         if ti.static(self.collision_model == COLLISION_MODEL.MRT):
                             u_mrt = self.v[idx]
-                            g_collided = self.collision_MRT_D2Q5(g_local, S_local, u_mrt[0], u_mrt[1])
+                            tau_local = self.TS.tau(idx)
+                            g_collided = self.collision_MRT_D2Q5(g_local, S_local, u_mrt[0], u_mrt[1], tau_local)
                         else:
                             tau_local = self.TS.tau(idx)
                             for q in ti.static(range(5)):
@@ -207,7 +211,8 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                                     dS_local = specie.dS[idx]/self.rho[idx] # 浓度源项归一化
                                     if ti.static(self.collision_model == COLLISION_MODEL.MRT):
                                         u_mrt = self.v[idx]
-                                        g_collided = self.collision_MRT_D2Q5(g_local, S_local, u_mrt[0], u_mrt[1])
+                                        tau_local = specie.tau(idx)
+                                        g_collided = self.collision_MRT_D2Q5(g_local, S_local, u_mrt[0], u_mrt[1], tau_local)
                                     else:
                                         tau_local = specie.tau(idx)
                                         for q in ti.static(range(5)):
@@ -571,3 +576,166 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
         if ti.static(self.TEMPERATURE):
             TS = self.TS.physical_value(self.TS.S[i])
         return TS
+    # ========= MRT Collision Operators =========
+    @ti.func
+    def mrt_transform_D2Q9(self, f):
+        """D2Q9 分布函数 → 矩空间变换 m = M @ f
+        使用已验证的M矩阵：m0=ρ, m1=e, m2=ε, m3=jx, m4=qx, m5=jy, m6=qy, m7=pxx, m8=pxy
+        ti.field手动循环代替ti.Matrix.rows @ 避免9×9矩阵编译展开
+        """
+        m = ti.Vector([0.0] * 9)
+        for i in ti.static(range(9)):
+            val = 0.0
+            for j in ti.static(range(9)):
+                val += self.M9[i, j] * f[j]
+            m[i] = val
+        return m
+    
+    @ti.func
+    def invmrt_transform_D2Q9(self, m):
+        """矩空间 → D2Q9 分布函数逆变换 f = invM @ m"""
+        f = ti.Vector([0.0] * 9)
+        for i in ti.static(range(9)):
+            val = 0.0
+            for j in ti.static(range(9)):
+                val += self.invM9[i, j] * m[j]
+            f[i] = val
+        return f
+    
+    @ti.func
+    def mrt_eq_moments_D2Q9(self, rho, u, v, eps=1.0):
+        """计算 D2Q9 矩空间平衡态 m_eq
+        通过先计算分布空间平衡态 feq 再投影到矩空间，确保与 BGK 完全一致。
+        由于 M 矩阵方向排序 ≠ e9 方向排序，硬编码矩公式会产生系统性偏差。
+        u: x方向速度分量, v: y方向速度分量
+        eps: 孔隙率，用于多孔介质 feq 二次项修正（与 feq9 一致）
+        """
+        usqr = u*u + v*v
+        # 1) 先计算分布空间平衡态 feq（含孔隙率修正）
+        feq = ti.Vector([0.0] * 9)
+        for q in ti.static(range(9)):
+            eu = self.e9[q].x * u + self.e9[q].y * v
+            if self.EOS == FLUID_STATE_EQUATION.INCOMPRESSIBLE:
+                feq[q] = self.w9[q] * (rho + 3.0*eu + 4.5*eu*eu/(eps+1e-12) - 1.5*usqr/(eps+1e-12))
+            else:  # IDEAL_GAS
+                feq[q] = self.w9[q] * rho * (1.0 + 3.0*eu + 4.5*eu*eu/(eps+1e-12) - 1.5*usqr/(eps+1e-12))
+        # 2) 投影到矩空间: m_eq = M @ feq (确保方向排序一致)
+        m_eq = ti.Vector([0.0] * 9)
+        for i in ti.static(range(9)):
+            val = 0.0
+            for j in ti.static(range(9)):
+                val += self.M9[i, j] * feq[j]
+            m_eq[i] = val
+        return m_eq
+    @ti.func
+    def mrt_relaxation_D2Q9(self, tau):
+        """根据局部松弛时间 tau 计算 D2Q9 MRT 松弛率数组 s_mrt
+        守恒矩(s=0): m0(ρ), m3(jx), m5(jy)
+        剪切矩(s=ω=1/τ): m7(pxx), m8(pxy) — 决定运动粘度
+        非守恒非剪切矩: 使用 setup_mrt_rates 预设值 (e, ε, qx, qy)
+        """
+        s_mrt = ti.Vector([0.0] * 9)
+        # 守恒矩: 松弛率=0
+        s_mrt[0] = 0.0         # m0 (ρ)
+        s_mrt[3] = 0.0         # m3 (jx)
+        s_mrt[5] = 0.0         # m5 (jy)
+        # 非守恒矩: 使用预设值 (含体粘性和高阶模)
+        s_mrt[1] = self.s_mrt[1]  # m1 (能量e)
+        s_mrt[2] = self.s_mrt[2]  # m2 (能量平方ε)
+        s_mrt[4] = self.s_mrt[4]  # m4 (qx)
+        s_mrt[6] = self.s_mrt[6]  # m6 (qy)
+        # 剪切矩: 实时关联局部τ (变粘度核心)
+        omega = 1.0 / tau
+        s_mrt[7] = omega       # m7 (pxx): 决定运动粘度 ν = cs^2*(τ-0.5)*dt
+        s_mrt[8] = omega       # m8 (pxy): 剪切应力
+        return s_mrt
+
+    @ti.func
+    def collision_MRT_D2Q9(self, f, rho, u, v, tau, eps=1.0):
+        """D2Q9 MRT 碰撞算子：f* = invM @ (I - S) @ M @ f + invM @ S @ m_eq
+        tau: 局部松弛时间，支持变粘度；s7(pxx)/s8(pxy) = 1/tau 实时计算
+        eps: 孔隙率，用于多孔介质 feq 修正
+        """
+        m = self.mrt_transform_D2Q9(f)
+        m_eq = self.mrt_eq_moments_D2Q9(rho, u, v, eps)
+        s_mrt = self.mrt_relaxation_D2Q9(tau) # 获取当前松弛率数组
+        # 矩空间松弛: s7,s8实时关联tau(变粘度核心)，其余读预存值
+        # note: 避免局部变量 s 在 ti.static 编译时作用域问题，直接内联
+        for q in ti.static(range(9)):
+            m[q] = m[q] - s_mrt[q] * (m[q] - m_eq[q])
+        
+        return self.invmrt_transform_D2Q9(m)
+    
+    @ti.func
+    def mrt_transform_D2Q5(self, g):
+        """D2Q5 分布函数 → 矩空间变换 (用于标量输运)
+        ti.field手动循环代替ti.Matrix.rows @
+        """
+        m = ti.Vector([0.0] * 5)
+        for i in ti.static(range(5)):
+            val = 0.0
+            for j in ti.static(range(5)):
+                val += self.M5[i, j] * g[j]
+            m[i] = val
+        return m
+    
+    @ti.func
+    def invmrt_transform_D2Q5(self, m):
+        """矩空间 → D2Q5 分布函数逆变换"""
+        f = ti.Vector([0.0] * 5)
+        for i in ti.static(range(5)):
+            val = 0.0
+            for j in ti.static(range(5)):
+                val += self.invM5[i, j] * m[j]
+            f[i] = val
+        return f
+
+    @ti.func
+    def invmrt_transform_D2Q5(self, m):
+        """矩空间 → D2Q5 分布函数逆变换"""
+        inv5 = 0.2
+        inv4 = 0.25
+        f = ti.Vector([0.0] * 5)
+        f[0] = inv5*m[0] - inv5*m[3]
+        f[1] = inv5*m[0] + inv4*m[1] + 0.2*m[3] + inv4*m[4]
+        f[2] = inv5*m[0] + inv4*m[2] + 0.2*m[3] - inv4*m[4]
+        f[3] = inv5*m[0] - inv4*m[1] + 0.2*m[3] + inv4*m[4]
+        f[4] = inv5*m[0] - inv4*m[2] + 0.2*m[3] - inv4*m[4]
+        return f
+    
+    @ti.func
+    def mrt_eq_moments_D2Q5(self, scalar, ux, uy):
+        """计算 D2Q5 矩空间平衡态"""
+        m_eq = ti.Vector([0.0] * 5)
+        m_eq[0] = scalar                                   # m0 = φ
+        m_eq[1] = scalar * ux * (1.0/3.0)                  # m1 = jx_eq
+        m_eq[2] = scalar * uy * (1.0/3.0)                  # m2 = jy_eq
+        m_eq[3] = scalar * (-2.0/3.0)                      # m3 = e_eq
+        m_eq[4] = 0.0                                       # m4 = ε_eq
+        return m_eq
+    @ti.func
+    def collision_MRT_D2Q5(self, g, scalar, ux, uy, tau):
+        """D2Q5 MRT 碰撞算子 (用于标量输运如温度/组分)
+        tau: 局部松弛时间，支持变扩散系数；s1,s2 = 1/tau 实时计算
+        """
+        m = self.mrt_transform_D2Q5(g)
+        m_eq = self.mrt_eq_moments_D2Q5(scalar, ux, uy)
+        s = self.mrt_relaxation_D2Q5(tau) # 获取当前松弛率数组
+        for q in ti.static(range(5)):
+            m[q] = m[q] - s[q] * (m[q] - m_eq[q])
+        
+        return self.invmrt_transform_D2Q5(m)
+    @ti.func
+    def mrt_relaxation_D2Q5(self, tau):
+        """根据局部松弛时间 tau 计算 D2Q5 MRT 松弛率数组 s
+        s1, s2 实时关联 tau，其他使用预设值
+        """
+        s = ti.Vector([0.0] * 5)
+        s[0] = 0.0  # m0 (标量密度): 守恒矩
+        omega = 1.0 / tau
+        s[1] = omega  # m1 (jx): 通量, 决定扩散系数 D = cs^2*(τ-0.5)*dt
+        s[2] = omega  # m2 (jy): 通量
+        s[3] = self.s_mrt_q5[3]  # m3 (e): 高阶矩
+        s[4] = self.s_mrt_q5[4]  # m4 (ε): 高阶矩
+        return s
+    

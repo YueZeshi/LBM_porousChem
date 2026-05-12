@@ -119,12 +119,23 @@ def initialize_lbm_solver(dim, x, y, z, dx, dt, name, isThermal, isChemical, isP
     return lb
 
 def load_flow_properties(config, lb, logger):
-    """加载流体属性：粘度"""
+    """加载流体属性：EOS状态方程、粘度"""
     flowProperties = config.get("flowProperties")
     if flowProperties is None:
         logger.error("flowProperties missing.")
         raise ValueError("flowProperties missing.")
     else:
+        # ---- 1. 状态方程 (EOS) ----
+        eos = flowProperties.get("eos", "weakly_compressible")
+        if eos == "weakly_compressible":
+            lb.set_EOS(True)   # compressible → IDEAL_GAS
+        elif eos == "incompressible":
+            lb.set_EOS(False)  # incompressible
+        else:
+            logger.warning(f"Unknown EOS type '{eos}', defaulting to weakly_compressible.")
+            lb.set_EOS(True)
+
+        # ---- 2. 粘度 ----
         viscosity = flowProperties.get("viscosity")
         viscosityType = viscosity.get("type")
         if viscosityType == "constant":
