@@ -1,0 +1,89 @@
+basic:
+  name      : thermal_channel_quick
+  author    : benchmark
+  date      : 2026-05-11
+  dimension : 2
+  arch      : cpu
+  type      : configuration
+  collisionModel : BGK
+
+module : 
+  flow : true
+  chemistry : false
+  temperature : true
+  porous_media : false
+  radiation : false
+
+flowProperties:
+  eos: weakly_compressible
+  viscosity : 
+    type : constant
+    value : 0.002
+
+thermalPropertiesFluid:
+  conductivity:
+    type : constant
+    value : 0.05
+  capacity:
+    type : constant
+    value : 1.0
+  expansion:
+    type : linear
+    value : 0.1
+
+spaceControl:
+  geometry : [0.1, 0.05]
+  DX : 5e-3
+
+timeControl:
+  startTime : 0
+  endTime : 1.0
+  DT : 1e-3
+
+boundaryCondition:
+  left:
+    flow:
+      type: inlet
+      velocity : [0.01, 0.0, 0.0]
+    thermalFluid:
+      type: fixedValue
+      value : 0.2
+  right:
+    flow:
+      type: outlet
+      rho: 1
+    thermalFluid:
+      type: zeroGradient
+  down:
+    flow:
+      type: wall
+    thermalFluid:
+      type: fixedValue
+      value : 0.1
+  up:
+    flow:
+      type: wall
+    thermalFluid:
+      type: fixedValue
+      value : 0.0
+
+initialCondition:
+  flow:
+    rho : 1
+    velocity : [0, 0, 0]
+  thermal:
+    type : fixedValue
+    value : 0.0
+
+outputControl:
+  vtk:
+    interval : 0.1
+    path : vtk
+    LOD : 1
+    clear : true
+  log:
+    interval : 0.01
+    LOD : 1
+  snapshot:
+    interval : 100
+    path : snapshot

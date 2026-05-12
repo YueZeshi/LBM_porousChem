@@ -1,0 +1,63 @@
+basic:
+  name      : lid_driven_cavity_mrt_quick
+  author    : benchmark
+  date      : 2026-05-11
+  dimension : 2
+  arch      : cpu
+  type      : configuration
+  collisionModel : MRT
+
+module : 
+  flow : true
+  chemistry : false
+  temperature : false
+  porous_media : false
+  radiation : false
+
+flowProperties:
+  eos: weakly_compressible
+  viscosity : 
+    type : constant
+    value : 0.002
+
+spaceControl:
+  geometry : [0.1, 0.1]
+  DX : 5e-3
+
+timeControl:
+  startTime : 0
+  endTime : 1.0
+  DT : 1e-3
+
+boundaryCondition:
+  down:
+    flow:
+      type: wall
+  up:
+    flow:
+      type: inlet
+      velocity : [0.01, 0, 0]
+  left:
+    flow:
+      type: wall
+  right:
+    flow:
+      type: wall
+
+initialCondition:
+  flow:
+    rho : 1
+    velocity : [0, 0, 0]
+
+outputControl:
+  vtk:
+    interval : 0.1
+    path : vtk
+    LOD : 1
+    clear : true
+  log:
+    interval : 0.01
+    LOD : 1
+  snapshot:
+    interval : 100
+    path : snapshot

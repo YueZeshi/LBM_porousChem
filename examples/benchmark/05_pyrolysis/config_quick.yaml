@@ -1,0 +1,186 @@
+basic:
+  name      : pyrolysis_benchmark_quick
+  author    : benchmark
+  date      : 2026-05-11
+  dimension : 2
+  arch      : cpu
+  type      : configuration
+  collisionModel : BGK
+
+module : 
+  flow : true
+  porous_media : true
+  temperature : true
+  chemistry : true
+  radiation : false
+
+flowProperties:
+  eos: weakly_compressible
+  viscosity : 
+    type : constant
+    value : 0.002
+
+thermalPropertiesFluid:
+  conductivity:
+    type : constant
+    value : 0.05
+  capacity:
+    type : constant
+    value : 1.0
+
+thermalPropertiesSolid:
+  capacity:
+    type : constant
+    value : 1.0
+  thermalDiffusivity:
+    type : constant
+    value : 0.02
+
+porousProperties:
+  type : darcy
+  source : u-darcy
+  porosity :
+    type : constant
+    value : 0.4
+  permeability :
+    type : constant
+    value : 1e-6
+
+chemicalProperties:
+  type : input
+  species:
+    Wood:
+      type : solid
+      mu: 0.0
+      lambda: 0.0
+      D: 0.0
+      diffusitivity:
+        type : constant
+        value : 0.0
+    Tar:
+      type : fluid
+      mu: 0.0001
+      lambda: 0.05
+      D: 0.0
+      diffusitivity:
+        type : constant
+        value : 0.0
+    Char:
+      type : solid
+      mu: 0.0
+      lambda: 0.0
+      D: 0.0
+      diffusitivity:
+        type : constant
+        value : 0.0
+    Gas:
+      type : fluid
+      mu: 0.0001
+      lambda: 0.05
+      D: 0.0
+      diffusitivity:
+        type : constant
+        value : 0.0
+  reactions:
+    - name: wood_pyrolysis
+      equation: "Wood => 0.5 Tar + 0.35 Char + 0.15 Gas"
+      rate-constant:
+        A: 1e6
+        Ea: 10000
+        b: 0
+
+initialCondition:
+  flow:
+    rho : 1
+    velocity : [0, 0, 0]
+  thermal:
+    type : fixedValue
+    value : 0.0
+  chemical:
+    Wood:
+      type : fixedValue
+      value : 1.0
+    Tar:
+      type : fixedValue
+      value : 0.0
+    Char:
+      type : fixedValue
+      value : 0.0
+    Gas:
+      type : fixedValue
+      value : 0.0
+
+spaceControl:
+  geometry : [0.05, 0.05]
+  DX : 5e-3
+
+timeControl:
+  startTime : 0
+  endTime : 0.01
+  DT : 5e-5
+
+region:
+  obstacle:
+    type : rectangle
+    center : [0.025, 0.025]
+    width : 0.02
+    height : 0.02
+
+properties:
+  fluid:
+    zone : obstacle
+    flow:
+      type : porous
+    thermal:
+      type : none
+    chemical:
+      type : reactive
+  solid:
+    solid1:
+      zone : obstacle
+      type : wood
+
+boundaryCondition:
+  left:
+    flow:
+      type: inlet
+      velocity : [0.005, 0, 0]
+    thermalFluid:
+      type: fixedValue
+      value : 0.0
+    chemical:
+      type: fixedValue
+      N2: 1.0
+  right:
+    flow:
+      type: outlet
+      rho: 1
+    thermalFluid:
+      type: zeroGradient
+    chemical:
+      type: zeroGradient
+  down:
+    flow:
+      type: wall
+    thermalFluid:
+      type: fixedValue
+      value : 0.1
+  up:
+    flow:
+      type: wall
+    thermalFluid:
+      type: fixedValue
+      value : 0.0
+
+outputControl:
+  vtk:
+    interval : 0.01
+    path : vtk
+    LOD : 1
+    clear : true
+  log:
+    interval : 0.001
+    LOD : 1
+  snapshot:
+    interval : 100
+    path : snapshot

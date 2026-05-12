@@ -1,0 +1,64 @@
+basic:
+  name      : poiseuille_mrt_quick
+  author    : benchmark
+  date      : 2026-05-11
+  dimension : 2
+  arch      : cpu
+  type      : configuration
+  collisionModel : MRT
+
+module : 
+  flow : true
+  chemistry : false
+  temperature : false
+  porous_media : false
+  radiation : false
+
+flowProperties:
+  eos: weakly_compressible
+  viscosity : 
+    type : constant
+    value : 0.002
+
+spaceControl:
+  geometry : [0.1, 0.02]
+  DX : 5e-4
+
+timeControl:
+  startTime : 0
+  endTime : 100
+  DT : 1e-3
+
+boundaryCondition:
+  left:
+    flow:
+      type: inlet
+      velocity : [0.01, 0.0, 0.0]
+  right:
+    flow:
+      type: outlet
+      rho: 1
+  down:
+    flow:
+      type: wall
+  up:
+    flow:
+      type: wall
+
+initialCondition:
+  flow:
+    rho : 1
+    velocity : [0, 0, 0]
+
+outputControl:
+  vtk:
+    interval : 10
+    path : examples/benchmark/01_poiseuille/vtk
+    LOD : 1
+    clear : false
+  log:
+    interval : 1
+    LOD : 1
+  snapshot:
+    interval : 100
+    path : snapshot
