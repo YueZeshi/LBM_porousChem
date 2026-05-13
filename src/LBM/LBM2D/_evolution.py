@@ -57,7 +57,10 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                             c1 = 0.5*eps*Fc
                             v_mag = ti.math.length(v)
                             v/=(c0+ti.sqrt(c0**2+c1*v_mag))
-                self.v[idx] = v / (rho + 1e-12)
+                if ti.static(self.EOS == FLUID_STATE_EQUATION.IDEAL_GAS):
+                    self.v[idx] = v / (rho + 1e-12)
+                else:
+                    self.v[idx] = v
                 self.rho[idx] = rho
 
                 # ----- 1.2 碰撞（BGK/MRT）+ 体力源项（GUO） -----
@@ -77,9 +80,10 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                         feq = self.feq9(q, rho, idx[0], idx[1], idx[2])
                         f_collided[q] = f_local[q] - (f_local[q] - feq) / tau
                 # 体力源项 + 密度源项 (BGK/MRT 通用)
-                for q in ti.static(range(9)):
-                    f_collided[q] += self.forceTermGuo(q, idx, F)
-                    f_collided[q] += self.feq9(q, drho, idx[0], idx[1], idx[2])
+                    for q in ti.static(range(9)):
+                        f_collided[q] += self.forceTermGuo(q, idx, F)
+                        if ti.static(self.EOS == FLUID_STATE_EQUATION.IDEAL_GAS): # 密度源项仅理想气体模型适用，不可压缩流不接受密度变化
+                            f_collided[q] += self.feq9(q, drho, idx[0], idx[1], idx[2])
 
                 # ----- 1.3 写入阶段（AA 迁移，写回 self.f） -----
                 for q in ti.static(range(9)):
@@ -375,7 +379,8 @@ class LBM2D_EVOLUTION(LBM2D_BASE):
                     self.f[i][s] = self.F[i][s] # 更新F
                     self.v[i] += self.e9[s]*self.F[i][s]
                     self.rho[i] += self.F[i][s] # 宏观量重建 计算密度
-                self.v[i] /= (self.rho[i] + 1e-12)
+                if self.EOS==FLUID_STATE_EQUATION.IDEAL_GAS:
+                    self.v[i] /= self.rho[i]
                 if ti.static(self.PORO):
                     if eps!=0 and eps!=1: # 涉及多孔介质的速度修正
                         Dc,Fc = 0.0,0.0

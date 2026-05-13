@@ -63,7 +63,10 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                             c1 = 0.5*eps*Fc
                             v_mag = ti.math.length(v)
                             v/=(c0+ti.sqrt(c0**2+c1*v_mag))
-                self.v[idx] = v / (rho + 1e-12)
+                if self.EOS == FLUID_STATE_EQUATION.IDEAL_GAS:
+                    self.v[idx] = v / (rho + 1e-12)
+                else:
+                    self.v[idx] = v
                 self.rho[idx] = rho
 
                 # ----- 1.2 碰撞（BGK）+ 体力源项（GUO） -----
@@ -370,7 +373,8 @@ class LBM3D_EVOLUTION(LBM3D_BASE):
                     self.f[i][s] = self.F[i][s] # 更新F
                     self.v[i] += self.e19[s]*self.F[i][s]
                     self.rho[i] += self.F[i][s] # 宏观量重建 计算密度
-                self.v[i] /= (self.rho[i] + 1e-12)
+                if self.EOS==FLUID_STATE_EQUATION.IDEAL_GAS:
+                    self.v[i] /= self.rho[i]
                 if ti.static(self.PORO):
                     if eps!=0 and eps!=1: # 涉及多孔介质的速度修正
                         Dc,Fc = 0.0,0.0
